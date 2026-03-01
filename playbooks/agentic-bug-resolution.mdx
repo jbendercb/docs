@@ -1,0 +1,1101 @@
+---
+title: "Agentic Bug Resolution"
+sidebarTitle: "Bug Resolution"
+description: "Use CoreStory's persistent code intelligence to diagnose and fix bugs faster with AI agents grounded in your actual architecture."
+icon: "bug"
+---
+
+
+## Overview
+
+This playbook teaches you to resolve bugs systematically using an AI coding agent connected to CoreStory's code intelligence via MCP. Instead of grep-wandering through a codebase, the agent queries CoreStory to understand how the system *should* work, generates hypotheses about what went wrong, writes a failing test to confirm the bug, and implements a minimal fix â€” all with architectural context that would normally require senior-engineer-level familiarity with the code.
+
+CoreStory serves two roles in this workflow:
+
+- **Oracle** â€” answers questions about intended system behavior, invariants, business rules, and design history. This is context you can't get from code search alone; it synthesizes PRDs, technical specs, user stories, and code history into coherent answers.
+- **Navigator** â€” points to specific files, methods, and code paths relevant to a bug. Instead of blind searching, the agent gets directed guidance on where to look.
+
+**When to use this:** Any bug that benefits from architectural understanding â€” which is most of them. Especially valuable for unfamiliar codebases, cross-component issues, bugs in complex state management, and onboarding new team members who need to fix things in code they've never seen.
+
+**When to skip this:** Trivial typos, documentation-only changes, dependency bumps without behavior changes, or emergency hotfixes where speed matters more than comprehensiveness. (For hotfixes, consider running the full workflow as a retrospective.)
+
+---
+
+## Prerequisites
+
+**Required:**
+
+- A CoreStory account with at least one project that has completed ingestion
+- The CoreStory MCP server installed and configured in your AI agent
+- A code repository the agent can read and write to
+
+**Recommended:**
+
+- A ticketing system MCP (GitHub Issues, Jira, Azure DevOps, or Linear) so the agent can fetch ticket details and post updates automatically
+- Agent-specific configuration files (skill files, custom instructions, project rules) â€” covered in the Agent Implementation Guides section below
+
+**Verify your setup:** Ask your agent to "List my CoreStory projects." If it returns your projects, the MCP connection is working.
+
+---
+
+## How It Works
+
+### The Six-Phase Workflow
+
+The workflow has six phases. The first three gather context; the last three act on it.
+
+**Phase 1 â€” Bug Intake.** The agent pulls the bug ticket (or accepts a description), selects the relevant CoreStory project, and creates a dedicated investigation conversation. This conversation persists as institutional knowledge.
+
+**Phase 2 â€” Oracle Phase.** The agent queries CoreStory to understand how the system is *supposed* to work: which files implement the affected feature, what data structures and invariants are involved, and what design history exists. This happens *before* looking at code.
+
+**Phase 3 â€” Navigator Phase.** The agent asks CoreStory to map the bug's symptoms to specific code paths, generate ranked root cause hypotheses, and identify exact files and methods to investigate.
+
+**Phase 4 â€” Test-First Investigation.** The agent writes a failing test that reproduces the bug *before* reading any implementation code. It validates the test with CoreStory, then reads the identified code to pinpoint the root cause.
+
+**Phase 5 â€” Solution Development.** The agent implements a minimal fix, verifies the test passes, validates the fix with CoreStory against architectural constraints, adds edge case tests, and runs the full test suite.
+
+**Phase 6 â€” Completion.** The agent updates the ticket, commits with a structured message explaining the root cause and fix rationale, renames the CoreStory conversation to mark it resolved, and reports results.
+
+### CoreStory MCP Tools Used
+
+| Tool | Purpose |
+|------|---------|
+| `CoreStory:list_projects` | Find available projects |
+| `CoreStory:get_project` | Verify project status and details |
+| `CoreStory:get_project_stats` | Check ingestion/processing status |
+| `CoreStory:create_conversation` | Start a dedicated investigation thread |
+| `CoreStory:send_message` | Query code intelligence (streaming) |
+| `CoreStory:get_conversation` | Retrieve conversation history |
+| `CoreStory:rename_conversation` | Mark conversation as resolved |
+| `CoreStory:get_project_prd` | Access PRD for requirements context |
+| `CoreStory:get_project_techspec` | Access technical specifications |
+
+### Ticketing MCP Integrations (Optional)
+
+The agent can fetch ticket details and post updates automatically if you configure one of these:
+
+| System | MCP Server | Sample Prompt |
+|--------|-----------|---------------|
+| GitHub Issues | `@modelcontextprotocol/server-github` | "Fetch GitHub issue #6992 from pydata/xarray" |
+| Jira | `@modelcontextprotocol/server-jira` | "Fetch Jira ticket PROJ-1234" |
+| Azure DevOps | `@modelcontextprotocol/server-azure-devops` | "Get work item 12345 from Azure DevOps" |
+| Linear | `@modelcontextprotocol/server-linear` | "Retrieve Linear issue ENG-456" |
+
+---
+
+## Step-by-Step Walkthrough
+
+This section is agent-agnostic. The prompts work with any MCP-connected agent. Agent-specific configuration is in the Implementation Guides below.
+
+### Phase 1: Bug Intake & Context Gathering
+
+**Goal:** Import bug details and prepare the investigation environment.
+
+**Step 1 â€” Pull the bug ticket.** If you have a ticket ID, ask the agent to fetch it:
+
+```
+Fetch GitHub issue #6992 from pydata/xarray and extract the bug details.
+```
+
+If describing the bug directly, provide: symptoms, reproduction steps, expected vs. actual behavior, and the affected component.
+
+**Step 2 â€” Select the CoreStory project.** The agent lists available projects and picks the one matching your repository:
+
+```
+List my CoreStory projects and select the one for xarray.
+```
+
+If there's only one project, the agent auto-selects. It should verify ingestion status is "completed" before proceeding.
+
+**Step 3 â€” Create an investigation conversation.** This is the persistent thread where all CoreStory queries for this bug will live:
+
+```
+Create a CoreStory conversation titled
+"Bug Investigation: #6992 - reset_index coord_names issue"
+```
+
+The agent stores the `conversation_id` and uses it for all subsequent queries. This conversation becomes searchable institutional knowledge â€” future engineers investigating similar bugs can reference it.
+
+---
+
+### Phase 2: Understanding System Behavior (Oracle Phase)
+
+**Goal:** Establish ground truth about how the system *should* work before investigating what's wrong.
+
+This phase is the key differentiator. Without it, you risk fixing symptoms instead of root causes, breaking adjacent functionality, or missing architectural constraints that explain why the code works the way it does.
+
+**Query 1 â€” Architecture Discovery:**
+
+```
+Send CoreStory message: "What files are responsible for the reset_index
+functionality for Dataset objects? I need to understand:
+1. Primary implementation files
+2. Test coverage
+3. Helper/utility modules
+4. Integration points with other components"
+```
+
+CoreStory responds with file names, test files, related modules, architectural patterns, and recent PRs. This is your map of the territory.
+
+**Query 2 â€” Invariants & Data Structures:**
+
+```
+Send CoreStory message: "In the reset_index method for Dataset, what are
+the key data structures involved? Specifically:
+1. What is _coord_names and what does it contain?
+2. What is _variables and what does it contain?
+3. What is the relationship between _coord_names and _variables?
+4. When reset_index is called with drop=True vs drop=False, how should
+   these data structures be updated?"
+```
+
+The critical output here is **invariants** â€” conditions that must always be true (e.g., "coord_names âŠ† variables.keys()"). These become the assertions in your tests.
+
+**Query 3 â€” Historical Context:**
+
+```
+Send CoreStory message: "Have there been recent changes to the reset_index
+functionality? What was the original design intent? Are there related issues?"
+```
+
+CoreStory synthesizes PRD context, PR history, user stories, and known edge cases â€” the kind of context that normally lives only in the heads of long-tenured engineers.
+
+---
+
+### Phase 3: Hypothesis Generation (Navigator Phase)
+
+**Goal:** Translate symptoms into specific, actionable investigation targets.
+
+**Query 1 â€” Map symptoms to code paths:**
+
+```
+Send CoreStory message: "If there's a bug where reset_index with drop=True
+leaves stale coordinate names in _coord_names, what are the specific code
+paths I should investigate? Walk me through the logic flow."
+```
+
+**Query 2 â€” Root cause candidates:**
+
+```
+Send CoreStory message: "Based on the symptom that _coord_names contains
+stale entries after drop=True, what are the most likely root causes? Is this
+a missing cleanup operation, incorrect state update, or something else?
+Rank by probability."
+```
+
+**Query 3 â€” Precise navigation:**
+
+```
+Send CoreStory message: "In dataset.py, where is the _coord_names update
+logic during reset_index? Which methods should I examine?"
+```
+
+At this point the agent has a ranked list of hypotheses, specific files and methods to check, and a clear understanding of what "correct" looks like. This replaces hours of code archaeology.
+
+---
+
+### Phase 4: Test-First Investigation
+
+**Goal:** Write a failing test before reading implementation code. This is non-negotiable.
+
+**Why test-first for bugs?** A failing test proves the bug exists, a passing test proves it's fixed, and the test prevents the bug from recurring. It also forces the agent to articulate what "correct behavior" means before getting lost in implementation details.
+
+**Step 1 â€” Write a reproduction test.** Based on the expected behavior (Phase 2) and symptoms (Phase 1):
+
+```python
+def test_reset_index_drop_removes_coord_names():
+    """Test that reset_index(drop=True) removes coordinate names.
+
+    Bug: GH#6992 - _coord_names retains stale entries after drop=True
+    Expected: coord_names should only contain coordinates still in _variables
+    Invariant: coord_names âŠ† variables.keys()
+    """
+    # Setup: Create Dataset with multi-index
+    ds = Dataset({
+        'data': ('x', [1, 2, 3]),
+        'level_1': ('x', ['a', 'b', 'c']),
+        'level_2': ('x', [10, 20, 30])
+    })
+    ds = ds.set_index(x=['level_1', 'level_2'])
+
+    # Action: Reset index with drop=True
+    result = ds.reset_index('x', drop=True)
+
+    # Assert: Coordinate names should be cleaned up
+    assert 'level_1' not in result._coord_names
+    assert 'level_2' not in result._coord_names
+    assert result._coord_names.issubset(result._variables.keys())
+```
+
+**Step 2 â€” Verify the test fails.** Run it and confirm the failure matches the reported symptom. If the test passes, the bug doesn't exist in this form â€” go back to Phase 2 for clarification.
+
+**Step 3 â€” Validate the test with CoreStory:**
+
+```
+Send CoreStory message: "I've written this test to reproduce the bug:
+
+[paste test code]
+
+Does this correctly test the expected behavior according to the system design?
+Are there edge cases I'm missing?"
+```
+
+Update the test if CoreStory identifies gaps.
+
+**Step 4 â€” Now read the code.** Only now does the agent read the implementation files identified in Phase 3. It knows what to look for: state update logic, invariant maintenance, the specific methods CoreStory pointed to.
+
+**Step 5 â€” Identify the bug.** Compare actual code against expected behavior. Look for missing state updates, incorrect logic, missing validations, or invariant violations.
+
+**Step 6 â€” Validate the finding with CoreStory:**
+
+```
+Send CoreStory message: "Looking at line 4180 in dataset.py:
+
+    coord_names = set(new_variables) | self._coord_names
+
+This only ADDS to coord_names but doesn't REMOVE dropped coordinates.
+Should this instead be:
+
+    coord_names = (self._coord_names - set(drop_indexes)) | set(new_variables)
+
+So we remove the dropped index names before adding new ones?"
+```
+
+Wait for CoreStory's confirmation before implementing the fix.
+
+---
+
+### Phase 5: Solution Development
+
+**Goal:** Implement a minimal fix, verify it, and add comprehensive test coverage.
+
+**Step 1 â€” Implement the minimal fix.** The smallest change that restores the invariant, following architectural patterns CoreStory described.
+
+**Step 2 â€” Verify the test passes.** Run the reproduction test from Phase 4. If it still fails, the fix is incomplete.
+
+**Step 3 â€” Validate with CoreStory:**
+
+```
+Send CoreStory message: "I've implemented this fix: [describe change].
+Does this align with the system architecture? Could it have unintended
+side effects? Does it maintain all invariants?"
+```
+
+**Step 4 â€” Add edge case tests.** Ask CoreStory for scenarios:
+
+```
+Send CoreStory message: "My basic test passes. What edge cases should I
+test? Are there scenarios where reset_index behavior gets more complex?"
+```
+
+Common edge cases: partial operations, empty inputs, boundary conditions, different parameter combinations, concurrent access.
+
+**Step 5 â€” Run the full test suite.** Ensure no regressions. If existing tests break, the fix has side effects â€” revise the approach.
+
+---
+
+### Phase 6: Completion & Knowledge Capture
+
+**Goal:** Close the loop and preserve knowledge.
+
+**Step 1 â€” Update the ticket** (if ticketing MCP is configured). Add investigation summary, root cause, fix description, and commit link.
+
+**Step 2 â€” Commit with structured context:**
+
+```
+Fix: reset_index(drop=True) leaves stale coord_names
+
+Problem:
+After calling reset_index with drop=True on a multi-index Dataset,
+_coord_names retains entries for dropped coordinates.
+
+Root Cause:
+Line 4180 in dataset.py only adds new_variables to coord_names but
+never removes dropped coordinates, violating the invariant
+coord_names âŠ† variables.keys().
+
+Solution:
+Subtract drop_indexes from coord_names before adding new_variables.
+
+Invariants Restored:
+- coord_names âŠ† variables.keys()
+
+Testing:
+- Added test_reset_index_drop_removes_coord_names
+- Added 3 edge case tests (partial multi-index, single-level, with attrs)
+- All existing tests pass (no regressions)
+
+References:
+- Issue: #6992
+- CoreStory Investigation: [conversation-id]
+```
+
+**Step 3 â€” Rename the CoreStory conversation** to mark it resolved:
+
+```
+Rename to: "Bug Investigation: #6992 - RESOLVED - reset_index coord_names cleanup"
+```
+
+This preserved conversation becomes a searchable resource for similar future bugs.
+
+---
+
+## Prompting Patterns Reference
+
+These patterns work with any MCP-connected agent querying CoreStory.
+
+### Investigation Patterns
+
+**Architecture Discovery:**
+```
+What files are responsible for [feature]? I need to understand primary
+implementation files, test coverage, helper modules, and integration points.
+```
+
+**Invariant Understanding:**
+```
+What invariants should [data structure] maintain? What relationships must
+hold between [A] and [B]? What are the pre/post conditions for [operation]?
+```
+
+**Logic Flow Tracing:**
+```
+Walk me through the execution flow of [operation] from entry point to exit:
+key decision points, state transformations, error handling paths.
+```
+
+**Root Cause Hypothesis:**
+```
+Given [symptom], what are the most likely root causes? For each: explain why
+it could cause the symptom, rate probability, and point to specific code
+locations to investigate.
+```
+
+### Validation Patterns
+
+**Fix Validation:**
+```
+I'm proposing this fix: [describe change]. Does this align with system
+architecture? Does it maintain all invariants? Could it have unintended
+side effects?
+```
+
+**Test Coverage Check:**
+```
+What existing tests cover [feature]? Are there gaps? What edge cases
+should I test?
+```
+
+### Context Patterns
+
+**Historical Context:**
+```
+What changes have been made to [feature] recently? Related PRs, design
+decisions, known limitations, evolution over time.
+```
+
+**Requirements Tracing:**
+```
+What user stories/requirements exist for [feature]? Acceptance criteria,
+business rules, security requirements.
+```
+
+**Integration Impact:**
+```
+What other components depend on [feature]? Direct callers, integration
+points, downstream impacts of changing [behavior].
+```
+
+### Efficient Multi-Query Pattern
+
+When you want comprehensive context in one shot:
+
+```
+I'm investigating a bug where [symptom]. Please answer:
+
+Architecture: What files implement [feature]? Key data structures?
+Expected Behavior: What invariants should hold? What should happen when
+[operation] is called with [parameters]?
+Code Paths: Walk me through the execution flow. Where could the bug be?
+Testing: What existing tests cover this? What tests should I add?
+```
+
+---
+
+## Advanced Patterns
+
+### Security-Sensitive Bugs
+
+When the bug involves authentication, authorization, data handling, or external input, add a security check to Phase 2:
+
+```
+Send CoreStory message: "What security considerations apply to [feature]?
+Are there security requirements I should verify? Could this bug have
+security implications?"
+```
+
+Include security validation assertions in your tests.
+
+### Integration Impact Analysis
+
+When the bug is in a shared component, check downstream effects in Phase 3:
+
+```
+Send CoreStory message: "What other systems or components integrate with
+[feature]? What downstream impacts should I consider if I change [behavior]?"
+```
+
+Add integration tests for dependent components.
+
+### Performance Bugs
+
+When investigating slowness, timeouts, or resource issues:
+
+```
+Send CoreStory message: "What are the performance characteristics of
+[feature]? Expected complexity? Known bottlenecks?"
+```
+
+Add performance regression tests with timing assertions.
+
+### Related Bug Clusters
+
+When multiple tickets look related:
+
+```
+Send CoreStory message: "I'm investigating [bug A], [bug B], and [bug C]
+which seem related. Are there common patterns or root causes? Could they
+stem from the same underlying issue?"
+```
+
+Consider a unified fix if appropriate. Create separate CoreStory conversations for each but cross-reference them.
+
+---
+
+## Agent Implementation Guides
+
+### Claude Code
+
+#### Setup
+
+1. **Configure the CoreStory MCP server** in your Claude Code settings (see [CoreStory MCP Server Setup Guide](https://corestory.notion.site/corestory-mcp-server-setup)).
+
+2. **Add the skill file.** Claude Code uses skills (`.claude/skills/` directory) as its preferred mechanism for teaching Claude specialized workflows. Create the skill:
+
+```bash
+mkdir -p .claude/skills/bug-resolver
+```
+
+Create `.claude/skills/bug-resolver/SKILL.md` with the content from the skill file below.
+
+3. **(Optional) Add the slash command.** Slash commands provide a shortcut to invoke the workflow:
+
+```bash
+mkdir -p .claude/commands
+```
+
+Create `.claude/commands/fix-bug.md` with the content from the command file below.
+
+4. **Commit to version control** for team sharing:
+
+```bash
+git add .claude/skills/ .claude/commands/
+git commit -m "Add CoreStory bug resolution skill and command"
+```
+
+#### Usage
+
+The skill activates automatically when Claude Code detects bug-related requests:
+
+```
+Fix bug #6992
+Investigate issue JIRA-1234
+Debug the login problem
+```
+
+Or invoke explicitly:
+
+```
+/fix-bug #6992
+/fix-bug JIRA-1234
+/fix-bug "Users can't login after password reset"
+```
+
+#### Tips
+
+- Skills auto-load from directories added via `--add-dir`, so team-shared skills work across machines.
+- Claude Code detects file changes during sessions â€” you can edit the skill file and it takes effect immediately.
+- Keep the SKILL.md under 500 lines for reliable loading.
+- The skill file includes structured output templates so Claude reports progress at each phase.
+
+#### Skill File
+
+Save as `.claude/skills/bug-resolver/SKILL.md`:
+
+````markdown
+---
+name: CoreStory Bug Resolver
+description: Resolves bugs using CoreStory's code intelligence and TDD methodology. Activates on bug fix requests or ticket IDs.
+---
+
+# CoreStory Bug Resolver
+
+When this skill activates, execute the six-phase bug resolution workflow.
+
+## Activation Triggers
+
+Activate when user requests:
+- Bug fix or investigation
+- Ticket resolution (e.g., "Fix bug #6992", "Investigate JIRA-123")
+- Any request containing "bug", "issue", "broken", "not working"
+
+## Prerequisites
+
+- CoreStory MCP server configured
+- At least one CoreStory project with completed ingestion
+- (Optional) Ticketing system MCP (GitHub Issues, Jira, ADO, Linear)
+
+## Phase 1: Bug Intake & Context Gathering
+
+1. **Extract Bug Information**
+   - If ticket ID provided: fetch via appropriate MCP, parse symptoms, reproduction steps, expected/actual behavior
+   - If described directly: extract from user message, ask for missing details
+
+2. **Select CoreStory Project**
+   ```
+   Use CoreStory MCP: list_projects
+   ```
+   - Multiple projects â†’ ask user which one
+   - Single project â†’ auto-select
+   - Verify status is "completed"
+
+3. **Create Investigation Conversation**
+   ```
+   Use CoreStory MCP: create_conversation
+   Title: "Bug Investigation: #[ID] - [brief description]"
+   ```
+   Store conversation_id for all subsequent queries.
+
+**Report:**
+```
+ðŸ” Starting bug investigation for [ticket-id]
+Bug: [description]
+Symptoms: [what's broken]
+Expected: [correct behavior]
+CoreStory conversation: [conversation-id]
+```
+
+## Phase 2: Understanding System Behavior (Oracle Phase)
+
+Send three CoreStory queries in sequence:
+
+**Query 1 â€” Architecture Discovery:**
+```
+What files are responsible for [affected feature]? I need:
+1. Primary implementation files
+2. Test coverage
+3. Helper/utility modules
+4. Integration points
+```
+
+**Query 2 â€” Invariants & Data Structures:**
+```
+What are the key data structures in [feature]? What invariants must hold?
+What relationships between data structures? How should [operation] affect
+state when [parameters from bug]?
+```
+
+**Query 3 â€” Historical Context:**
+```
+Have there been recent changes to [feature]? Design intent?
+Related user stories or issues?
+```
+
+**Report:** Summarize key files, critical invariants, data structures, and design context.
+
+## Phase 3: Hypothesis Generation (Navigator Phase)
+
+**Query 1:** Map symptoms to code paths
+**Query 2:** Generate ranked root cause candidates
+**Query 3:** Get precise file/method navigation
+
+**Report:** Most likely root cause with location, alternatives, and code path to investigate.
+
+## Phase 4: Test-First Investigation
+
+**CRITICAL: Write tests BEFORE reading implementation code.**
+
+1. **Write failing test** based on expected behavior and invariants from Phase 2
+2. **Verify test fails** â€” confirms bug exists
+3. **Validate test with CoreStory** â€” paste test code, ask if it correctly tests expected behavior
+4. **Read code** â€” only now, focused on methods CoreStory identified
+5. **Identify bug** â€” compare against expected behavior
+6. **Validate finding with CoreStory** â€” paste code snippet, explain hypothesis, get confirmation
+
+## Phase 5: Solution Development
+
+1. **Implement minimal fix** â€” smallest change that restores invariant
+2. **Verify test passes**
+3. **Validate fix with CoreStory** â€” check architectural alignment
+4. **Add edge case tests** â€” ask CoreStory for scenarios
+5. **Run full test suite** â€” no regressions allowed
+
+## Phase 6: Completion
+
+1. **Update ticket** (if MCP available)
+2. **Commit with structured message** â€” Problem, Root Cause, Solution, Invariants Restored, Testing, References
+3. **Rename CoreStory conversation** to include "RESOLVED"
+4. **Report results** â€” summary, metrics, quality indicators
+
+## Error Handling
+
+- **Project not found:** List available projects, ask user to specify
+- **Test won't fail:** Re-check reproduction steps, verify with CoreStory
+- **Fix causes regressions:** Don't commit, report regressions, revise approach
+- **CoreStory response unclear:** Ask follow-up with code snippets and specific variable names
+
+## When NOT to Use
+
+- Trivial typo fixes
+- Documentation-only changes
+- User explicitly wants manual investigation
+- No CoreStory project available
+- Feature requests (not bugs)
+````
+
+#### Slash Command
+
+Save as `.claude/commands/fix-bug.md`:
+
+````markdown
+Activate the CoreStory-powered bug resolution workflow.
+
+Usage:
+```
+/fix-bug #6992
+/fix-bug JIRA-1234
+/fix-bug "Users can't login after password reset"
+```
+
+Executes the complete six-phase workflow:
+1. Bug Intake â€” fetches ticket, creates CoreStory investigation conversation
+2. Oracle Phase â€” queries CoreStory for architecture, invariants, history
+3. Navigator Phase â€” maps symptoms to code paths, generates hypotheses
+4. TDD Investigation â€” writes failing test FIRST, then identifies root cause
+5. Solution Development â€” implements fix, validates, adds edge case tests
+6. Completion â€” commits with context, updates ticket, preserves investigation
+
+Prerequisites:
+- CoreStory MCP server configured
+- At least one CoreStory project with completed ingestion
+- (Optional) Ticketing system MCP for automatic ticket fetching
+
+Expected outcome:
+- Bug resolved with comprehensive test coverage
+- No regressions introduced
+- Detailed commit message explaining root cause and fix rationale
+- CoreStory conversation preserved as institutional knowledge
+
+Time estimate: 15-60 minutes depending on bug complexity
+````
+
+---
+
+### GitHub Copilot
+
+#### Setup
+
+1. **Configure the CoreStory MCP server** in your VS Code settings. Add it to your MCP server configuration (typically in VS Code settings JSON or the MCP configuration UI).
+
+2. **Add custom instructions.** Copilot reads project-level instructions from `.github/copilot-instructions.md`. This is the primary mechanism for teaching Copilot specialized workflows:
+
+```bash
+mkdir -p .github
+```
+
+Create `.github/copilot-instructions.md` with the content from the custom instructions file below.
+
+3. **(Optional) Add a reusable prompt file.** Prompt files (`.github/prompts/fix-bug.prompt.md`) provide reusable task templates. See the prompt file below.
+
+4. **Commit to version control:**
+
+```bash
+git add .github/copilot-instructions.md .github/prompts/
+git commit -m "Add CoreStory bug resolution instructions for Copilot"
+```
+
+#### Usage
+
+In Copilot Chat (agent mode), natural language triggers the workflow:
+
+```
+Fix bug #6992 from the xarray repository
+Investigate the issue where reset_index leaves stale coord_names
+```
+
+Or reference the prompt file:
+
+```
+@workspace /fix-bug #6992
+```
+
+#### Tips
+
+- Copilot's agent mode (available in VS Code) can execute terminal commands and edit files autonomously â€” this workflow works best in agent mode.
+- You can add path-specific instruction files (e.g., `.github/instructions/backend.instructions.md` with `applyTo: "src/backend/**"`) for component-specific guidance.
+- On Team/Enterprise plans, organization-level instructions apply across all repositories.
+- Copilot automatically references `.github/copilot-instructions.md` in chat responses.
+
+#### Custom Instructions
+
+Save as `.github/copilot-instructions.md`:
+
+````markdown
+# CoreStory Bug Resolution Workflow
+
+## Role
+
+You are a bug resolution assistant with access to CoreStory's code intelligence via MCP. When users request bug fixes or investigations, follow the six-phase workflow below.
+
+## Activation
+
+Apply this workflow when user requests bug fixes, investigations, or ticket resolution. Trigger phrases: "bug", "issue", "broken", "not working", "fix", "investigate".
+
+## Workflow
+
+### Phase 1: Bug Intake
+1. Extract bug info from ticket (via ticketing MCP) or user description
+2. Select CoreStory project (`CoreStory:list_projects`, verify status is "completed")
+3. Create investigation conversation (`CoreStory:create_conversation`)
+4. Report: bug summary, symptoms, CoreStory conversation ID
+
+### Phase 2: Oracle Phase â€” Understand Intended Behavior
+**Do this BEFORE investigating code.**
+
+Send three CoreStory queries (`CoreStory:send_message`):
+1. Architecture discovery: files, tests, modules, integration points for the affected feature
+2. Invariants & data structures: critical variables, relationships, acceptance criteria
+3. Historical context: recent changes, design intent, related issues
+
+Extract and report: key files, critical invariants, data structures, design context.
+
+### Phase 3: Navigator Phase â€” Generate Hypotheses
+Send three CoreStory queries:
+1. Map symptoms to code paths (step-by-step logic flow)
+2. Root cause candidates (ranked by probability)
+3. Precise navigation (specific methods and files to examine)
+
+Report: most likely root cause with location, alternatives, investigation path.
+
+### Phase 4: Test-First Investigation
+**Write tests BEFORE reading implementation code.**
+
+1. Write failing test based on expected behavior and invariants from Phase 2
+2. Run test â€” verify it fails (confirms bug exists)
+3. Validate test with CoreStory (paste code, check correctness)
+4. NOW read implementation code (focused on CoreStory-identified locations)
+5. Identify the bug (compare against expected behavior)
+6. Validate finding with CoreStory (paste code snippet, explain hypothesis)
+
+### Phase 5: Solution Development
+1. Implement minimal fix (smallest change that restores invariant)
+2. Verify reproduction test passes
+3. Validate fix with CoreStory (architectural alignment, side effects)
+4. Add edge case tests (ask CoreStory for scenarios)
+5. Run full test suite (no regressions)
+
+### Phase 6: Completion
+1. Update ticket (if ticketing MCP available)
+2. Commit with structured message: Problem, Root Cause, Solution, Invariants Restored, Testing, References
+3. Rename CoreStory conversation to include "RESOLVED"
+4. Report: summary, tests added, quality metrics
+
+## Key Principles
+- **Oracle before Navigator**: understand intended behavior before investigating code
+- **Test-first always**: failing test â†’ verify fails â†’ fix â†’ verify passes
+- **Validate hypotheses**: always verify with CoreStory before acting
+- **Minimal fixes**: smallest change that restores the invariant
+- **Rich documentation**: commit messages explain WHY, not just WHAT
+
+## CoreStory Query Patterns
+
+Architecture: "What files are responsible for [feature]?"
+Invariants: "What invariants should [data structure] maintain?"
+Code paths: "If there's a bug where [symptom], what code paths should I investigate?"
+Validation: "Looking at [code]: I think this is the bug because [reason]. Does this align with the intended design?"
+Edge cases: "What edge cases should I test for [feature]?"
+````
+
+#### Prompt File (Optional)
+
+Save as `.github/prompts/fix-bug.prompt.md`:
+
+````markdown
+---
+mode: agent
+description: Resolve a bug using CoreStory's code intelligence
+---
+
+Investigate and fix the specified bug using the CoreStory six-phase workflow.
+
+1. Fetch the bug details and create a CoreStory investigation conversation
+2. Query CoreStory for architecture, invariants, and historical context
+3. Generate hypotheses and identify investigation targets
+4. Write a failing test BEFORE reading code, then pinpoint the root cause
+5. Implement a minimal fix, validate with CoreStory, add edge case tests
+6. Commit with full context, update ticket, preserve investigation
+````
+
+---
+
+### Cursor
+
+#### Setup
+
+1. **Configure the CoreStory MCP server** in Cursor's MCP settings (Settings â†’ MCP Servers, or edit the MCP config JSON directly).
+
+2. **Add project rules.** Cursor uses rules in `.cursor/rules/` directories. Each rule folder contains a `RULE.md` file:
+
+```bash
+mkdir -p .cursor/rules/bug-resolver
+```
+
+Create `.cursor/rules/bug-resolver/RULE.md` with the content from the rule file below.
+
+3. **Commit to version control:**
+
+```bash
+git add .cursor/rules/
+git commit -m "Add CoreStory bug resolution rules for Cursor"
+```
+
+#### Usage
+
+In Cursor's Composer or Chat, the rule activates automatically for bug-related requests:
+
+```
+Fix bug #6992 from the xarray repository
+Investigate the issue where reset_index leaves stale coord_names
+```
+
+#### Tips
+
+- Rules with `alwaysApply: true` load in every session. Set this if your team regularly fixes bugs. Otherwise, use `alwaysApply: false` with a good `description` so Cursor loads it intelligently when relevant.
+- The legacy `.cursorrules` file still works but the `.cursor/rules/` directory structure is the current recommended approach.
+- Rules apply to Composer and Chat but do not affect Cursor Tab or inline edits (Cmd/Ctrl+K).
+- On Team/Enterprise plans, team rules apply across all members.
+
+#### Project Rule
+
+Save as `.cursor/rules/bug-resolver/RULE.md`:
+
+````markdown
+---
+description: CoreStory-powered bug resolution workflow. Activates for bug fixes, investigations, and ticket resolution.
+alwaysApply: false
+---
+
+# CoreStory Bug Resolution
+
+You are a bug resolution agent with access to CoreStory's code intelligence via MCP. Follow the six-phase workflow for bug investigation and resolution.
+
+## Activation Triggers
+
+Apply when user requests: bug fix, investigation, ticket resolution, or any phrase containing "bug", "issue", "broken", "not working".
+
+## Phase 1: Bug Intake
+- Extract bug info from ticket or description
+- Select CoreStory project (`CoreStory:list_projects`)
+- Create investigation conversation (`CoreStory:create_conversation`)
+
+## Phase 2: Oracle Phase
+**Understand intended behavior BEFORE investigating code.**
+
+Query CoreStory (`CoreStory:send_message`) for:
+1. Architecture: files, tests, modules for the affected feature
+2. Invariants: data structures, relationships, acceptance criteria
+3. History: recent changes, design intent, related issues
+
+## Phase 3: Navigator Phase
+Query CoreStory for:
+1. Symptom-to-code-path mapping
+2. Ranked root cause candidates
+3. Precise file/method navigation
+
+## Phase 4: Test-First Investigation
+**Write tests BEFORE reading code.**
+1. Write failing test from expected behavior + invariants
+2. Verify test fails
+3. Validate test with CoreStory
+4. Read code (only now)
+5. Identify bug
+6. Validate finding with CoreStory
+
+## Phase 5: Solution Development
+1. Implement minimal fix
+2. Verify test passes
+3. Validate fix with CoreStory
+4. Add edge case tests
+5. Run full test suite â€” no regressions
+
+## Phase 6: Completion
+1. Update ticket
+2. Commit: Problem, Root Cause, Solution, Invariants Restored, Testing, References
+3. Rename CoreStory conversation â†’ "RESOLVED"
+4. Report results
+
+## Key Principles
+- Oracle before Navigator
+- Test-first always
+- Validate hypotheses with CoreStory
+- Minimal fixes that restore invariants
+- Commit messages explain WHY
+````
+
+---
+
+### Factory.ai
+
+#### Setup
+
+1. **Configure the CoreStory MCP server** in your Factory.ai environment. Verify with the `/mcp` command that CoreStory tools are accessible.
+
+2. **Add the custom droid.** Factory.ai uses droids stored in `.factory/droids/` (project-level) or `~/.factory/droids/` (personal):
+
+```bash
+mkdir -p .factory/droids
+```
+
+Create `.factory/droids/bug-resolver.md` with the content from the droid file below.
+
+3. **Commit to version control** (for project-level droids):
+
+```bash
+git add .factory/droids/
+git commit -m "Add CoreStory bug resolution droid"
+```
+
+#### Usage
+
+Invoke the droid via the Task tool:
+
+```
+@bug-resolver Fix bug #6992 from the xarray repository
+```
+
+Or describe the bug and Factory.ai routes to the droid based on its activation triggers.
+
+#### Tips
+
+- Use `model: inherit` in the YAML frontmatter to use whatever model the session is configured with.
+- The `tools` field in frontmatter can explicitly list required MCP tools if you want to restrict the droid's capabilities.
+- The Task tool that invokes droids requires experimental features to be enabled.
+- For complex bugs, the droid's CoreStory queries may produce long streaming responses â€” this is expected.
+
+#### Custom Droid
+
+Save as `.factory/droids/bug-resolver.md`:
+
+````markdown
+---
+name: CoreStory Bug Resolver
+description: Resolves bugs using CoreStory code intelligence and TDD methodology
+model: inherit
+tools:
+  - CoreStory:list_projects
+  - CoreStory:get_project
+  - CoreStory:get_project_stats
+  - CoreStory:create_conversation
+  - CoreStory:send_message
+  - CoreStory:get_conversation
+  - CoreStory:rename_conversation
+  - CoreStory:get_project_prd
+  - CoreStory:get_project_techspec
+---
+
+# CoreStory Bug Resolver
+
+Execute the six-phase bug resolution workflow using CoreStory's code intelligence.
+
+## Activation Triggers
+- "Fix bug #[ID]"
+- "Investigate issue [ID]"
+- "Resolve ticket [ID]"
+- Any bug-related investigation or fix request
+
+## CoreStory MCP Tools
+- `CoreStory:list_projects` â€” list available projects
+- `CoreStory:get_project` â€” verify project status
+- `CoreStory:create_conversation` â€” start investigation thread
+- `CoreStory:send_message` â€” query code intelligence
+- `CoreStory:rename_conversation` â€” mark as resolved
+
+When instructions say "Query CoreStory", use `CoreStory:send_message`.
+
+## Phase 1: Bug Intake
+1. Extract bug info (from ticket MCP or user description)
+2. Select CoreStory project (`CoreStory:list_projects`, verify "completed")
+3. Create conversation: "Bug Investigation: #[ID] - [description]"
+
+## Phase 2: Oracle Phase â€” Before Code
+Query CoreStory for: architecture, invariants, historical context.
+
+## Phase 3: Navigator Phase
+Query CoreStory for: code paths, root cause candidates, precise navigation.
+
+## Phase 4: Test-First Investigation
+Write failing test â†’ verify fails â†’ validate with CoreStory â†’ read code â†’ identify bug â†’ validate finding.
+
+## Phase 5: Solution Development
+Implement fix â†’ verify test passes â†’ validate with CoreStory â†’ edge case tests â†’ full suite.
+
+## Phase 6: Completion
+Update ticket â†’ structured commit â†’ rename conversation "RESOLVED" â†’ report.
+
+## Key Principles
+- Oracle before Navigator
+- Test-first always
+- Validate with CoreStory before acting
+- Minimal fixes that restore invariants
+- Commit messages explain WHY
+````
+
+---
+
+## Tips & Best Practices
+
+**Ask specific questions.** "Tell me everything about reset_index" gets a sprawling response. "What is the relationship between _coord_names and _variables during reset_index with drop=True?" gets a precise, useful answer.
+
+**Paste code in your CoreStory queries.** When validating a hypothesis or fix, include the actual code snippet. CoreStory gives much better answers when it can see what you're looking at.
+
+**Trust the test-first discipline.** It's tempting to skip straight to reading code, especially when you think you know where the bug is. The failing test is worth the five minutes â€” it catches false assumptions, documents the bug, and prevents regressions.
+
+**Use the CoreStory conversation as a review artifact.** Before your fix goes through code review, share the CoreStory conversation link. Reviewers can see the full investigation context: what invariants were identified, what hypotheses were considered, and why this fix was chosen.
+
+**Name conversations descriptively.** "Bug Investigation: #6992 - reset_index coord_names cleanup" is searchable and useful six months later. "Bug fix" is not.
+
+**Don't fight the phases.** If you're tempted to jump from Phase 1 to Phase 5, you're optimizing for speed on this bug at the cost of quality. The Oracle Phase in particular catches architectural constraints that would otherwise become failed code reviews or production regressions.
+
+**Let the agent complete the workflow.** Interrupting mid-workflow loses accumulated context. If you need to redirect, explain why rather than just changing the subject.
+
+---
+
+## Troubleshooting
+
+**CoreStory returns generic answers.**
+Your queries are too broad. Instead of "Tell me about the auth system," try "What files handle JWT token validation? What invariants must the token payload satisfy?" Include specific variable names, method names, or code snippets.
+
+**Project not found or ingestion incomplete.**
+Run `CoreStory:get_project_stats` to check status. If ingestion is still running, wait for it to complete â€” queries against partially-ingested projects give incomplete answers. Verify the project name matches exactly.
+
+**The reproduction test passes (bug not reproduced).**
+Three possibilities: the bug was already fixed, the reproduction steps are wrong, or the test isn't testing what you think it is. Ask CoreStory to verify your understanding of expected behavior. Check if the bug is environment-specific or version-specific.
+
+**Fix causes regressions.**
+Don't commit. Run `CoreStory:send_message` asking about integration impacts: "What other components depend on [feature]? What downstream effects could my change to [behavior] have?" Revise the fix to be more targeted, or add compatibility handling for dependent components.
+
+**CoreStory response is too long or gets cut off.**
+Break your query into smaller, more specific questions. Instead of one query covering architecture + invariants + history, send them separately.
+
+**Agent doesn't follow the workflow.**
+If you're using the agent configuration files (skill/instructions/rules/droid) and the agent still doesn't follow the six-phase workflow, check that the configuration file is in the correct location and format for your agent. See the Agent Implementation Guides above for exact paths.

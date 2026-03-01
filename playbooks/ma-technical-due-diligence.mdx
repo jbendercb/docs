@@ -1,0 +1,489 @@
+---
+title: "M&A Technical Due Diligence"
+sidebarTitle: "M&A Due Diligence"
+description: "Leverage CoreStory's code intelligence to accelerate technical due diligence for mergers, acquisitions, and investment decisions."
+icon: "magnifying-glass-chart"
+---
+
+
+## Overview
+
+Technical due diligence on acquisition targets traditionally relies on CTO interviews, manual code sampling, and documentation review â€” covering less than 10% of the actual codebase. Critical risks hide in the 90% nobody reads: hardcoded secrets in utility modules, GPL dependencies buried three layers deep, PII flowing unencrypted through forgotten microservices.
+
+CoreStory changes this equation. By ingesting and semantically understanding the target's entire codebase, it gives your diligence team an AI-powered analyst that can answer specific risk questions against the full codebase â€” not a sample. The agent operates as an **Oracle** (explaining system behavior, architectural patterns, and data flows) and a **Navigator** (pointing to specific files, methods, and code paths where risks live).
+
+**Who this is for:** M&A professionals, PE portfolio teams, technical diligence consultants, and acquiring engineering teams evaluating technology-heavy acquisitions.
+
+**What you'll get:** A structured workflow for interrogating a target codebase across four risk domains â€” technical debt, security, data/PII compliance, and integration complexity â€” producing auditable findings with specific file-level evidence.
+
+---
+
+## Prerequisites
+
+- A **CoreStory account** with the target codebase ingested and ingestion complete
+- An **AI coding agent** with CoreStory MCP configured (see [Supercharging AI Agents](/getting-started/supercharging-ai-agents) for setup)
+- **Read access** to the target's repository (for the agent to cross-reference CoreStory findings against source)
+
+---
+
+## How It Works
+
+### CoreStory MCP Tools Used
+
+This playbook uses the following tools from the CoreStory MCP server:
+
+| Tool | Role in Diligence |
+|------|-------------------|
+| `list_projects` | Identify and confirm the target project |
+| `get_project_prd` | Retrieve the synthesized Product Requirements Document for business context |
+| `get_project_techspec` | Retrieve the Technical Specification for architecture, data models, and security analysis |
+| `create_conversation` | Open a named diligence thread for each audit workstream |
+| `send_message` | Interrogate the codebase â€” the primary investigation tool |
+| `rename_conversation` | Mark completed threads with "RESOLVED" prefix for audit trail |
+| `list_conversations` | Review existing diligence threads |
+| `get_conversation` | Retrieve conversation history for report synthesis |
+
+### The Diligence Workflow
+
+M&A technical diligence with CoreStory follows a four-phase pattern:
+
+1. **Setup** â€” Confirm the target project, review synthesized specs for architectural orientation, and create named conversation threads for each workstream.
+2. **Interrogate** â€” Use `send_message` to ask specific risk questions. CoreStory answers from semantic understanding of the full codebase, citing specific files and code paths.
+3. **Cross-reference** â€” Validate critical findings against the actual source code. CoreStory provides the file paths and context; the agent (or your team) confirms.
+4. **Synthesize** â€” Compile findings into structured reports. Conversation history provides the audit trail.
+
+### Oracle Before Navigator
+
+The "Oracle before Navigator" principle is especially important in diligence. Before searching for specific vulnerabilities or code paths, first use CoreStory to understand how the system is *designed* to work â€” its intended architecture, data flow patterns, and security model. This baseline makes it far easier to spot deviations, shortcuts, and risks.
+
+---
+
+## Step-by-Step Walkthrough
+
+### Phase 1: Project Setup and Orientation
+
+Start every diligence engagement by confirming the target and building architectural context.
+
+**Confirm the target project:**
+
+```
+List my CoreStory projects. I need to identify the project for [TargetName].
+```
+
+The agent calls `list_projects` and returns your available projects. Confirm the correct project before proceeding â€” this is a critical safety step when multiple targets may be under evaluation simultaneously.
+
+**Review synthesized specifications:**
+
+```
+For project [project_id], retrieve the Technical Specification and Product Requirements Document.
+Give me a high-level summary of:
+1. System architecture (major components, services, data stores)
+2. Technology stack (languages, frameworks, infrastructure)
+3. External integrations and third-party dependencies
+4. Data model overview
+```
+
+The agent calls `get_project_techspec` and `get_project_prd` to retrieve CoreStory's synthesized understanding of the codebase. This gives you architectural orientation before diving into risk-specific queries.
+
+**Create diligence threads:**
+
+```
+Create a CoreStory conversation titled "[Diligence] TargetName - Technical Risk Audit".
+Store the conversation_id â€” we'll use this thread for all risk-related queries.
+```
+
+Create separate conversation threads for each workstream (risk audit, integration planning, compliance audit). This keeps findings organized and produces clean audit trails.
+
+### Phase 2: Risk Interrogation
+
+With architectural context established, use `send_message` to interrogate the codebase across risk domains. Each query goes through the conversation thread, and CoreStory draws on its semantic understanding of the entire codebase to answer.
+
+**The key principle:** Ask specific questions. "Tell me about security" produces vague answers. "Identify all code locations that handle authentication tokens and describe how they're stored, transmitted, and rotated" produces actionable findings with file paths.
+
+The following sections provide query patterns organized by risk domain. Use the ones relevant to your diligence scope.
+
+#### Technical Debt & Obsolescence
+
+```
+send_message: "List all services, modules, and frameworks running on end-of-life
+or unsupported versions. For each, identify the current version in use, the latest
+stable version, and whether the upgrade path has breaking changes."
+```
+
+```
+send_message: "Identify areas of the codebase with high complexity or poor
+separation of concerns â€” god classes, circular dependencies, modules with
+excessive coupling. For each, provide the file path and a brief description
+of the issue."
+```
+
+```
+send_message: "Are there any modules or services that appear to be abandoned
+or unmaintained â€” no recent commits, no test coverage, referenced but not
+actively developed? List them with file paths."
+```
+
+#### Security & Secrets
+
+```
+send_message: "Identify all code locations that hardcode API keys, passwords,
+tokens, or other secrets. For each, provide the file path, line context,
+and what the secret appears to be used for."
+```
+
+```
+send_message: "How is authentication handled across the system? Map the
+authentication flow from login through session management. Identify whether
+it follows standard patterns (OAuth 2.0, SAML, JWT) or uses custom logic."
+```
+
+```
+send_message: "List all known CVEs or security vulnerabilities associated with
+the third-party libraries and frameworks in use, sorted by severity."
+```
+
+#### Licensing & Open Source Risk
+
+```
+send_message: "Provide a complete bill of materials for all third-party and
+open-source dependencies. Highlight any libraries with restrictive licenses
+â€” GPL, AGPL, SSPL, or other copyleft licenses that could create obligations
+for the acquiring entity."
+```
+
+```
+send_message: "Are there any dependencies that are abandoned, archived,
+or have known unpatched vulnerabilities? List them with the current version
+in use and the last release date."
+```
+
+#### Data Handling & PII
+
+```
+send_message: "Map the data flow for customer onboarding. Show specifically
+where PII (Personally Identifiable Information) is collected, transmitted,
+stored, and whether it is encrypted at rest and in transit at each stage."
+```
+
+```
+send_message: "Identify all database models or tables that store PII.
+For each, list the fields, whether they are encrypted, and what access
+controls exist."
+```
+
+```
+send_message: "How is data deletion handled? Is there a mechanism for
+'right to be forgotten' requests? Trace the deletion flow and identify
+any places where PII might persist after a deletion request."
+```
+
+#### Architecture & Integration Complexity
+
+```
+send_message: "How does the system handle payment processing? Map the
+integration with payment providers, showing all third-party dependencies,
+API touchpoints, and where financial data flows."
+```
+
+```
+send_message: "What message queues, event buses, or async communication
+patterns are in use? Map the event flow between services and identify
+any single points of failure."
+```
+
+```
+send_message: "How is the system deployed? Describe the deployment
+architecture, CI/CD pipeline, infrastructure dependencies, and any
+vendor lock-in to specific cloud providers or services."
+```
+
+### Phase 3: Cross-Reference and Validation
+
+CoreStory provides findings with specific file paths and code context. For critical findings â€” especially security issues, licensing risks, and PII exposure â€” validate against the actual source code.
+
+```
+For the hardcoded secrets CoreStory identified:
+1. Open each file path and confirm the finding
+2. Check if there are environment variable alternatives that aren't being used
+3. Assess whether these are production secrets or development/test placeholders
+```
+
+This cross-reference step is important because CoreStory's analysis is based on its ingestion snapshot. If the target's codebase has changed since ingestion, critical findings should be verified against the current state.
+
+### Phase 4: Synthesis and Reporting
+
+After completing your interrogation queries, synthesize findings into structured reports. The conversation history serves as your evidence base.
+
+```
+Review our entire conversation history for the risk audit thread.
+Synthesize all findings into a Technical Due Diligence Report with these sections:
+
+1. Executive Summary â€” top 3-5 findings that materially affect deal risk or valuation
+2. Critical Risks â€” security vulnerabilities, licensing exposure, PII compliance gaps
+   (each with file-level evidence and severity rating)
+3. Technical Debt â€” end-of-life dependencies, architectural issues, maintainability concerns
+4. Architecture Overview â€” component map, technology stack, external dependencies
+5. Integration Assessment â€” complexity of merging with acquirer's platform, friction points
+6. Recommendations â€” remediation priorities and estimated effort for post-close planning
+```
+
+**Mark completed threads:**
+
+```
+Rename the conversation to "RESOLVED - [Diligence] TargetName - Technical Risk Audit".
+```
+
+This creates a searchable record. Future team members can use `list_conversations` and `get_conversation` to review the full diligence trail.
+
+---
+
+## Advanced Workflows
+
+The following end-to-end prompt templates combine the patterns above into complete diligence workflows. Each can be used as a single agent prompt or broken into phases.
+
+### Rapid Risk Audit
+
+**Scenario:** A PE firm has one week to perform technical diligence on a target. The goal is to identify major risks and quantify technical debt for negotiation leverage.
+
+**Timeline:** 24â€“48 hours with CoreStory (vs. 2â€“4 weeks traditional).
+
+```
+Perform a rapid technical due diligence risk audit.
+
+STEP 1: PROJECT SETUP
+- Call list_projects and show me the available projects.
+- After I confirm the project, retrieve the Technical Specification
+  using get_project_techspec. Summarize the architecture, tech stack,
+  and major components.
+
+STEP 2: CREATE CONVERSATION
+- Create a conversation titled "[Diligence] - [TargetName] - Risk Audit"
+- Use this thread for all subsequent queries.
+
+STEP 3: TECHNICAL DEBT
+Use send_message to ask:
+- "List all end-of-life or unsupported frameworks, languages, or
+  platforms. For each, provide current version, latest version,
+  and upgrade complexity."
+- "Identify high-complexity modules with poor test coverage.
+  Provide file paths and complexity indicators."
+
+STEP 4: SECURITY
+Use send_message to ask:
+- "Identify all hardcoded API keys, passwords, or secrets.
+  Provide file_path and line context for each."
+- "List all known CVEs from third-party libraries, sorted by severity."
+- "Map the authentication flow and identify any custom (non-standard)
+  auth logic."
+
+STEP 5: LICENSING
+Use send_message to ask:
+- "Provide a bill of materials for all third-party dependencies.
+  Flag any with GPL, AGPL, or other copyleft licenses."
+
+STEP 6: SYNTHESIZE
+- Compile all findings into a "Technical Risk Report" with:
+  Issue | Location (file path) | Severity | Impact
+- Group by category: Security, Licensing, Technical Debt, Architecture.
+- Highlight the top 5 deal-affecting findings.
+```
+
+### Post-Merger Integration Planning
+
+**Scenario:** The deal is closing. The acquiring engineering team needs an integration blueprint â€” what overlaps, what conflicts, and where the friction will be.
+
+```
+Create a post-merger integration blueprint for merging [TargetName]
+with our [AcquiringPlatformName] platform.
+
+STEP 1: PROJECT SETUP
+- Call list_projects and show me the available projects.
+- After I confirm, retrieve the Technical Specification and PRD.
+- Summarize: architecture, data models, API surface, auth model.
+
+STEP 2: CREATE CONVERSATION
+- Create conversation titled "[PMI] - [TargetName] Integration Plan"
+
+STEP 3: MAP ARCHITECTURE
+Use send_message to ask:
+- "Describe the complete system architecture â€” services, databases,
+  message queues, caches, and external integrations. Include a
+  component inventory."
+- "Map all data models and their relationships. Identify the core
+  domain entities and how they flow between services."
+
+STEP 4: IDENTIFY INTEGRATION POINTS
+Use send_message to ask:
+- "How is customer authentication handled? Map the flow and compare
+  to standard OAuth 2.0 / SAML patterns."
+- "Map the data flow for customer onboarding, showing all databases
+  and external APIs involved."
+- "How does the system handle payment processing? What are the
+  third-party dependencies?"
+- "What APIs are exposed externally? Provide endpoint inventory
+  with authentication requirements."
+
+STEP 5: ASSESS FRICTION
+Use send_message to ask:
+- "What cloud provider or infrastructure dependencies exist?
+  Identify any vendor lock-in."
+- "What custom or non-standard patterns are used that would
+  require significant adaptation during integration?"
+
+STEP 6: SYNTHESIZE
+- Create an "Integration Plan Summary" covering:
+  1. Component inventory with integration complexity rating
+  2. Data model overlaps and conflicts
+  3. API surface that can be reused vs. must be rebuilt
+  4. Auth and identity merge strategy
+  5. High-friction areas requiring dedicated engineering effort
+  6. Recommended integration sequence and timeline
+```
+
+### Security & PII Compliance Audit
+
+**Scenario:** The diligence team needs to verify the target's data handling practices for GDPR, CCPA, or other regulatory compliance before close.
+
+```
+Perform a focused security and PII compliance audit on [TargetName].
+
+STEP 1: PROJECT SETUP
+- Call list_projects and show me the available projects.
+- After I confirm, retrieve the Technical Specification.
+- Summarize the security architecture and data handling patterns.
+
+STEP 2: CREATE CONVERSATION
+- Create conversation titled "[Audit] - [TargetName] - PII & Security"
+
+STEP 3: MAP PII FLOWS
+Use send_message to ask:
+- "Map all data flows that handle PII â€” customer registration,
+  profile updates, payment processing, support interactions.
+  For each flow, show where PII is collected, transmitted, and stored."
+- "Identify all database models or tables containing PII fields.
+  For each field, state whether it is encrypted at rest."
+- "Is PII encrypted in transit between services? Identify any
+  internal service-to-service communication where PII travels
+  unencrypted."
+
+STEP 4: ASSESS COMPLIANCE MECHANISMS
+Use send_message to ask:
+- "How is data deletion handled? Is there a 'right to be forgotten'
+  implementation? Trace the deletion flow and identify any places
+  where PII persists after deletion."
+- "What data retention policies are implemented in code? Are there
+  automated expiration or purge mechanisms?"
+- "Identify all external APIs or third-party services that receive PII.
+  For each, describe what data is shared and whether data processing
+  agreements would be required."
+
+STEP 5: SECURITY POSTURE
+Use send_message to ask:
+- "Identify all hardcoded secrets â€” API keys, passwords, tokens,
+  connection strings. Provide file paths."
+- "How are secrets managed in production? Is there a secrets manager
+  (Vault, AWS Secrets Manager, etc.) or are environment variables used?"
+- "What input validation and sanitization patterns are used?
+  Identify any endpoints that accept user input without validation."
+
+STEP 6: SYNTHESIZE
+- Generate a "PII & Security Compliance Report" covering:
+  1. PII inventory â€” what data, where stored, encryption status
+  2. Data flow map â€” collection through deletion lifecycle
+  3. Compliance gaps â€” unencrypted PII, missing deletion flows,
+     third-party data sharing without controls
+  4. Security findings â€” hardcoded secrets, missing validation,
+     auth vulnerabilities
+  5. Remediation priorities with estimated effort
+  6. Regulatory risk assessment (GDPR, CCPA applicability)
+```
+
+---
+
+## Prompting Patterns Reference
+
+### Investigation Patterns
+
+Effective diligence queries are specific and evidence-oriented. They ask for file paths, concrete examples, and traceable findings â€” not summaries.
+
+| Pattern | Example |
+|---------|---------|
+| **Enumerate with evidence** | "List all hardcoded secrets. For each, provide the file path, line context, and what it's used for." |
+| **Trace a flow** | "Map the data flow for customer onboarding from signup through account creation. Show every service, database write, and external API call." |
+| **Compare to standard** | "How is authentication handled? Compare the implementation to standard OAuth 2.0 patterns and identify deviations." |
+| **Assess coverage** | "What test coverage exists for the payment processing module? Identify critical paths with no test coverage." |
+| **Find patterns** | "Identify all locations where database queries are constructed from user input. Flag any that don't use parameterized queries." |
+| **Quantify scope** | "How many external API integrations exist? For each, identify the provider, what data is exchanged, and whether there are retry/fallback mechanisms." |
+
+### Query Specificity
+
+Vague queries produce vague answers. Always include specific anchors:
+
+| Instead of | Use |
+|-----------|-----|
+| "Tell me about security" | "Identify all code locations that handle authentication tokens and describe how they're stored, transmitted, and rotated" |
+| "How's the code quality?" | "Identify modules with circular dependencies, god classes over 500 lines, or methods with cyclomatic complexity above 15" |
+| "Are there any risks?" | "List all third-party dependencies with known CVEs, sorted by severity, with the file that imports each one" |
+| "How does data flow?" | "Trace the PII data flow for the customer registration process from HTTP request through database write, identifying encryption at each stage" |
+
+### Multi-Query Threading
+
+For thorough coverage, chain queries within a conversation thread. Each `send_message` builds on prior context:
+
+```
+Query 1: "Map the system architecture â€” services, databases, and external integrations."
+Query 2: "For each external integration you identified, what data is exchanged
+          and what happens if the external service is unavailable?"
+Query 3: "Which of these external dependencies have SLA requirements,
+          and are those SLAs enforced in code (circuit breakers, timeouts, retries)?"
+```
+
+The conversation accumulates context, so later queries can reference earlier findings without repeating them.
+
+---
+
+## Best Practices
+
+**Create separate threads per workstream.** Don't mix security audit queries with integration planning queries. Separate conversations keep findings organized and make it easier to hand off specific workstreams to different team members.
+
+**Start with the synthesized specs.** Use `get_project_techspec` and `get_project_prd` before diving into `send_message` queries. The specs give you architectural vocabulary â€” service names, data model names, API endpoint patterns â€” that make your queries far more specific and productive.
+
+**Ask for file paths, always.** Every finding in a diligence report needs evidence. Train your queries to always request file paths and line context. "Identify X and provide the file path" should be your default pattern.
+
+**Cross-reference critical findings.** CoreStory's analysis is based on its ingestion snapshot. For findings that materially affect deal terms â€” licensing poison pills, PII exposure, critical security vulnerabilities â€” always validate against the current source.
+
+**Use conversation rename for audit trail.** Rename completed threads with a "RESOLVED" prefix using `rename_conversation`. This creates a searchable record that survives team handoffs and can be referenced months later during post-merger integration.
+
+**Scope your queries to avoid noise.** A query like "find all security issues" will return an overwhelming response. Break it into targeted categories: hardcoded secrets, authentication flow, input validation, dependency vulnerabilities. Each produces focused, actionable findings.
+
+---
+
+## Troubleshooting
+
+**CoreStory gives generic or shallow answers**
+
+Your queries are too broad. Include specific anchors â€” service names, module names, technology names, or code patterns. After reviewing the Technical Specification, use the vocabulary it provides (component names, data model names) in your queries.
+
+**Response exceeds token limit**
+
+Break large queries into smaller scopes. Instead of "Tell me everything about the data layer," ask about specific data flows or specific models. If a response is truncated, ask the agent to continue or narrow the scope.
+
+**Project not found or unavailable**
+
+Verify the project has completed ingestion by calling `list_projects` and checking the status. If the project shows as in-progress, wait for ingestion to complete before starting diligence queries. If the project doesn't appear at all, confirm the MCP token has access to the correct organization.
+
+**Findings don't match current source code**
+
+CoreStory's analysis reflects the codebase at ingestion time. If the target has pushed significant changes since ingestion, request a re-ingestion before finalizing your diligence report. Always note the ingestion date in your report for traceability.
+
+**Agent can't access CoreStory tools**
+
+See the [Supercharging AI Agents](/getting-started/supercharging-ai-agents) troubleshooting section for MCP connection issues.
+
+---
+
+## What's Next
+
+- **For agent setup and configuration:** [Supercharging AI Agents with CoreStory](/getting-started/supercharging-ai-agents)
+- **For ongoing development workflows:** [Agentic Bug Resolution](/playbooks/agentic-bug-resolution), [Feature Implementation](/playbooks/feature-implementation), [Spec-Driven Development](/playbooks/spec-driven-development)
+- **For MCP server reference:** [CoreStory MCP Server Setup & Usage Guide](https://corestory.notion.site/corestory-mcp-server-setup)

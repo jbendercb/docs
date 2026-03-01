@@ -1,0 +1,442 @@
+---
+title: "Supercharging AI Agents with CoreStory"
+sidebarTitle: "Supercharging Agents"
+description: "How CoreStory's persistent code intelligence makes AI coding agents dramatically more effective across your development workflow."
+icon: "bolt"
+---
+
+
+## Overview
+
+AI coding agents are only as good as the context they have. Without architectural understanding, they guess â€” reinventing existing services, violating naming conventions, breaking invariants they didn't know existed. The result is code that works in isolation but doesn't fit the system.
+
+CoreStory eliminates this problem by giving your AI agent access to **code intelligence** â€” synthesized knowledge about how your system actually works, drawn from PRDs, technical specifications, user stories, code history, and architecture analysis. The agent queries this intelligence through MCP (Model Context Protocol) to understand the system *before* writing code, not after.
+
+This guide shows you how to connect CoreStory to your AI coding agent, verify the connection, and start using code intelligence in your development workflows. For specific workflow playbooks (bug resolution, feature implementation, spec-driven development), see the links in the Use Cases section.
+
+### What CoreStory Gives Your Agent
+
+CoreStory serves two roles in every workflow:
+
+- **Oracle** â€” answers questions about intended system behavior, invariants, business rules, architectural patterns, and design history. This is context synthesized from your entire codebase â€” not just file contents, but the *meaning* behind them.
+- **Navigator** â€” points to specific files, methods, extension points, and code paths relevant to a task. Instead of grep-wandering through a codebase, the agent gets directed guidance.
+
+Together, these roles let the agent operate like a senior engineer who's been on the team for years â€” understanding not just what the code does, but *why* it does it that way.
+
+---
+
+## Prerequisites
+
+- A **CoreStory account** with at least one project that has completed ingestion
+- An **AI coding agent** that supports MCP (see Supported Agents below)
+- A **code repository** the agent can read and write to
+
+---
+
+## Quick Start
+
+### Step 1: Get Your MCP Token
+
+1. Go to **Settings** in the [CoreStory Dashboard](https://preview.corestory.ai/settings)
+2. Scroll to **IDE Integrations** and click **Configure** under "MCP Connection"
+3. Enter a token name (e.g., "MacBook Pro", "Work Desktop") and click **Generate MCP Token**
+4. **Copy the token immediately** â€” it won't be shown again
+
+### Step 2: Configure Your Agent
+
+Add the CoreStory MCP server to your agent's configuration. The connection uses a single HTTPS endpoint:
+
+```
+URL: https://c2s.corestory.ai/mcp
+Authorization: Bearer mcp_YOUR_TOKEN_HERE
+```
+
+See the Supported Agents section below for agent-specific configuration instructions.
+
+### Step 3: Verify the Connection
+
+Ask your agent:
+
+```
+List my CoreStory projects.
+```
+
+If it returns your projects, the MCP connection is working. If not, check the Troubleshooting section.
+
+### Step 4: Verify Project Readiness
+
+Before starting any task, confirm your project has completed ingestion:
+
+```
+List my CoreStory projects. Which ones are ready to use?
+```
+
+Your agent will call `list_projects` and return project details including status. Confirm the project you want to work with is ready before proceeding.
+
+---
+
+## CoreStory MCP Tools
+
+Once connected, these tools are available to your AI assistant:
+
+| Tool | Description |
+|------|-------------|
+| `list_projects` | List all projects in your organization |
+| `get_project_prd` | Retrieve Product Requirements Document |
+| `get_project_techspec` | Retrieve Technical Specification |
+| `list_conversations` | List project conversations |
+| `get_conversation` | Get conversation details and history |
+| `create_conversation` | Create new conversation |
+| `rename_conversation` | Rename existing conversation |
+| `send_message` | Send message to conversation (streaming response) |
+
+### The Core Interaction Pattern
+
+Most CoreStory workflows follow this pattern:
+
+1. **Select project** â€” `list_projects` â†’ confirm the right project
+2. **Create conversation** â€” `create_conversation` with a descriptive title
+3. **Query the Oracle** â€” `send_message` to understand system behavior, invariants, and architecture
+4. **Query the Navigator** â€” `send_message` to find specific files, methods, and extension points
+5. **Act on the knowledge** â€” implement, test, or document based on what CoreStory revealed
+6. **Close the loop** â€” `rename_conversation` to mark the thread as resolved
+
+The conversation persists as institutional knowledge â€” future queries in the same thread benefit from accumulated context.
+
+---
+
+## Use Cases
+
+CoreStory's code intelligence powers a range of development workflows. Each has a dedicated playbook with step-by-step implementation guidance:
+
+| Use Case | Description | Playbook |
+|----------|-------------|----------|
+| **Bug Resolution** | Diagnose and fix bugs with full architectural context. The agent queries CoreStory to understand how the system *should* work, generates root cause hypotheses, writes a failing test, and implements a minimal fix. | [Agentic Bug Resolution](/playbooks/agentic-bug-resolution) |
+| **Feature Implementation** | Implement features from tickets using CoreStory to understand existing patterns, data structures, and integration points. TDD workflow with continuous architectural validation. | [Feature Implementation](/playbooks/feature-implementation) |
+| **Spec-Driven Development** | Write architecture-grounded specifications before implementation. CoreStory provides the architectural truth that standalone SDD tools can't â€” ensuring specs describe delta changes constrained by what actually exists. | [Spec-Driven Development](/playbooks/spec-driven-development) |
+| **Test Generation** | Derive comprehensive test suites from CoreStory specifications â€” positive cases, negative cases, edge cases, error contracts, and idempotency tests. | [Automated Test Generation](/playbooks/automated-test-generation) |
+| **M&A Technical Due Diligence** | Analyze acquisition targets using CoreStory to understand architecture, identify risks, assess technical debt, and evaluate integration complexity. | [M&A Due Diligence](/playbooks/ma-technical-due-diligence) |
+
+### Additional Use Cases
+
+These workflows don't have dedicated playbooks but follow the same Oracle â†’ Navigator pattern:
+
+- **Spec/Code Gap Analysis** â€” identify discrepancies between CoreStory specifications and actual implementation, then remediate
+- **Architecture Comprehension** â€” understand component boundaries, data flows, and integration points for refactoring or onboarding
+- **API Contract Validation** â€” extract API contracts from specs, validate against code, and generate contract tests
+- **Security Baseline Review** â€” audit error handling, validation, and idempotency against spec security sections
+- **Developer Onboarding Documentation** â€” generate onboarding guides by cross-referencing CoreStory specs with source code
+- **Release Notes Generation** â€” analyze feature changes and generate release notes keyed to business rules and endpoints
+
+---
+
+## Supported Agents & Configuration
+
+CoreStory works with any MCP-capable AI coding agent. Below are configuration instructions for the most common agents.
+
+### Claude Code
+
+Claude Code connects to MCP servers via CLI or configuration file.
+
+**Option A: CLI (recommended)**
+
+```bash
+claude mcp add corestory --transport http --scope user \
+  --header "Authorization: Bearer mcp_YOUR_TOKEN_HERE" \
+  -- https://c2s.corestory.ai/mcp
+```
+
+Scope options: `user` (available in all projects), `local` (current project only), or `project` (shared via `.mcp.json`).
+
+**Option B: Configuration file**
+
+Add to `~/.claude.json` (user scope) or `.mcp.json` (project scope):
+
+```json
+{
+  "mcpServers": {
+    "corestory": {
+      "type": "http",
+      "url": "https://c2s.corestory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
+      }
+    }
+  }
+}
+```
+
+**Verify:** Run `claude mcp list` to confirm the server appears, then ask "List my CoreStory projects."
+
+**Agent-specific configuration files:** Claude Code uses skills stored in `.claude/skills/`. Each workflow playbook includes a ready-to-use skill file that encodes the full workflow for that use case.
+
+---
+
+### GitHub Copilot (VS Code)
+
+VS Code supports MCP servers through the `.vscode/mcp.json` file or user settings.
+
+**Option A: Workspace configuration (shared with team)**
+
+Create `.vscode/mcp.json` in your project root:
+
+```json
+{
+  "servers": {
+    "corestory": {
+      "type": "http",
+      "url": "https://c2s.corestory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:corestoryToken}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "id": "corestoryToken",
+      "type": "promptString",
+      "description": "CoreStory MCP Token",
+      "password": true
+    }
+  ]
+}
+```
+
+Using input variables keeps tokens out of source control. Each team member enters their own token when the server starts.
+
+**Option B: User settings (personal)**
+
+Open VS Code Settings JSON (`Cmd/Ctrl + ,` â†’ "Open Settings (JSON)") and add:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "corestory": {
+        "type": "http",
+        "url": "https://c2s.corestory.ai/mcp",
+        "headers": {
+          "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
+        }
+      }
+    }
+  }
+}
+```
+
+**Verify:** Open Copilot Chat, switch to **Agent** mode, click the tools icon, and confirm CoreStory tools appear.
+
+**Agent-specific configuration files:** Copilot uses custom instructions (`.github/copilot-instructions.md`) and prompt files (`.github/prompts/`). Each workflow playbook includes ready-to-use instruction and prompt files.
+
+---
+
+### Cursor
+
+Cursor supports MCP servers through `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global).
+
+**Option A: Project configuration**
+
+Create `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "corestory": {
+      "url": "https://c2s.corestory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
+      }
+    }
+  }
+}
+```
+
+**Option B: Via Cursor settings UI**
+
+1. Open Settings (`Cmd/Ctrl + Shift + P` â†’ search "MCP")
+2. Click **Tools & Integrations** â†’ **New MCP Server** under MCP Tools
+3. Add the configuration above
+
+**Verify:** Open the AI pane, switch to **Agent** mode, and confirm CoreStory tools appear in the tools list.
+
+**Agent-specific configuration files:** Cursor uses project rules stored in `.cursor/rules/`. Each workflow playbook includes a ready-to-use rule file.
+
+---
+
+### Factory.ai
+
+Factory.ai connects to MCP servers through droid configuration.
+
+**Configuration:**
+
+Add CoreStory to your droid's MCP servers in the Factory.ai dashboard or `.factory/config.json`:
+
+```json
+{
+  "mcpServers": {
+    "corestory": {
+      "url": "https://c2s.corestory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
+      }
+    }
+  }
+}
+```
+
+**Verify:** Ask the droid to "List my CoreStory projects."
+
+**Agent-specific configuration files:** Factory.ai uses custom droid definitions in `.factory/droids/`. Each workflow playbook includes a ready-to-use droid file.
+
+---
+
+### Devin
+
+Devin supports MCP servers through its MCP Marketplace.
+
+**Configuration:**
+
+1. Open the Devin MCP Marketplace
+2. Search for CoreStory or add a custom MCP server
+3. Enter the URL: `https://c2s.corestory.ai/mcp`
+4. Add the Authorization header with your token
+
+**Verify:** Ask Devin to "List my CoreStory projects."
+
+---
+
+### Windsurf
+
+Windsurf supports MCP servers through its configuration file.
+
+**Configuration:**
+
+Add to your Windsurf MCP configuration (typically `~/.windsurf/mcp.json` or through the settings UI):
+
+```json
+{
+  "mcpServers": {
+    "corestory": {
+      "url": "https://c2s.corestory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
+      }
+    }
+  }
+}
+```
+
+**Verify:** Ask "List my CoreStory projects" in the AI chat.
+
+---
+
+### Other MCP-Capable Agents
+
+Any agent that supports MCP's HTTP transport can connect to CoreStory. The configuration pattern is the same:
+
+- **Transport:** HTTP (streamable)
+- **URL:** `https://c2s.corestory.ai/mcp`
+- **Authentication:** Bearer token in the `Authorization` header
+
+Refer to your agent's documentation for the specific configuration syntax.
+
+---
+
+## Best Practices
+
+### Effective CoreStory Queries
+
+The quality of CoreStory's responses depends on the specificity of your queries.
+
+**Be specific, not broad:**
+
+| Instead of | Try |
+|-----------|-----|
+| "Tell me about the order system" | "What is the validation logic for order placement? What fields are required, what are the business rules for minimum amounts, and how is stock validation handled?" |
+| "How does authentication work?" | "What is the session timeout configuration? How are JWT tokens validated, and what happens when a token expires during an active request?" |
+| "Tell me about the API" | "What are the error response formats for the payment endpoints? Do they follow RFC-7807? What HTTP status codes map to which error conditions?" |
+
+**Use specific variable names and code references** when you have them â€” CoreStory can resolve references to actual files and methods in the codebase.
+
+### Oracle Before Navigator
+
+Always query for *understanding* before querying for *location*. The Oracle phase (how does this work? what are the invariants?) should come before the Navigator phase (which files do I need to change?). This prevents the agent from diving into code changes before understanding the system's constraints.
+
+### Conversation Hygiene
+
+- **One conversation per task.** Create a conversation with a descriptive title like "Bug Fix: #1234 â€” Payment retry failing on 503 errors" or "Feature: #412 â€” Webhook notification system."
+- **Reuse conversations** for follow-up queries on the same task. The conversation accumulates context that improves subsequent responses.
+- **Rename when done.** Mark completed conversations with a prefix like "âœ… Resolved:" so future users can find institutional knowledge.
+
+### Cost Control
+
+- **Retrieve before regenerating.** Use `get_project_prd` and `get_project_techspec` to check if documents already exist before asking the agent to generate new content.
+- **Reuse conversations** instead of creating new ones for related queries â€” conversation context reduces the need for repeated background queries.
+- **Batch queries.** Plan your questions in advance and ask comprehensive questions instead of many small ones.
+
+### Security
+
+- **Never commit tokens to version control.** Use environment variables, input prompts (VS Code), or secure credential storage.
+- **Use project-scoped tokens** when sharing configuration with a team, and let each team member enter their own token.
+- **Rotate tokens regularly** and revoke compromised tokens immediately in CoreStory Settings.
+- **Review generated content** for sensitive data before committing to public repositories.
+
+---
+
+## Troubleshooting
+
+### Agent Can't See CoreStory Tools
+
+**Symptoms:** Agent doesn't list CoreStory tools, can't access CoreStory resources, or errors about missing MCP server.
+
+**Solutions:**
+
+1. Verify the MCP server appears in your agent's server list (e.g., `claude mcp list` for Claude Code, or the tools panel in VS Code/Cursor)
+2. Check that the token is correct and hasn't expired â€” try generating a new one
+3. Verify the URL is exactly `https://c2s.corestory.ai/mcp` (no trailing slash)
+4. Restart your agent after configuration changes
+5. Ask the agent to list available MCP servers and tools as a diagnostic
+
+### Project Not Found or Ingestion Incomplete
+
+**Symptoms:** `list_projects` returns empty, or queries return incomplete/stale data.
+
+**Solutions:**
+
+1. Verify you have access to the project in the CoreStory dashboard
+2. Check ingestion status â€” projects must show "completed" or "ready" before querying
+3. If ingestion appears stuck, contact CoreStory support
+4. Don't proceed with heavy queries until ingestion is complete
+
+### Slow or Rate-Limited Responses
+
+**Symptoms:** Slow responses, timeouts, or rate-limiting errors.
+
+**Solutions:**
+
+1. Reduce query frequency â€” batch related questions into single, comprehensive queries
+2. Reuse conversations instead of creating new ones
+3. Retrieve existing documents instead of regenerating
+4. Use incremental section generation instead of full document generation
+
+### Agent Times Out on Long Tasks
+
+**Symptoms:** Agent sessions end before completing multi-step workflows.
+
+**Solutions:**
+
+1. Break large tasks into milestones â€” have the agent commit after each phase
+2. Use the conversation ID to resume context in a new session
+3. For agents with session limits (e.g., Devin ACU limits), prioritize the Oracle and Navigator phases first, then implement in a separate session
+
+---
+
+## What's Next
+
+Once you've verified your CoreStory connection, pick a workflow and follow its playbook:
+
+- **First time?** Start with [Bug Resolution](/playbooks/agentic-bug-resolution) â€” it's the most concrete workflow and demonstrates the Oracle â†’ Navigator â†’ Implement pattern clearly.
+- **Building something new?** Use [Spec-Driven Development](/playbooks/spec-driven-development) to ground your specification in the real architecture before implementation.
+- **Working from tickets?** [Feature Implementation](/playbooks/feature-implementation) covers the full ticket-to-merge workflow with TDD and continuous architectural validation.
+
+Each playbook includes agent-specific configuration files (skills, instructions, rules, droids) that encode the workflow so your agent follows it automatically.

@@ -1,0 +1,932 @@
+---
+title: "Spec-Driven Development"
+sidebarTitle: "Spec-Driven Dev"
+description: "A six-phase methodology for writing architecture-grounded specifications that produce correct implementations on the first pass."
+icon: "file-lines"
+---
+
+
+## Overview
+
+A specification that isn't grounded in the real architecture is a wish list. Code generated from a wish list is technical debt.
+
+Spec-driven development (SDD) is gaining traction as teams realize that handing an AI agent a vague ticket and hoping for the best doesn't scale. Tools like GitHub's Spec Kit, Kiro, and Tessl have emerged to impose structure â€” write a spec first, then generate code from it. The structure is valuable. But every one of these tools shares a fundamental blind spot: they don't actually know how your system works. They scan files, infer patterns, and guess. The specs they produce are architecturally ungrounded â€” and ungrounded specs produce code that reinvents existing services, violates established patterns, and breaks invariants the spec author didn't know existed.
+
+This playbook is CoreStory's answer to the grounding problem. It's a six-phase workflow where your AI agent queries CoreStory's code intelligence to understand the real architecture *before* writing a single line of specification â€” then validates the spec *against* that architecture before implementation begins. The result is a **delta specification** â€” only what changes, constrained by what exists â€” rather than an aspirational document that may contradict reality.
+
+CoreStory serves two roles in this workflow:
+
+- **Oracle** â€” answers questions about architectural patterns, naming conventions, business rules, invariants, and design decisions. This is context synthesized from PRDs, tech specs, user stories, and code history. It's the institutional knowledge that normally lives only in the heads of long-tenured engineers.
+- **Navigator** â€” points to specific files, services, base classes, extension points, and data structures. Instead of guessing where new code should go or what already exists, the agent gets directed guidance grounded in the actual codebase.
+
+**When to use this:** Any feature that touches multiple components, needs to follow established patterns, or involves integration with existing services. Especially valuable for cross-cutting features, complex domain logic, unfamiliar codebases, and onboarding new team members who need to build things that fit the existing system.
+
+**When to skip this:** Trivial changes, documentation-only updates, dependency bumps, or isolated utility functions with no integration requirements. If the feature can be fully specified in a single sentence and doesn't touch other components, direct implementation is faster.
+
+**How this relates to other playbooks:** The Implementation phase (Phase 5) deliberately stays lightweight because the Bug Resolution and Feature Implementation playbooks cover test-driven implementation in depth. This playbook's unique contribution is Phases 1â€“4 (Ground, Specify, Validate, Plan) â€” the specification workflow that precedes implementation. Cross-reference the other playbooks when you reach Phase 5.
+
+---
+
+## Prerequisites
+
+- **CoreStory account** with at least one project that has completed ingestion
+- **CoreStory MCP server** connected to your AI coding agent (see the [CoreStory MCP Server Setup Guide](https://corestory.notion.site/corestory-mcp-server-setup))
+- **AI coding agent** â€” this playbook includes implementation guides for Claude Code, GitHub Copilot, Cursor, and Factory.ai. The generic workflow applies to any MCP-capable agent.
+- **Optional:** Ticketing system MCP (GitHub Issues, Jira, Linear, Azure DevOps) for automatic ticket intake
+- **Optional:** A companion SDD framework (Spec Kit, Kiro, etc.) â€” this playbook works standalone, but companion integrations are covered in separate guides
+
+---
+
+## How It Works
+
+### The Six-Phase Workflow
+
+The workflow has six phases. The first four produce and validate the specification; the last two implement and verify it. Phases 1 and 3 â€” Ground and Validate â€” are what distinguish this from generic SDD. They can't exist without architectural knowledge, which is why no standalone SDD tool offers them.
+
+| Phase | Name | Purpose | CoreStory Role |
+|-------|------|---------|----------------|
+| 1 | Ground | Establish architectural truth before writing any spec | Oracle |
+| 2 | Specify | Write requirements constrained by what exists | Oracle + Navigator |
+| 3 | Validate | Architectural pre-mortem â€” submit spec for conflict detection | Oracle |
+| 4 | Plan | Map validated spec to files, patterns, and extension points | Navigator |
+| 5 | Implement | TDD with continuous architectural validation | Validation |
+| 6 | Verify & Capture | Confirm implementation matches spec AND preserves invariants | Knowledge capture |
+
+**CoreStory MCP tools used:**
+
+| Tool | When Used |
+|------|-----------|
+| `list_projects` | Phase 1 â€” select the right project |
+| `create_conversation` | Phase 1 â€” create a persistent specification thread |
+| `send_message` | Phases 1â€“6 â€” all queries to CoreStory |
+| `get_project_prd` | Phase 1 â€” access product requirements for grounding |
+| `get_project_techspec` | Phase 1 â€” access technical specifications |
+| `rename_conversation` | Phase 6 â€” mark conversation as completed |
+
+Optional (if ticketing MCP is connected): the agent also uses the ticketing system's tools to fetch ticket details and post implementation summaries.
+
+### Why Delta Specification Matters
+
+Traditional SDD produces **greenfield specifications** â€” documents that describe the entire feature from scratch as if no codebase existed. This creates three problems:
+
+1. **Contradiction.** The spec describes patterns that conflict with the actual architecture. The agent either follows the spec (introducing inconsistency) or follows the code (making the spec misleading).
+2. **Duplication.** The spec designs services, utilities, and abstractions that already exist. The agent builds from the spec, creating parallel implementations of existing functionality.
+3. **Bloat.** Without knowing what already exists, specs over-specify. A date formatting feature that should be "use the existing DateFormatter service with locale X" becomes 40 lines of formatting logic specification.
+
+Delta specification solves all three. By grounding in the real architecture first, the spec only describes *what changes* â€” new components, modified behaviors, extended interfaces. Everything that stays the same is referenced, not re-specified.
+
+---
+
+## Step-by-Step Walkthrough
+
+This section is agent-agnostic. The prompts work with any MCP-connected agent. Agent-specific configuration is in the Implementation Guides below.
+
+### Phase 1: Ground
+
+**Objective:** Establish architectural truth before writing any specification.
+
+This phase is the foundation. Without it, every subsequent phase operates on assumptions â€” and assumptions are where specs go wrong. The output is a grounded understanding captured in a CoreStory conversation thread, not a static constitution document that drifts out of sync with the code.
+
+**1.1 â€” Gather requirements.** If a ticketing MCP is connected, fetch the ticket:
+
+```
+"Fetch GitHub issue #412 from myorg/myapp and extract the feature requirements."
+```
+
+Extract the user story, acceptance criteria, constraints, and any existing design notes. If no ticketing MCP is available, provide these details in the prompt. The agent needs to know *what* is being built before it can query *how it fits*.
+
+**1.2 â€” Select CoreStory project and create conversation.**
+
+```
+"List my CoreStory projects and select the one for myapp."
+```
+
+```
+"Create a CoreStory conversation for project myapp-main titled
+'Spec: #412 â€” Add webhook notification system'"
+```
+
+This conversation persists across the entire specification lifecycle. It captures not just what was decided, but the architectural reasoning behind every decision â€” institutional knowledge that outlasts any static spec document.
+
+**1.3 â€” Query architectural patterns.**
+
+```
+Send CoreStory message: "What architectural patterns does this system follow?
+I'm about to design a webhook notification system and need to understand:
+1. How are event-driven features currently structured?
+2. What messaging/eventing patterns exist?
+3. What service layer conventions are used?
+4. How do existing features handle async operations?"
+```
+
+This query establishes the architectural vocabulary. If the system uses an event bus, the spec should use the event bus. If there's a NotificationService base class, the spec should extend it. If async operations use a specific queue pattern, the spec should follow that pattern.
+
+**1.4 â€” Query existing services and reusable components.**
+
+```
+Send CoreStory message: "What services already handle notifications or
+event delivery? Specifically:
+1. Are there existing notification services (email, SMS, push)?
+2. Is there a webhook or callback mechanism already?
+3. What retry/failure handling patterns exist for async delivery?
+4. What serialization formats are used for outbound data?"
+```
+
+This is the **reuse-first** query. Before designing anything new, find out what already exists. Teams are often surprised to discover that 40% of a feature's spec describes functionality that's already implemented.
+
+**1.5 â€” Query invariants and constraints.**
+
+```
+Send CoreStory message: "What invariants and constraints must be maintained
+in the notification/eventing area? I need to know:
+1. Authentication/authorization requirements for outbound requests
+2. Rate limiting or throttling patterns
+3. Data privacy constraints (what fields must NOT be included in payloads?)
+4. Ordering guarantees for event delivery
+5. Idempotency requirements"
+```
+
+This is the **invariant-first** query. Before specifying what to build, establish what must NOT break. These invariants become the guardrails that constrain the spec in Phase 2 and the validation criteria in Phase 3.
+
+**1.6 â€” Query design history.**
+
+```
+Send CoreStory message: "Has there been previous work on webhooks or
+event notifications? Any past attempts, RFCs, or design discussions?
+What was the original design intent for the notification system?"
+```
+
+Past attempts often contain valuable context about why certain approaches were rejected. Repeating a known-failed approach wastes everyone's time.
+
+**Phase 1 produces:** A CoreStory conversation containing architectural patterns, existing services to reuse, invariants to preserve, and design history â€” the grounded context that constrains everything that follows.
+
+---
+
+### Phase 2: Specify
+
+**Objective:** Write a delta specification â€” requirements constrained by what exists.
+
+Two principles make this different from generic SDD:
+
+- **Reuse-first.** Before designing anything new, specify what existing components will be reused and how. This prevents the most common SDD failure mode: specs that design new services when existing ones would work.
+- **Invariant-first.** Before specifying what will change, specify what must NOT change. This encodes the architectural constraints that experienced engineers carry in their heads but rarely write down.
+
+**2.1 â€” Define invariants (what must NOT change).**
+
+Write the invariant section of the spec before writing requirements. These come directly from Phase 1 findings:
+
+```markdown
+## Invariants
+
+- All outbound webhook payloads must exclude PII fields defined in
+  DataPrivacyConfig
+- Webhook delivery must be idempotent â€” duplicate delivery must not
+  cause duplicate side effects
+- Existing notification services (EmailNotifier, PushNotifier) must
+  continue to function without modification
+- Event ordering within a single subscription must be preserved
+- All outbound HTTP requests must go through the existing HttpClient
+  service (for rate limiting and circuit breaking)
+```
+
+**2.2 â€” Define reuse (what already exists).**
+
+List the existing components that the feature will use rather than recreate:
+
+```markdown
+## Existing Components to Reuse
+
+- `EventBus` â€” subscribe to domain events (already handles user.created,
+  order.completed, etc.)
+- `HttpClient` â€” outbound HTTP with retry, circuit breaking, rate limiting
+- `SerializerFactory` â€” JSON/XML payload serialization
+- `NotificationPreferences` â€” user-level notification opt-in/opt-out
+  (extend for webhook channel)
+- `AuditLogger` â€” log all outbound webhook attempts for compliance
+```
+
+**2.3 â€” Define the delta (what changes).**
+
+Now â€” and only now â€” specify the new components, modified interfaces, and new behaviors:
+
+```markdown
+## New Components
+
+### WebhookSubscription model
+- subscriber_id, event_type, target_url, secret, status, created_at
+- Follows existing model conventions (extends BaseModel, uses UUIDField)
+- Registered in SubscriptionRepository (same pattern as NotificationPreferences)
+
+### WebhookDeliveryService
+- Extends existing NotifierBase interface
+- Uses HttpClient for delivery (not a new HTTP implementation)
+- Implements retry with exponential backoff (follows existing RetryPolicy)
+- Records delivery attempts in AuditLogger
+
+### Management API endpoints
+- POST /api/v2/webhooks â€” create subscription (follows existing REST conventions)
+- DELETE /api/v2/webhooks/{id} â€” remove subscription
+- GET /api/v2/webhooks â€” list subscriptions (paginated, same pattern as /api/v2/notifications)
+
+## Modified Components
+
+### EventBus
+- Add WebhookDeliveryService as a subscriber type
+- No changes to existing subscriber interface â€” WebhookDeliveryService
+  implements the existing EventSubscriber interface
+```
+
+**2.4 â€” Define acceptance criteria.**
+
+Write testable acceptance criteria that reference the architecture:
+
+```markdown
+## Acceptance Criteria
+
+1. Admin users can register webhook URLs for specific event types via the
+   management API
+2. When a subscribed event fires on EventBus, the WebhookDeliveryService
+   delivers a signed payload to the registered URL within 30 seconds
+3. Failed deliveries retry with exponential backoff using the existing
+   RetryPolicy (max 5 attempts over 24 hours)
+4. All deliveries are logged in AuditLogger with status, latency, and
+   response code
+5. PII fields are stripped from payloads per DataPrivacyConfig
+6. Existing notification channels (email, push) are unaffected
+```
+
+Notice what's different about this spec: every requirement references specific existing components. The agent implementing this spec knows exactly what to reuse, what to extend, and what to create. There's no ambiguity about whether to build a new HTTP client or use the existing one.
+
+---
+
+### Phase 3: Validate
+
+**Objective:** Submit the spec back to CoreStory for architectural pre-mortem.
+
+This is the phase that no standalone SDD tool can replicate. Generic SDD produces a spec and moves to implementation. Architecture-grounded SDD submits the spec for validation â€” asking "what could go wrong?" with access to the full architectural context.
+
+**3.1 â€” Check for architectural conflicts.**
+
+```
+Send CoreStory message: "I've drafted a spec for a webhook notification
+system. The core design is:
+- New WebhookSubscription model extending BaseModel
+- New WebhookDeliveryService implementing EventSubscriber
+- New REST endpoints at /api/v2/webhooks
+- Reusing EventBus, HttpClient, SerializerFactory, and AuditLogger
+
+Would any of this conflict with existing architectural patterns? Are there
+naming convention violations? Integration issues I'm not seeing?"
+```
+
+CoreStory might surface that `/api/v2/` endpoints follow a different authentication pattern than what the spec assumes, that `EventSubscriber` has been deprecated in favor of `EventHandler`, or that `SerializerFactory` doesn't support the webhook payload format. These are the kinds of issues that normally surface during code review â€” weeks after the spec was written.
+
+**3.2 â€” Check for missing dependencies.**
+
+```
+Send CoreStory message: "What components would be affected by adding a
+WebhookDeliveryService that listens on EventBus? Are there downstream
+systems that expect exclusive event handling? Any config changes needed?"
+```
+
+**3.3 â€” Run a failure mode analysis.**
+
+```
+Send CoreStory message: "What could go wrong with this webhook system design?
+Think about:
+1. What happens if the target URL is unreachable for an extended period?
+2. What happens if event volume spikes?
+3. What happens if a webhook subscriber is deleted while deliveries are queued?
+4. Are there security implications I haven't addressed?"
+```
+
+This is a **pre-mortem** â€” identifying failure modes before they become production incidents. CoreStory's answers are grounded in the actual system's failure handling patterns, queue implementations, and security model.
+
+**3.4 â€” Revise the spec.**
+
+Update the specification based on validation findings. This might mean:
+- Adjusting component names to match conventions
+- Adding missing error handling based on existing patterns
+- Removing features that duplicate existing functionality you missed
+- Adding integration requirements you hadn't considered
+
+Capture the revision in the CoreStory conversation. The diff between the original spec and the validated spec is itself valuable institutional knowledge â€” it shows what the architecture constrained.
+
+---
+
+### Phase 4: Plan
+
+**Objective:** Map the validated spec to specific files, patterns, and extension points.
+
+Where Phase 3 asked "is this spec valid?", Phase 4 asks "where exactly does this go?" The difference from generic planning is precision: CoreStory provides exact file paths, class hierarchies, and integration points based on the actual codebase â€” not inferred from file proximity or naming conventions.
+
+**4.1 â€” Map components to files.**
+
+```
+Send CoreStory message: "Based on the validated webhook spec, where should
+each component be implemented? I need:
+1. File path for WebhookSubscription model (following existing model locations)
+2. File path for WebhookDeliveryService (following existing service locations)
+3. File path for webhook API endpoints (following existing REST conventions)
+4. Test file locations (following existing test structure)
+5. Migration file location for the new database table"
+```
+
+**4.2 â€” Identify extension points.**
+
+```
+Send CoreStory message: "What specific extension points should I use?
+1. Which base class does WebhookSubscription extend, and what methods must
+   it implement?
+2. How does EventSubscriber/EventHandler register with EventBus?
+3. How are new API endpoints registered in the routing system?
+4. How are new models registered for database migration?"
+```
+
+**4.3 â€” Determine implementation order.**
+
+```
+Send CoreStory message: "What order should I implement the webhook components?
+Consider actual code dependencies â€” what depends on what? What can be tested
+independently?"
+```
+
+CoreStory provides dependency ordering based on actual import relationships, not guesswork:
+
+1. Database migration and model (no dependencies)
+2. Repository layer (depends on model)
+3. Delivery service (depends on repository, HttpClient, EventSubscriber)
+4. API endpoints (depends on repository, delivery service)
+5. EventBus registration (depends on delivery service)
+6. Integration tests (depends on everything)
+
+**Phase 4 produces:** A file-level implementation plan with exact paths, base classes, extension points, and dependency-ordered task list â€” ready for Phase 5.
+
+---
+
+### Phase 5: Implement
+
+**Objective:** TDD implementation with continuous CoreStory validation.
+
+This phase follows the same test-first methodology as the Feature Implementation playbook. The spec from Phases 1â€“4 gives the agent precise implementation guidance; this phase executes it.
+
+**5.1 â€” Write failing tests** from the acceptance criteria in Phase 2, following patterns identified in Phase 1:
+
+```
+"Write failing tests for the webhook system based on the acceptance criteria.
+Follow the existing test patterns CoreStory identified â€” use the same fixtures,
+assertion styles, and test organization."
+```
+
+**5.2 â€” Implement** following the plan from Phase 4, in dependency order:
+
+```
+"Implement the WebhookSubscription model in [exact path from Phase 4],
+extending [exact base class from Phase 4]. Follow the existing model
+conventions CoreStory identified."
+```
+
+**5.3 â€” Validate** each component against the spec and architecture:
+
+```
+Send CoreStory message: "I've implemented WebhookDeliveryService.
+[paste key code]. Does this align with the EventSubscriber pattern
+and the existing retry handling? Anything I'm missing?"
+```
+
+**5.4 â€” Run the full test suite** after each component. Regressions mean the implementation violated an invariant â€” go back to the CoreStory conversation and check which constraint was broken.
+
+For detailed implementation guidance, see the [Feature Implementation](/playbooks/feature-implementation) playbook.
+
+---
+
+### Phase 6: Verify & Capture
+
+**Objective:** Confirm the implementation matches the spec AND preserves the invariants from Phase 1.
+
+**6.1 â€” Verify spec compliance.**
+
+```
+Send CoreStory message: "The webhook system is implemented. Verify against
+the original spec:
+1. Does WebhookDeliveryService use HttpClient (not a new HTTP implementation)?
+2. Are PII fields excluded per DataPrivacyConfig?
+3. Does delivery retry follow the existing RetryPolicy?
+4. Are all deliveries logged in AuditLogger?
+5. Are existing notification channels unaffected?"
+```
+
+**6.2 â€” Verify invariant preservation.** Go back to the invariants from Phase 1 and confirm each one:
+
+```
+Send CoreStory message: "Confirm that the webhook implementation preserves
+all invariants from Phase 1: PII exclusion, idempotent delivery, event
+ordering, HttpClient usage, and no disruption to existing notifiers."
+```
+
+**6.3 â€” Commit with context.**
+
+```
+git commit -m "Feat: Add webhook notification system (#412)
+
+Spec: Architecture-grounded webhook system using existing event infrastructure.
+Reuses: EventBus, HttpClient, SerializerFactory, AuditLogger, RetryPolicy.
+New: WebhookSubscription model, WebhookDeliveryService, /api/v2/webhooks endpoints.
+Invariants preserved: PII exclusion, idempotent delivery, event ordering.
+CoreStory conversation: [conversation-id]"
+```
+
+**6.4 â€” Rename the CoreStory conversation** to mark it as completed:
+
+```
+"Rename the CoreStory conversation to 'COMPLETED â€” Spec: #412 â€” Webhook notification system'"
+```
+
+This conversation is now searchable institutional knowledge. Future engineers working on the webhook system â€” or any related notification feature â€” can reference the full chain of architectural reasoning, specification decisions, and validation results. This is the living record that static spec documents can't provide.
+
+**6.5 â€” Update the ticket** with a summary linking to the CoreStory conversation:
+
+```
+"Update GitHub issue #412 with an implementation summary, test results,
+and a link to the CoreStory conversation for architectural context."
+```
+
+---
+
+## Agent Implementation Guides
+
+Each guide covers: setup, usage, tips, and an agent-specific configuration file that encodes the six-phase workflow.
+
+### Claude Code
+
+#### Setup
+
+1. **Configure the CoreStory MCP server.** Add to your MCP configuration (global `~/.claude/config.json` or project `.claude/config.json`). Verify by asking Claude Code: "List my CoreStory projects."
+
+2. **Add the skill file.** Claude Code uses skills stored in `.claude/skills/`:
+
+```bash
+mkdir -p .claude/skills/spec-driven-dev
+```
+
+Create `.claude/skills/spec-driven-dev/SKILL.md` with the content from the skill file below.
+
+3. **Commit to version control:**
+
+```bash
+git add .claude/skills/
+git commit -m "Add CoreStory spec-driven development skill"
+```
+
+#### Usage
+
+Claude Code auto-loads skills based on description matching. When you mention specifications, specs, architecture-grounded development, or SDD, the skill activates:
+
+```
+"Write an architecture-grounded spec for the webhook notification feature in ticket #412"
+```
+
+Or reference the skill directly:
+
+```
+"Use the spec-driven-dev skill to spec out the new reporting dashboard"
+```
+
+#### Tips
+
+- Keep the skill file under 500 lines. The file below is optimized for this limit.
+- Claude Code's YAML frontmatter requires `name` and `description` fields. The description drives auto-activation â€” make it specific.
+- The skill works with other skills. If you have a testing skill, Claude Code will combine them during Phase 5.
+
+#### Skill File
+
+Save as `.claude/skills/spec-driven-dev/SKILL.md`:
+
+````markdown
+---
+name: spec-driven-development
+description: Architecture-grounded spec-driven development using CoreStory code intelligence. Use when writing specifications, designing features, or doing spec-driven development.
+---
+
+# Spec-Driven Development with CoreStory
+
+Execute the six-phase spec-driven development workflow. Every spec must be grounded in the actual architecture before implementation.
+
+## CoreStory MCP Tools
+- `CoreStory:list_projects` â€” list available projects
+- `CoreStory:get_project` â€” verify project status
+- `CoreStory:create_conversation` â€” start specification thread
+- `CoreStory:send_message` â€” query code intelligence
+- `CoreStory:get_project_prd` â€” access product requirements
+- `CoreStory:get_project_techspec` â€” access technical specifications
+- `CoreStory:rename_conversation` â€” mark as completed
+
+When instructions say "Query CoreStory", use `CoreStory:send_message`.
+
+## Phase 1: Ground â€” Before Writing Any Spec
+1. Gather requirements (from ticket or user)
+2. Select CoreStory project (`CoreStory:list_projects`, verify "completed")
+3. Create conversation: "Spec: #[ID] â€” [description]"
+4. Query CoreStory for:
+   - Architectural patterns in the relevant area
+   - Existing services and reusable components
+   - Invariants and constraints that must be preserved
+   - Design history and past attempts
+
+**Do not proceed to Phase 2 until you have documented: patterns, existing services, invariants, and history.**
+
+## Phase 2: Specify â€” Delta Specification
+Write the spec constrained by Phase 1 findings:
+1. **Invariants first** â€” what must NOT change
+2. **Reuse section** â€” existing components to use, not recreate
+3. **Delta section** â€” only new/modified components
+4. **Acceptance criteria** â€” testable, referencing specific existing components
+
+This is a delta spec: only what changes. Do NOT re-specify existing functionality.
+
+## Phase 3: Validate â€” Architectural Pre-Mortem
+Submit the spec to CoreStory for validation:
+1. Check for architectural conflicts
+2. Check for missing dependencies
+3. Run failure mode analysis (what could go wrong?)
+4. Revise spec based on findings
+
+**Do not proceed to Phase 4 until CoreStory has validated the spec.**
+
+## Phase 4: Plan â€” File-Level Implementation Map
+Query CoreStory for:
+1. Exact file paths for each new component
+2. Extension points and base classes
+3. Implementation order based on actual dependencies
+4. Test file locations
+
+## Phase 5: Implement â€” TDD with Validation
+1. Write failing tests from acceptance criteria
+2. Implement in dependency order from Phase 4
+3. Validate each component with CoreStory
+4. Run full test suite â€” no regressions
+
+## Phase 6: Verify & Capture
+1. Verify spec compliance with CoreStory
+2. Verify invariant preservation from Phase 1
+3. Commit with architectural context
+4. Rename conversation â†’ "COMPLETED"
+5. Update ticket
+
+## Key Principles
+- Ground before Specify â€” always
+- Invariant-first, reuse-first
+- Delta specs, not greenfield specs
+- Validate before Plan
+- Conversation IS the living spec record
+````
+
+---
+
+### GitHub Copilot
+
+#### Setup
+
+1. **Configure the CoreStory MCP server.** Add to your VS Code MCP settings (`.vscode/mcp.json` or user settings). Verify by asking Copilot Chat: "List my CoreStory projects."
+
+2. **Add project-level custom instructions.** Create or update `.github/copilot-instructions.md` with the content from the instructions file below.
+
+3. **Optionally add a reusable prompt file.** Create `.github/prompts/spec-driven-dev.prompt.md` with `mode: agent` frontmatter for on-demand invocation.
+
+4. **Commit to version control:**
+
+```bash
+git add .github/
+git commit -m "Add CoreStory spec-driven development instructions"
+```
+
+#### Usage
+
+With custom instructions active, Copilot Chat applies the workflow automatically when you ask about specifications or feature design:
+
+```
+"Write an architecture-grounded spec for the webhook notification feature in ticket #412"
+```
+
+If using a prompt file:
+
+```
+@workspace /spec-driven-dev Spec out the new reporting dashboard
+```
+
+#### Tips
+
+- `.github/copilot-instructions.md` is always active â€” it's global custom instructions for the project. Keep it focused on principles.
+- Prompt files (`.github/prompts/`) are invoked on demand and support `mode: agent` for agentic execution.
+- Copilot Chat accesses MCP tools through the VS Code MCP configuration. Ensure CoreStory tools appear in the available tools list.
+
+#### Custom Instructions File
+
+Save as `.github/copilot-instructions.md` (append to existing content if the file already exists):
+
+```markdown
+## Spec-Driven Development with CoreStory
+
+When asked to write specifications, design features, or do spec-driven development, execute this six-phase workflow using CoreStory's MCP tools.
+
+### CoreStory MCP Tools
+- `CoreStory:list_projects` â€” list available projects
+- `CoreStory:get_project` â€” verify project status
+- `CoreStory:create_conversation` â€” start specification thread
+- `CoreStory:send_message` â€” query code intelligence
+- `CoreStory:rename_conversation` â€” mark as completed
+
+When instructions say "Query CoreStory", use `CoreStory:send_message`.
+
+### Phase 1: Ground â€” Before Writing Any Spec
+1. Gather requirements (from ticket or user)
+2. Select CoreStory project (`CoreStory:list_projects`, verify "completed")
+3. Create conversation: "Spec: #[ID] â€” [description]"
+4. Query CoreStory for: architectural patterns, existing services, invariants, design history
+
+### Phase 2: Specify â€” Delta Specification
+1. Invariants first â€” what must NOT change
+2. Reuse section â€” existing components to use
+3. Delta section â€” only new/modified components
+4. Acceptance criteria referencing existing components
+
+### Phase 3: Validate â€” Architectural Pre-Mortem
+Submit spec to CoreStory: check conflicts, missing dependencies, failure modes. Revise.
+
+### Phase 4: Plan â€” File-Level Map
+Query CoreStory for: file paths, extension points, implementation order, test locations.
+
+### Phase 5: Implement â€” TDD
+Write failing tests â†’ implement in dependency order â†’ validate with CoreStory â†’ full suite.
+
+### Phase 6: Verify & Capture
+Verify spec compliance â†’ verify invariants â†’ commit â†’ rename conversation "COMPLETED" â†’ update ticket.
+
+### Key Principles
+- Ground before Specify
+- Invariant-first, reuse-first
+- Delta specs, not greenfield
+- Validate before Plan
+- Conversation IS the living spec record
+```
+
+---
+
+### Cursor
+
+#### Setup
+
+1. **Configure the CoreStory MCP server.** Add to your Cursor MCP configuration (`.cursor/mcp.json` or user settings). Verify by asking Cursor Chat: "List my CoreStory projects."
+
+2. **Add the project rule.** Cursor uses rules stored in `.cursor/rules/`:
+
+```bash
+mkdir -p .cursor/rules
+```
+
+Create `.cursor/rules/spec-driven-dev.mdc` with the content from the rule file below.
+
+3. **Commit to version control:**
+
+```bash
+git add .cursor/rules/
+git commit -m "Add CoreStory spec-driven development rule"
+```
+
+#### Usage
+
+With `alwaysApply: true`, the rule activates automatically when Cursor detects specification-related context. Or trigger it explicitly:
+
+```
+"Use spec-driven development to design the webhook notification system for ticket #412"
+```
+
+#### Tips
+
+- Cursor rules use `.mdc` extension with YAML frontmatter containing `description`, `globs`, and `alwaysApply`.
+- Set `alwaysApply: true` for rules that should always be active, or use `globs` to restrict to specific files.
+- Rules apply in both Composer and Chat modes.
+
+#### Project Rule
+
+Save as `.cursor/rules/spec-driven-dev.mdc`:
+
+````markdown
+---
+description: Architecture-grounded spec-driven development using CoreStory code intelligence. Activates for specification writing, feature design, and SDD workflows.
+globs:
+alwaysApply: true
+---
+
+# Spec-Driven Development with CoreStory
+
+Execute the six-phase spec-driven development workflow. Every spec must be grounded in the actual architecture.
+
+## CoreStory MCP Tools
+- `CoreStory:list_projects` â€” list available projects
+- `CoreStory:get_project` â€” verify project status
+- `CoreStory:create_conversation` â€” start specification thread
+- `CoreStory:send_message` â€” query code intelligence
+- `CoreStory:get_project_prd` â€” access product requirements
+- `CoreStory:get_project_techspec` â€” access technical specifications
+- `CoreStory:rename_conversation` â€” mark as completed
+
+When instructions say "Query CoreStory", use `CoreStory:send_message`.
+
+## Phase 1: Ground â€” Before Writing Any Spec
+1. Gather requirements (from ticket or user)
+2. Select CoreStory project (`CoreStory:list_projects`, verify "completed")
+3. Create conversation: "Spec: #[ID] â€” [description]"
+4. Query CoreStory for:
+   - Architectural patterns in the relevant area
+   - Existing services and reusable components
+   - Invariants and constraints
+   - Design history and past attempts
+
+**Do not proceed to Phase 2 until patterns, services, invariants, and history are documented.**
+
+## Phase 2: Specify â€” Delta Specification
+1. Invariants first â€” what must NOT change
+2. Reuse section â€” existing components to use
+3. Delta section â€” only new/modified components
+4. Acceptance criteria referencing specific existing components
+
+## Phase 3: Validate â€” Architectural Pre-Mortem
+Submit spec to CoreStory:
+1. Check for architectural conflicts
+2. Check for missing dependencies
+3. Failure mode analysis
+4. Revise spec based on findings
+
+**Do not proceed to Phase 4 until spec is validated.**
+
+## Phase 4: Plan â€” File-Level Map
+Query CoreStory for: file paths, extension points, base classes, implementation order, test locations.
+
+## Phase 5: Implement â€” TDD
+Write failing tests â†’ implement in dependency order â†’ validate with CoreStory â†’ full suite.
+
+## Phase 6: Verify & Capture
+Verify spec compliance â†’ verify invariants â†’ commit â†’ rename conversation "COMPLETED" â†’ update ticket.
+
+## Key Principles
+- Ground before Specify â€” always
+- Invariant-first, reuse-first
+- Delta specs, not greenfield specs
+- Validate before Plan
+- Conversation IS the living spec record
+````
+
+---
+
+### Factory.ai
+
+#### Setup
+
+1. **Configure the CoreStory MCP server** in your Factory.ai environment. Verify with the `/mcp` command that CoreStory tools are accessible.
+
+2. **Add the custom droid.** Factory.ai uses droids stored in `.factory/droids/` (project-level) or `~/.factory/droids/` (personal):
+
+```bash
+mkdir -p .factory/droids
+```
+
+Create `.factory/droids/spec-driven-dev.md` with the content from the droid file below.
+
+3. **Commit to version control** (for project-level droids):
+
+```bash
+git add .factory/droids/
+git commit -m "Add CoreStory spec-driven development droid"
+```
+
+#### Usage
+
+Invoke the droid via the Task tool:
+
+```
+@spec-driven-dev Write an architecture-grounded spec for the webhook notification system (#412)
+```
+
+Or describe the work and Factory.ai routes to the droid based on its activation triggers.
+
+#### Tips
+
+- Use `model: inherit` in the YAML frontmatter to use whatever model the session is configured with.
+- The `tools` field in frontmatter can explicitly list required MCP tools if you want to restrict the droid's capabilities.
+- The Task tool that invokes droids requires experimental features to be enabled.
+- For complex specs, the droid's CoreStory queries may produce long streaming responses â€” this is expected.
+
+#### Custom Droid
+
+Save as `.factory/droids/spec-driven-dev.md`:
+
+````markdown
+---
+name: CoreStory Spec-Driven Development
+description: Architecture-grounded spec-driven development using CoreStory code intelligence
+model: inherit
+tools:
+  - CoreStory:list_projects
+  - CoreStory:get_project
+  - CoreStory:get_project_stats
+  - CoreStory:create_conversation
+  - CoreStory:send_message
+  - CoreStory:get_conversation
+  - CoreStory:rename_conversation
+  - CoreStory:get_project_prd
+  - CoreStory:get_project_techspec
+---
+
+# CoreStory Spec-Driven Development
+
+Execute the six-phase spec-driven development workflow using CoreStory's code intelligence. Every spec must be grounded in the actual architecture before implementation.
+
+## Activation Triggers
+- "Write a spec for [feature]"
+- "Spec out [feature]"
+- "Design [feature] with architecture context"
+- Any specification, design, or SDD request
+
+## CoreStory MCP Tools
+- `CoreStory:list_projects` â€” list available projects
+- `CoreStory:get_project` â€” verify project status
+- `CoreStory:create_conversation` â€” start specification thread
+- `CoreStory:send_message` â€” query code intelligence
+- `CoreStory:rename_conversation` â€” mark as completed
+
+When instructions say "Query CoreStory", use `CoreStory:send_message`.
+
+## Phase 1: Ground
+1. Gather requirements (from ticket or user)
+2. Select CoreStory project (`CoreStory:list_projects`, verify "completed")
+3. Create conversation: "Spec: #[ID] â€” [description]"
+4. Query CoreStory for: patterns, existing services, invariants, design history
+
+## Phase 2: Specify â€” Delta Specification
+Invariants first â†’ reuse section â†’ delta (new/modified) â†’ acceptance criteria.
+
+## Phase 3: Validate â€” Architectural Pre-Mortem
+Submit spec to CoreStory: conflicts, missing dependencies, failure modes. Revise.
+
+## Phase 4: Plan â€” File-Level Map
+Query CoreStory for: file paths, extension points, implementation order, test locations.
+
+## Phase 5: Implement â€” TDD
+Write failing tests â†’ implement â†’ validate with CoreStory â†’ full suite.
+
+## Phase 6: Verify & Capture
+Verify spec compliance â†’ verify invariants â†’ commit â†’ rename conversation "COMPLETED" â†’ update ticket.
+
+## Key Principles
+- Ground before Specify â€” always
+- Invariant-first, reuse-first
+- Delta specs, not greenfield specs
+- Validate before Plan
+- Conversation IS the living spec record
+````
+
+---
+
+## Tips & Best Practices
+
+**Ground before you specify.** The most common SDD failure is writing a spec based on assumptions about the architecture. Spend the time in Phase 1. The 10 minutes of CoreStory queries saves hours of rework when the spec contradicts reality.
+
+**Invariants are the spec's immune system.** The invariant section is the most valuable part of a delta specification. It tells implementers â€” human or AI â€” what they're not allowed to break. When a test fails in Phase 5, check invariants first.
+
+**Reuse is the spec's economics.** Every existing component you reuse is a component you don't have to specify, implement, test, and maintain. The reuse-first query in Phase 1 often eliminates 30â€“50% of the specification work.
+
+**Delta specs age better than greenfield specs.** A greenfield spec for "webhook notifications" becomes misleading the moment someone changes the EventBus interface. A delta spec that says "implements EventSubscriber interface" automatically adapts because the implementation follows the interface, not the spec's description of the interface.
+
+**Use the CoreStory conversation as a review artifact.** Before the spec goes through design review, share the CoreStory conversation link. Reviewers see the full chain: what architectural constraints were discovered, what alternatives were considered, what the pre-mortem found. This is dramatically more useful than a spec document alone.
+
+**Name conversations for searchability.** "Spec: #412 â€” Webhook notification system" is findable six months later. "Feature spec" is not. After completion, the "COMPLETED" prefix makes it easy to distinguish finished work from in-progress investigations.
+
+**Don't skip Phase 3.** It's tempting to go from Specify straight to Plan â€” the spec feels done. The validation phase exists because specs always contain assumptions that don't survive contact with the real architecture. Phase 3 is where you catch conflicts before they become code review rejections or production bugs.
+
+**Companion tools are complements, not replacements.** If you're using Spec Kit, Kiro, or another SDD framework, this workflow wraps around it. Run Phase 1 (Ground) before the companion tool's specification phase. Run Phase 3 (Validate) after it. The companion tool provides structure; CoreStory provides grounding.
+
+---
+
+## Troubleshooting
+
+**CoreStory returns generic architectural answers.**
+Your queries are too broad. Instead of "Tell me about the notification system," try "What classes implement NotifierBase? What events does EventBus currently handle? What retry patterns does HttpClient use?" Include specific interface names, method names, or code snippets.
+
+**Project not found or ingestion incomplete.**
+Run `CoreStory:get_project_stats` to check status. If ingestion is still running, wait for completion â€” queries against partially-ingested projects miss components and return incomplete invariants. Verify the project name matches exactly.
+
+**The spec feels like it's re-specifying everything.**
+You're writing a greenfield spec, not a delta spec. Go back to Phase 1 and query for existing components more aggressively. If the reuse section is empty, you haven't asked the right questions.
+
+**Validation phase finds major conflicts.**
+This is the workflow working correctly. Major conflicts in Phase 3 are dramatically cheaper than major conflicts in Phase 5 (code) or production. Revise the spec. If the conflicts require fundamental redesign, that's valuable information you wouldn't have had without grounding.
+
+**Implementation diverges from the spec.**
+Don't drift â€” go back to the spec. If the divergence is necessary (the spec missed something), update the spec in the CoreStory conversation before continuing. The spec is a living document within the conversation, not a frozen artifact.
+
+**CoreStory response is too long or gets cut off.**
+Break your query into smaller, more specific questions. Phase 1 in particular should be 4â€“6 targeted queries, not one mega-query.
+
+**Agent doesn't follow the six-phase workflow.**
+If you're using the agent configuration files (skill/instructions/rules/droid) and the agent still doesn't follow the workflow, check that the configuration file is in the correct location and format. See the Agent Implementation Guides above for exact paths and filenames.

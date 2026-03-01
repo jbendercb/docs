@@ -1,0 +1,783 @@
+---
+title: "Business Rules Extraction"
+sidebarTitle: "Business Rules"
+description: "Extract, catalog, and validate business rules embedded in your codebase using CoreStory's persistent architectural intelligence."
+icon: "sitemap"
+---
+
+
+*Last updated: February 2026*
+
+## Overview
+
+Business rules are the most critical and most poorly documented aspect of most codebases. They're scattered across service layers, embedded in conditionals, hidden in database constraints, encoded in configuration files, and rarely written down comprehensively. When a developer asks "what happens when a customer places an order?" the answer lives in dozens of files across multiple architectural layers â€” and no single person holds the complete picture.
+
+This playbook teaches you how to use the CoreStory MCP server, combined with local source code, to systematically extract, document, and maintain a comprehensive inventory of business rules. The approach uses CoreStory as an **architectural oracle** â€” querying it first to understand what rules *should* exist and where they live â€” then verifying and deepening that understanding through direct code inspection.
+
+The primary deliverable is a structured **Business Rules Inventory**: a document that maps every significant business rule to its domain, enforcement layer, source files, invariants, and edge cases. This inventory is useful for onboarding, compliance audits, refactoring planning, migration scoping, and providing AI coding agents with accurate system context.
+
+**How this relates to other playbooks:** This playbook extracts and documents existing rules â€” it doesn't change them. If extraction reveals rules that need to change, use the [Feature Implementation](/playbooks/feature-implementation) playbook. If you're building specifications for new features and need to understand existing rules as constraints, the [Spec-Driven Development](/playbooks/spec-driven-development) playbook's Ground phase covers that. If you're evaluating a codebase for acquisition, the [M&A Technical Due Diligence](/playbooks/ma-technical-due-diligence) playbook includes business rule assessment as one workstream.
+
+### When to Use This Playbook
+
+- Onboarding to an unfamiliar codebase and need to understand what the system *does*, not just how it's built
+- Preparing for a major refactor, migration, or rewrite and need to know what behavior must be preserved
+- Conducting a compliance or security audit that requires documenting enforced rules
+- Building AI agent context â€” the business rules inventory feeds directly into `.claude/` skill files, Cursor rules, or Copilot instructions
+- Resolving conflicting behavior between modules by mapping out which rules govern each
+
+### When to Skip This Playbook
+
+- You need to understand a single, specific rule (just query CoreStory directly)
+- The codebase is trivially small (under ~5k LOC) â€” read it directly
+- No CoreStory project exists for the codebase and you can't create one
+- You need to *change* business rules, not document them (use the [Feature Implementation](/playbooks/feature-implementation) playbook instead)
+
+## Prerequisites
+
+- CoreStory account with at least one project that has completed ingestion
+- CoreStory MCP server connected to your AI coding agent (see the [CoreStory MCP Server Setup Guide](https://corestory.notion.site/corestory-mcp-server-setup))
+- A code repository the agent can read locally
+- (Recommended) Familiarity with the codebase's domain â€” helps evaluate whether extracted rules are complete and correct
+- (Recommended) Access to domain experts who can validate extracted rules
+
+## How It Works
+
+### The Workflow Phases
+
+| Phase | Name | Purpose | CoreStory Role |
+|-------|------|---------|----------------|
+| 1 | Setup & Scoping | Select project, create conversation, define extraction scope | Setup |
+| 2 | Architectural Survey | Map where business logic lives, identify rule categories | Oracle |
+| 3 | Deep Extraction | Systematically query each rule category, build inventory | Oracle + Navigator |
+| 4 | Code Verification | Walk local code to verify rules, find what CoreStory missed | â€” (local code only) |
+| 5 | Documentation & Output | Produce the structured business rules document | Oracle (gap-filling) |
+| 6 | Conversation Capture | Rename conversation with RESOLVED prefix | Knowledge capture |
+
+The core principle is **Oracle before Code**: query CoreStory for architectural understanding before navigating to specific code. CoreStory surfaces rules you wouldn't find through grep alone â€” implicit conventions, cross-layer interactions, and undocumented invariants. Code verification then grounds those discoveries in reality.
+
+### CoreStory MCP Tools Used
+
+| Tool | Phase(s) | Purpose |
+|------|----------|---------|
+| `list_projects` | 1 | Find the target project |
+| `create_conversation` | 1 | Create a persistent conversation for the extraction session |
+| `send_message` | 2, 3, 5 | Query CoreStory for rules, architecture, and gap-filling |
+| `get_project_prd` | 2 | Retrieve the PRD for rule-adjacent requirements (see note below) |
+| `get_project_techspec` | 2 | Retrieve the TechSpec for data model constraints and architecture |
+| `list_conversations` | 1 | Check for prior extraction sessions to build on |
+| `get_conversation` | 1 | Resume a prior extraction session |
+| `rename_conversation` | 6 | Mark the conversation as resolved |
+
+**A note on the PRD and TechSpec:** These documents are often very large â€” too large for an agent to hold in a single context window. Rather than trying to read them end-to-end, treat them as reference material: skim for structure and vocabulary, then use `send_message` to ask CoreStory targeted questions about specific business rules, requirements, and constraints. CoreStory has already ingested these documents and can answer questions about their contents more efficiently than the agent can parse them raw.
+
+## Step-by-Step Walkthrough
+
+### Phase 1 â€” Setup & Scoping
+
+**Goal:** Establish the extraction session and define what you're extracting.
+
+**Step 1.1: Find the project.**
+
+```
+Tool: list_projects
+```
+
+Identify the target project by name. Note the `project_id` â€” you'll use it for every subsequent call.
+
+**Step 1.2: Check for prior work.**
+
+```
+Tool: list_conversations
+Parameters: project_id = <your project>
+```
+
+If a previous business rules extraction conversation exists (look for titles containing "Business Rules"), use `get_conversation` to review it. You may be able to build on prior work rather than starting fresh.
+
+**Step 1.3: Create a conversation.**
+
+```
+Tool: create_conversation
+Parameters:
+  project_id = <your project>
+  title = "Business Rules Extraction â€” <scope description>"
+```
+
+Use a descriptive title that includes the extraction scope. Examples:
+- "Business Rules Extraction â€” Order Processing Module"
+- "Business Rules Extraction â€” Full System Inventory"
+- "Business Rules Extraction â€” Payment & Tax Rules"
+
+**Step 1.4: Define scope.**
+
+Decide the extraction scope before querying:
+
+| Scope | When to Use |
+|-------|------------|
+| Single module | You need rules for one specific area (e.g., payments, auth) |
+| Single domain | You need rules across a domain (e.g., all e-commerce rules) |
+| Full system | You need a complete inventory of all business rules |
+
+For a first extraction, start with a single module. You can always expand scope later. Full-system extractions are best done one domain at a time across multiple sessions.
+
+### Phase 2 â€” Architectural Survey (Oracle)
+
+**Goal:** Understand where business logic lives in this codebase and identify the major rule categories.
+
+This phase is about building a map before diving deep. You're answering: *What kinds of business rules exist here, and which architectural layers enforce them?*
+
+**Step 2.1: Query for the architectural rule map.**
+
+```
+Tool: send_message
+Query: "Where is business logic implemented in this codebase â€” is it in
+service layers, middleware, database constraints, or spread across multiple
+layers? Give me a map of which architectural layers enforce which types of
+rules."
+```
+
+This query produces a layer-by-layer breakdown showing where different rule types are enforced. The specifics depend on the stack â€” some examples of what you might find:
+
+| Layer | Typical Rule Types | Examples by Stack |
+|-------|--------------------|-------------------|
+| Service / business logic layer | Core rules, state transitions, calculations | Spring `@Service`, Django service modules, Express middleware, .NET application services |
+| Validation layer | Input validation, format constraints, required fields | Bean Validation annotations, Pydantic models, Joi/Zod schemas, FluentValidation |
+| Auth / security layer | Authentication, authorization, role checks | Spring Security, Django permissions, Passport.js, ASP.NET Identity |
+| Data / persistence layer | Integrity constraints, uniqueness, referential integrity | JPA/Hibernate annotations, Django model constraints, Sequelize validations, EF Core configurations |
+| API / controller layer | Request validation, error formatting | Controller annotations, serializer validation, request middleware |
+| Configuration | Environment-specific behavior, feature flags, thresholds | Properties files, environment variables, feature flag services |
+
+Note the specific file naming patterns and directory structures CoreStory identifies â€” you'll use these in Phase 4 to navigate code efficiently.
+
+**Step 2.2: Skim the PRD and TechSpec for structure.**
+
+```
+Tool: get_project_prd
+Tool: get_project_techspec
+```
+
+These documents are typically large. Don't try to read them end-to-end. Instead, skim for:
+- **Domain vocabulary** â€” the names of entities, features, and modules as the product defines them. These become your query anchors for Phase 3.
+- **Section structure** â€” which areas of the product are documented, giving you a checklist of domains to explore.
+- **Explicit rule language** â€” look for sections titled "business rules," "constraints," or "validation" and for user stories that contain `business_rules` fields.
+
+If the PRD is too large to skim effectively, query CoreStory instead:
+
+```
+Tool: send_message
+Query: "Based on the PRD and requirements for this project, what are the
+explicitly documented business rules? List them grouped by feature area or
+domain."
+```
+
+This lets CoreStory surface the rules from the PRD without the agent needing to hold the entire document in context.
+
+**Step 2.3: Query for data model constraints from the TechSpec.**
+
+```
+Tool: send_message
+Query: "Based on the technical specification, what are the key data model
+constraints â€” required fields, unique constraints, valid states, and
+relationships between entities? Focus on constraints that encode business
+rules, not just structural schema."
+```
+
+The TechSpec surfaces constraints at the data layer â€” unique fields, required relationships, enum types that define valid states. These are business rules that are often invisible to service-level analysis.
+
+**Step 2.4: Query for a high-level rule inventory.**
+
+```
+Tool: send_message
+Query: "What are the major categories of business rules in this system?
+Group them by domain (e.g., order processing, user management, product
+catalog, payments, shipping, tax) and for each category, list the types
+of rules that exist (validation, authorization, state transitions,
+calculations, constraints)."
+```
+
+This gives you a category map to work through systematically in Phase 3. It's intentionally broad â€” the value is in creating a checklist of areas to explore, not in getting deep answers yet.
+
+**Expected output from Phase 2:**
+- An architectural map (which layers enforce which rule types)
+- A list of explicit rules from the PRD (via CoreStory query or direct skim)
+- A list of data constraints from the TechSpec (via CoreStory query)
+- A categorized inventory of rule types to explore in Phase 3
+
+### Phase 3 â€” Deep Extraction (Oracle + Navigator)
+
+**Goal:** Systematically query each rule category identified in Phase 2. Build the detailed inventory.
+
+This is the core of the extraction process. For each domain/category identified in Phase 2, you'll run targeted queries. The key insight from testing: **specific, domain-scoped questions produce dramatically better results than broad questions.**
+
+**The specificity principle:** Compare these two queries:
+
+| Query | Quality of Response |
+|-------|-------------------|
+| "What are the business rules?" | High-level summary, light on detail |
+| "What validation rules exist for customer registration and credential management? Include password policies, email validation, and role-based access control rules." | Precise code-backed answers with file paths, method names, and exact constraint values |
+
+Always name the specific module, entity, or workflow you're asking about. Include the *types* of rules you expect to find (validation, authorization, state transitions, calculations).
+
+**Step 3.1: Extract validation rules per domain.**
+
+For each domain area (identified in Phase 2), query:
+
+```
+Tool: send_message
+Query: "What validation rules exist for [domain entity, e.g., customer
+registration, product creation, order submission]? Include input
+validation, required fields, format constraints, uniqueness checks,
+and cross-field validation."
+```
+
+CoreStory typically returns:
+- The validation class/method and its file path
+- Specific constraint values (e.g., "password must be 8â€“12 characters, include 1 digit and 1 special character")
+- Where validation is enforced (controller vs. service vs. model/entity layer)
+
+**Step 3.2: Extract authorization and permission rules.**
+
+```
+Tool: send_message
+Query: "What authorization and permission rules govern [feature area]?
+Who can perform which operations? What role checks exist and where are
+they enforced?"
+```
+
+Authorization rules are often the most security-critical and the least well-documented. CoreStory surfaces rules like:
+- "Only users in the SUPERADMIN group can assign the SUPERADMIN role to others"
+- "Customer operations are scoped to the authenticated user's merchant store"
+
+**Step 3.3: Extract state transition rules.**
+
+```
+Tool: send_message
+Query: "What are the state transitions for [entity, e.g., orders, user
+accounts, payment transactions]? What triggers each transition, what
+validations occur during the transition, and what states are terminal?"
+```
+
+State transition rules define the lifecycle of key entities. Look for:
+- Valid state sequences (e.g., ORDERED -> PROCESSED -> SHIPPED -> DELIVERED)
+- What triggers each transition (payment success, admin action, time-based)
+- What blocks a transition (failed validation, insufficient inventory)
+
+**Step 3.4: Extract calculation and pricing rules.**
+
+```
+Tool: send_message
+Query: "What are the pricing or calculation rules for [domain]? How are
+values computed, including any tiered logic, discounts, tax handling,
+or derived fields? What inputs affect the calculation?"
+```
+
+Calculation rules are where the most subtle business logic hides. CoreStory can map the full calculation chain â€” which is often spread across multiple utility classes and service methods.
+
+**Step 3.5: Extract invariants and constraints.**
+
+```
+Tool: send_message
+Query: "What are the invariants that must always hold for [entity, e.g.,
+MerchantStore, Customer, Product]? What constraints exist on its
+configuration, and what happens if they're violated?"
+```
+
+Invariant queries surface the "must always be true" conditions â€” unique constraints, required relationships, format patterns. CoreStory returns these with evidence from model definitions, schema annotations, and column-level constraints.
+
+**Step 3.6: Extract implicit and undocumented rules.**
+
+```
+Tool: send_message
+Query: "What implicit business rules exist in [module] that aren't
+documented but are enforced in code? For example, what happens when
+[edge case scenario], when [error condition], or when [limit is
+exceeded]?"
+```
+
+This is where CoreStory provides the most value over code search alone. It identifies fallback behaviors, error handling paths, and assumptions baked into conditional logic that no documentation mentions. Naming specific edge cases in the query helps CoreStory focus its analysis.
+
+**Step 3.7: Extract end-to-end workflow rules.**
+
+For critical workflows, query the complete code path:
+
+```
+Tool: send_message
+Query: "For the [workflow, e.g., order processing flow], show me the
+exact code path from [start, e.g., when a customer submits an order] to
+[end, e.g., when the order status is set to PROCESSED]. What validations
+happen at each step, and what causes the process to fail?"
+```
+
+This produces a step-by-step walkthrough with validation checkpoints and failure conditions at each stage â€” the most complete picture of how rules interact during a real operation.
+
+**Expected output from Phase 3:**
+- Detailed business rules organized by domain
+- Code-level evidence (file paths, method names, constraint values) for each rule
+- Identification of which architectural layer enforces each rule
+- Edge cases and failure conditions for each rule category
+
+### Phase 4 â€” Code Verification
+
+**Goal:** Walk the local codebase to verify extracted rules, find rules CoreStory missed, and identify conflicts between documented intent and actual behavior.
+
+This phase is essential. CoreStory provides architectural knowledge that code search alone can't match â€” but code is ground truth. Every rule extracted in Phase 3 should be verified against actual source.
+
+**Step 4.1: Verify entity-level constraints.**
+
+Search for model/entity classes and check for constraint declarations. What you're looking for depends on the stack:
+
+- **Java/Spring:** `@UniqueConstraint`, `@Column(unique, nullable, length)`, `@NotEmpty`, `@NotNull`, `@Pattern`, `@Email`, `@Size` on entity fields
+- **Python/Django:** `unique=True`, `blank=False`, `max_length`, `validators=[...]`, `constraints = [...]` on model fields
+- **Node/TypeScript:** Zod schemas, Joi validation rules, Sequelize/Prisma model constraints, Mongoose schema validators
+- **C#/.NET:** `[Required]`, `[MaxLength]`, `[RegularExpression]`, EF Core `HasIndex().IsUnique()`, Fluent Validation rules
+- **Ruby/Rails:** `validates :field, presence: true`, `uniqueness: true`, `format:`, `numericality:` on ActiveRecord models
+
+Compare what you find with what CoreStory reported. Common discoveries:
+- Constraints that CoreStory mentioned but expressed differently in code
+- Constraints that exist in code but CoreStory didn't surface (usually on less prominent entities)
+- Constraints in the PRD that aren't actually enforced in code (intent vs. reality gaps)
+
+**Step 4.2: Verify service-layer business logic.**
+
+Navigate to the service implementations CoreStory identified. Look for:
+- Conditional branches that encode business decisions
+- Exception/error throws that enforce invariants
+- Calls to other services that create cross-domain rules
+- Configuration lookups that make behavior environment-dependent
+
+**Step 4.3: Verify authorization rules.**
+
+Check security configuration files, authentication providers, and authorization declarations. Look for:
+- Role-based access checks (annotations, decorators, middleware guards, policy classes)
+- Attribute-based access control patterns
+- Resource scoping (e.g., "users can only see their own data")
+- API-level authorization (route guards, endpoint permissions)
+
+Authorization rules are often the most dangerous to get wrong. Verify every role check CoreStory identified and look for additional checks it may have missed.
+
+**Step 4.4: Find rules CoreStory missed.**
+
+CoreStory excels at well-structured, explicit business logic. It sometimes misses:
+- Rules encoded in configuration or properties files (rate limits, feature flags, thresholds)
+- Rules enforced by database triggers or stored procedures
+- Rules implemented in third-party integration code (payment gateways, shipping APIs)
+- Rules embedded in test assertions that document expected behavior
+- Rules enforced only by frontend validation with no backend counterpart
+- Rules in infrastructure code (CI/CD checks, deployment constraints)
+
+Search for these patterns in the local codebase to fill gaps.
+
+**Step 4.5: Identify conflicts.**
+
+Cross-reference three sources for each rule:
+
+| Source | What It Tells You |
+|--------|------------------|
+| PRD (from Phase 2) | What the rule *should* be (intent) |
+| CoreStory (from Phase 3) | What CoreStory understands the rule to be (architectural view) |
+| Source code (this phase) | What the rule *actually* is (ground truth) |
+
+Document any conflicts. Common conflict types:
+- PRD says X, code does Y (implementation drift)
+- CoreStory reports a rule that exists in dead code (no longer active)
+- Code enforces a rule that no documentation mentions (tribal knowledge)
+
+**Expected output from Phase 4:**
+- Verified or corrected version of every rule from Phase 3
+- New rules discovered through code inspection
+- Conflict log documenting intent vs. reality gaps
+- Confidence level for each rule (High = all three sources agree; Medium = two agree; Low = only found in code)
+
+### Phase 5 â€” Documentation & Output
+
+**Goal:** Produce the structured business rules inventory document.
+
+Organize extracted rules using the output format below. For any gaps discovered during documentation, run targeted CoreStory queries to fill them:
+
+```
+Tool: send_message
+Query: "For the [specific rule], what edge cases exist? What happens
+when [boundary condition]?"
+```
+
+Group rules by domain, then by type within each domain. Assign IDs sequentially (BR-001, BR-002, ...).
+
+See the **Output Format** section below for the complete template.
+
+### Phase 6 â€” Conversation Capture
+
+**Goal:** Preserve the extraction session for future reference.
+
+```
+Tool: rename_conversation
+Parameters:
+  project_id = <your project>
+  conversation_id = <your conversation>
+  title = "RESOLVED â€” Business Rules Extraction â€” <scope description>"
+```
+
+The RESOLVED prefix signals that this conversation contains a completed extraction. Future sessions can reference it using `list_conversations` and `get_conversation`.
+
+## Output Format
+
+Each extracted business rule should be documented using this template:
+
+```markdown
+### BR-001: [Short Descriptive Name]
+
+- **Domain:** [e.g., Payments, User Management, Order Processing, Shipping, Tax, Product Catalog]
+- **Description:** [Plain-English description of what the rule enforces and why]
+- **Type:** [Validation | Authorization | State Transition | Calculation | Constraint | Workflow | Configuration]
+- **Enforcement Layer:** [API | Service | Database | Middleware | UI | Multiple]
+- **Source Files:**
+  - `path/to/file.ext` (lines XXâ€“YY) â€” [what this file does for the rule]
+- **Rule Logic:**
+  - [Precise statement of the rule, e.g., "Password must be 8â€“12 characters, include at least 1 digit and 1 special character"]
+- **Invariants:** [What must always be true for this rule to hold]
+- **Edge Cases:**
+  - [Known exception or special handling]
+- **Related Rules:** [BR-XXX, BR-YYY â€” cross-references to other rules]
+- **Confidence:** [High | Medium | Low]
+  - High: PRD, CoreStory, and source code all agree
+  - Medium: Two of three sources agree, or rule is clearly present but incompletely documented
+  - Low: Found only in code with no supporting documentation
+- **PRD Reference:** [User story or requirement ID, if applicable]
+```
+
+**Organizing the inventory:**
+
+For a full-system extraction, organize the document like this:
+
+```markdown
+# Business Rules Inventory â€” [Project Name]
+
+**Extracted:** [Date]
+**Scope:** [Full system | Module name]
+**CoreStory Reference:** Project ID: XX, Conversation ID: YY
+**Total Rules Extracted:** [Count]
+
+## Summary by Domain
+
+| Domain | Rule Count | Types |
+|--------|-----------|-------|
+| Order Processing | 12 | Validation, State Transition, Calculation |
+| User Management | 8 | Validation, Authorization, Constraint |
+| Product Catalog | 10 | Validation, Constraint, Calculation |
+| Payments | 6 | Validation, Workflow, Configuration |
+| Shipping | 7 | Calculation, Configuration, Validation |
+| Tax | 5 | Calculation, Configuration |
+
+## Conflicts & Open Questions
+
+| Rule | Conflict | Resolution Status |
+|------|----------|-------------------|
+| BR-003 | PRD specifies max 3 retries; code allows 5 | Pending domain expert review |
+| BR-017 | Authorization check exists in code but not in PRD | Presumed intentional â€” needs confirmation |
+
+## 1. Order Processing Rules
+### BR-001: ...
+### BR-002: ...
+
+## 2. User Management Rules
+### BR-009: ...
+...
+```
+
+## Agent Implementation Guides
+
+### Claude Code
+
+Create a skill file at `.claude/skills/business-rules-extraction/SKILL.md`:
+
+```yaml
+---
+description: "Extract, document, and verify business rules from the codebase using CoreStory"
+activation:
+  - "extract business rules"
+  - "document business logic"
+  - "business rule inventory"
+  - "what are the business rules"
+  - "map business rules"
+---
+```
+
+```markdown
+# Business Rules Extraction Skill
+
+When the user asks to extract or document business rules, follow this workflow:
+
+## Phase 1: Setup
+1. Call `list_projects` to find the target project
+2. Call `create_conversation` with title "Business Rules Extraction â€” <scope>"
+3. Confirm extraction scope with the user (single module, domain, or full system)
+
+## Phase 2: Architectural Survey
+1. Query CoreStory: "Where is business logic implemented in this codebase?
+   Give me a map of which architectural layers enforce which types of rules."
+2. Query CoreStory: "Based on the PRD and requirements for this project,
+   what are the explicitly documented business rules? List them grouped
+   by feature area or domain."
+3. Query CoreStory: "Based on the technical specification, what are the
+   key data model constraints â€” required fields, unique constraints, valid
+   states, and relationships between entities?"
+4. Query CoreStory: "What are the major categories of business rules in
+   this system? Group by domain."
+
+NOTE: Do NOT call `get_project_prd` or `get_project_techspec` and try to
+read them in full â€” they are typically too large for context. Query
+CoreStory about their contents via `send_message` instead.
+
+## Phase 3: Deep Extraction
+For each domain identified in Phase 2, run these query patterns:
+- "What validation rules exist for [entity/module]?"
+- "What authorization rules govern [feature area]?"
+- "What state transitions exist for [entity]?"
+- "What calculation/pricing rules exist for [domain]?"
+- "What invariants must hold for [entity]?"
+- "What implicit rules exist in [module] that aren't documented?"
+- "Show me the exact code path for [critical workflow]."
+
+IMPORTANT: Use specific entity/module names in every query. Broad
+questions produce shallow answers.
+
+## Phase 4: Code Verification
+For each extracted rule, verify in local source code:
+- Search for model/entity constraint declarations (annotations, schema
+  definitions, validation rules â€” patterns vary by stack)
+- Read service implementations for conditional business logic
+- Check security/auth configs for authorization rules
+- Look for rules CoreStory missed (config files, test assertions,
+  frontend-only validation, third-party integrations)
+
+## Phase 5: Documentation
+Produce the business rules inventory using the BR-XXX template format.
+Assign confidence levels:
+- High: PRD + CoreStory + code agree
+- Medium: Two of three sources agree
+- Low: Found only in code
+
+## Phase 6: Capture
+Rename conversation with "RESOLVED â€” Business Rules Extraction â€” <scope>"
+
+Key principle: specific queries beat broad queries. Always name the exact
+module, entity, or workflow you're asking about.
+```
+
+### GitHub Copilot
+
+GitHub Copilot supports agent skills â€” folders containing a `SKILL.md` file with YAML frontmatter that Copilot loads when relevant to a task. For project-scoped skills, store them under `.github/skills/` in your repository. For personal skills shared across projects, use `~/.copilot/skills/`.
+
+Create `.github/skills/business-rules-extraction/SKILL.md`:
+
+```yaml
+---
+name: business-rules-extraction
+description: "Extract, document, and verify business rules from the codebase using CoreStory. Use this when asked to extract business rules, document business logic, create a business rule inventory, or map business rules."
+---
+```
+
+```markdown
+# Business Rules Extraction Skill
+
+When the user asks to extract or document business rules, follow this workflow:
+
+## Phase 1: Setup
+1. Call `list_projects` to find the target project
+2. Call `create_conversation` with title "Business Rules Extraction â€” <scope>"
+3. Confirm extraction scope with the user (single module, domain, or full system)
+
+## Phase 2: Architectural Survey
+1. Query CoreStory: "Where is business logic implemented in this codebase?
+   Give me a map of which architectural layers enforce which types of rules."
+2. Query CoreStory: "Based on the PRD and requirements for this project,
+   what are the explicitly documented business rules? List them grouped
+   by feature area or domain."
+3. Query CoreStory: "Based on the technical specification, what are the
+   key data model constraints â€” required fields, unique constraints, valid
+   states, and relationships between entities?"
+4. Query CoreStory: "What are the major categories of business rules in
+   this system? Group by domain."
+
+NOTE: Do NOT call `get_project_prd` or `get_project_techspec` and try to
+read them in full â€” they are typically too large for context. Query
+CoreStory about their contents via `send_message` instead.
+
+## Phase 3: Deep Extraction
+For each domain identified in Phase 2, run these query patterns:
+- "What validation rules exist for [entity/module]?"
+- "What authorization rules govern [feature area]?"
+- "What state transitions exist for [entity]?"
+- "What calculation/pricing rules exist for [domain]?"
+- "What invariants must hold for [entity]?"
+- "What implicit rules exist in [module] that aren't documented?"
+- "Show me the exact code path for [critical workflow]."
+
+IMPORTANT: Use specific entity/module names in every query. Broad
+questions produce shallow answers.
+
+## Phase 4: Code Verification
+For each extracted rule, verify in local source code:
+- Search for model/entity constraint declarations (annotations, schema
+  definitions, validation rules â€” patterns vary by stack)
+- Read service implementations for conditional business logic
+- Check security/auth configs for authorization rules
+- Look for rules CoreStory missed (config files, test assertions,
+  frontend-only validation, third-party integrations)
+
+## Phase 5: Documentation
+Produce the business rules inventory using the BR-XXX template format.
+Assign confidence levels:
+- High: PRD + CoreStory + code agree
+- Medium: Two of three sources agree
+- Low: Found only in code
+
+## Phase 6: Capture
+Rename conversation with "RESOLVED â€” Business Rules Extraction â€” <scope>"
+
+Key principle: specific queries beat broad queries. Always name the exact
+module, entity, or workflow you're asking about.
+```
+
+**Custom instructions (lightweight alternative):** If you prefer to add guidance to your repository-wide instructions instead of using a dedicated skill, add the following to `.github/copilot-instructions.md`:
+
+```markdown
+## Business Rules Extraction
+
+When asked to extract or document business rules:
+1. ALWAYS query CoreStory before searching code (Oracle before Code)
+2. Do NOT read the full PRD or TechSpec â€” query CoreStory about their
+   contents via `send_message` instead
+3. Use domain-specific queries, not broad questions
+4. Verify every CoreStory finding against local source code
+5. Document using the BR-XXX format with confidence levels
+6. Rename the CoreStory conversation with "RESOLVED" prefix when done
+```
+
+### Cursor
+
+Create `.cursor/rules//playbooks/business-rules-extraction`:
+
+```markdown
+# Business Rules Extraction
+
+When extracting business rules from this codebase:
+
+1. ALWAYS query CoreStory before searching code (Oracle before Code)
+2. Use domain-specific queries: "What validation rules exist for [entity]?"
+   not "What are the business rules?"
+3. Do NOT try to read the full PRD or TechSpec via `get_project_prd` /
+   `get_project_techspec` â€” they're too large. Query CoreStory about their
+   contents via `send_message` instead.
+4. Verify every CoreStory finding against local source code
+5. Document each rule with: Domain, Type, Enforcement Layer, Source Files,
+   Rule Logic, Invariants, Edge Cases, Confidence level
+6. Confidence levels: High (PRD + CoreStory + code agree), Medium (two
+   agree), Low (code only)
+7. Create a CoreStory conversation for the session and rename it with
+   "RESOLVED" prefix when done
+
+Query templates that produce the best results:
+- "What validation rules exist for [entity] including input validation,
+  required fields, format constraints, and uniqueness checks?"
+- "What authorization rules govern [feature]? Who can perform which
+  operations?"
+- "What state transitions exist for [entity]? What triggers each?"
+- "What implicit rules exist in [module] that aren't documented but are
+  enforced in code?"
+- "Show me the exact code path from [start] to [end]. What validations
+  happen at each step?"
+- "Based on the PRD, what are the explicitly documented business rules
+  for [domain]?"
+```
+
+### Factory.ai
+
+Configure a Droid for business rules extraction:
+
+```yaml
+name: business-rules-extractor
+description: Extract and document business rules using CoreStory and local code analysis
+instructions: |
+  You extract business rules from codebases using a systematic process:
+
+  1. Set up a CoreStory conversation for the extraction session
+  2. Survey the architecture to understand where business logic lives
+  3. Query CoreStory about documented rules from the PRD and TechSpec
+     (do NOT try to read the full documents â€” query via send_message)
+  4. Query CoreStory with specific, domain-scoped questions for each rule
+     category (validation, authorization, state transitions, calculations,
+     invariants, implicit rules)
+  5. Verify every extracted rule against local source code
+  6. Document rules using the BR-XXX template format
+
+  Key behaviors:
+  - Always use specific entity/module names in queries, not broad questions
+  - Cross-reference PRD intent, CoreStory understanding, and code reality
+  - Assign confidence levels based on source agreement
+  - Note conflicts between documented intent and actual implementation
+```
+
+## Tips & Best Practices
+
+**Query patterns ranked by effectiveness (based on testing against real projects):**
+
+1. **Best: End-to-end workflow queries.** "Show me the exact code path from X to Y. What validations happen at each step?" â€” Produces step-by-step walkthroughs with validation checkpoints and failure conditions at every stage.
+
+2. **Excellent: Specific entity invariant queries.** "What invariants must always hold for [Entity]? What constraints exist on its configuration?" â€” Produces precise evidence from model definitions, schema constraints, and validation rules.
+
+3. **Excellent: Domain-scoped validation queries.** "What validation rules exist for [specific entity/workflow]?" â€” Returns specific constraint values, file paths, and enforcement layers.
+
+4. **Good: Implicit rule queries (with named edge cases).** "What implicit rules exist in [module] when [specific scenario]?" â€” Surfaces undocumented fallback behaviors. Naming specific edge cases in the query dramatically improves focus.
+
+5. **Good: Architectural map queries.** "Where is business logic implemented â€” which layers enforce which rule types?" â€” Produces the essential orientation for targeted follow-up queries.
+
+6. **Adequate: Broad category queries.** "What are the business rules in this system?" â€” Produces a useful high-level survey, but shallow on detail. Use this to build your Phase 2 checklist, then go deep with specific queries.
+
+**How to scope extraction to avoid overwhelm:**
+- Start with the domain that has the most business-critical rules (usually order processing, payments, or authentication)
+- Extract rules one domain at a time, completing the full cycle (query -> verify -> document) before moving on
+- For a full-system extraction, allocate one focused session per domain rather than trying to do everything at once
+
+**How to handle conflicting rules:**
+- When code says X but the PRD says Y, **code is ground truth** â€” document the conflict and flag it for domain expert review
+- When CoreStory reports a rule that you can't find in code, it may be in dead code, a deprecated path, or a misinterpretation â€” investigate before including it
+- Label all conflicts with a `[CONFLICT]` tag in the inventory for easy filtering
+
+**How to prioritize which rules to extract first:**
+1. Rules that affect money (pricing, tax, payments, refunds)
+2. Rules that affect security (authentication, authorization, data access)
+3. Rules that affect data integrity (state transitions, uniqueness constraints)
+4. Rules that affect user experience (validation, error handling)
+5. Rules that affect operations (configuration, thresholds, limits)
+
+**How to maintain the business rules document over time:**
+- Include the extraction date and CoreStory conversation ID in the document header
+- When modifying business logic, update the corresponding BR entry
+- Re-run extraction for specific domains after major changes
+- Use the inventory as a checklist during code reviews: "Does this change affect any documented business rules?"
+
+**When to involve a domain expert:**
+- After Phase 3 (before code verification) â€” to validate extracted rules against business intent
+- When you find conflicts between PRD intent and code reality
+- For Low-confidence rules that exist only in code with no documentation
+- When edge cases have ambiguous behavior that code doesn't clearly resolve
+
+## Troubleshooting
+
+**CoreStory returns vague or generic responses.**
+Your query is too broad. Replace "What are the business rules?" with "What validation rules exist for [specific entity] including [specific rule types]?" Always name the module, entity, or workflow.
+
+**CoreStory references files that don't exist locally.**
+The CoreStory project may have been ingested from a different branch or commit. Check whether the file paths use a project-internal prefix (e.g., `myproject-main/src/...`) that doesn't match your local checkout. Strip the prefix when navigating locally.
+
+**PRD or TechSpec is too large to use directly.**
+This is expected â€” these documents are often enormous. Don't try to read them in full. Query CoreStory about their contents via `send_message` instead: "Based on the PRD, what are the documented business rules for [domain]?" CoreStory has already ingested these documents and can answer targeted questions about them efficiently.
+
+**Phase 4 finds rules CoreStory missed entirely.**
+This is expected. CoreStory excels at well-structured, explicit business logic but may miss rules in configuration files, build configs, test assertions, or third-party integration code. Phase 4 exists specifically to catch these gaps.
+
+**Too many rules to document.**
+Focus on rules that are: (1) business-critical, (2) non-obvious, or (3) spread across multiple files. Skip rules that are trivially apparent from a single line of code (e.g., a simple `required: true` on an obvious field). The inventory should capture rules that a new developer *wouldn't* easily discover on their own.
+
+**Confidence levels are mostly "Low".**
+This usually means the codebase has little documentation and the PRD is sparse. Low confidence doesn't mean the rule is wrong â€” it means it's only evidenced in code. Flag these for domain expert validation and consider updating project documentation as a follow-up.

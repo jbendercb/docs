@@ -1,0 +1,309 @@
+---
+title: "Spec Kit Companion"
+sidebarTitle: "Spec Kit Companion"
+description: "Companion guide for integrating GitHub's Spec Kit framework with CoreStory's architecture-grounded spec-driven development workflow."
+icon: "puzzle-piece"
+---
+
+
+## Overview
+
+This is a companion guide to the [Spec-Driven Development](/playbooks/spec-driven-development) playbook. It covers how to integrate GitHub's **Spec Kit** â€” a specification-driven development framework â€” with CoreStory's architecture-grounded SDD workflow.
+
+Read the main playbook first. It defines the six-phase methodology (Ground, Specify, Validate, Plan, Implement, Verify & Capture) that this guide builds on. This document covers only the Spec Kit-specific integration points: where Spec Kit commands slot into each phase, how its artifact system works alongside CoreStory conversations, and practical patterns for combining the two.
+
+**The relationship:** CoreStory provides architectural grounding. Spec Kit provides structured artifact generation. CoreStory tells you *what the architecture actually is*; Spec Kit gives you a framework for *writing it down* in a consistent, machine-readable format. Neither replaces the other.
+
+**When to use Spec Kit + CoreStory:** Projects that benefit from persistent, file-based specification artifacts â€” particularly teams that want version-controlled specs in their repository alongside the code. Spec Kit's `.specify/memory/` directory gives you a structured artifact trail; CoreStory conversations give you the architectural reasoning behind those artifacts.
+
+**When to skip Spec Kit:** If you don't need file-based spec artifacts â€” if the CoreStory conversation thread is sufficient as your specification record â€” the main playbook's workflow works standalone. Spec Kit adds value when you want specs committed to the repo, reviewed in PRs, or referenced across multiple features via a shared constitution.
+
+---
+
+## Prerequisites
+
+Everything from the main [Spec-Driven Development](/playbooks/spec-driven-development) playbook, plus:
+
+**Install Spec Kit:**
+
+```bash
+# Install with uv (recommended)
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+
+# Verify installation
+specify --version
+
+# Check system requirements
+specify check
+```
+
+**Initialize in your project:**
+
+```bash
+# New project
+specify init my-project --ai claude
+# or: specify init my-project --ai copilot
+# or: specify init my-project --ai cursor
+
+# Existing project (current directory)
+specify init . --ai claude
+# or: specify init --here --ai claude
+```
+
+Spec Kit supports a growing list of agents: `claude`, `copilot`, `cursor-agent`, `gemini`, `qwen`, `opencode`, `codex`, `windsurf`, and others. Run `specify init --help` for the current list.
+
+**Verify:** Ask your agent to "List my CoreStory projects" (MCP connection) and check that `.specify/` exists in the project root (Spec Kit initialization).
+
+---
+
+## How the Workflows Map Together
+
+The main playbook has six phases. Spec Kit has five commands. Here's how they align:
+
+| Main Playbook Phase | Spec Kit Command | Integration Pattern |
+|---------------------|-----------------|---------------------|
+| Phase 1 â€” Ground | `/speckit.constitution` | CoreStory findings feed the constitution |
+| Phase 2 â€” Specify | `/speckit.specify` | Delta spec constrains the Spec Kit specification |
+| Phase 3 â€” Validate | *(no Spec Kit equivalent)* | CoreStory-only â€” validate the `.specify` artifacts |
+| Phase 4 â€” Plan | `/speckit.plan` + `/speckit.tasks` | Validated spec feeds planning and task breakdown |
+| Phase 5 â€” Implement | `/speckit.implement` | Standard TDD implementation |
+| Phase 6 â€” Verify & Capture | *(no Spec Kit equivalent)* | CoreStory-only â€” verify invariants and capture knowledge |
+
+The critical insight: **Phases 3 and 6 have no Spec Kit equivalent.** These are CoreStory-only phases â€” architectural validation and invariant verification. This is the gap that CoreStory fills. Spec Kit structures the artifacts; CoreStory validates them against reality.
+
+### Spec Kit Artifacts
+
+Spec Kit stores its artifacts in `.specify/memory/`:
+
+| Artifact | Location | Created By |
+|----------|----------|------------|
+| Constitution | `.specify/memory/constitution.md` | `/speckit.constitution` |
+| Feature spec | `.specify/memory/features/{name}/spec.md` | `/speckit.specify` |
+| Technical plan | `.specify/memory/features/{name}/plan.md` | `/speckit.plan` |
+| Task breakdown | `.specify/memory/features/{name}/tasks.md` | `/speckit.tasks` |
+
+These files persist across sessions and are version-controlled. The agent references them in subsequent phases. CoreStory insights get embedded into the artifacts, giving them architectural grounding that persists in the repo.
+
+---
+
+## Phase-by-Phase Integration
+
+Follow the main playbook for the full workflow. This section covers only the Spec Kit-specific additions at each phase.
+
+### Phase 1: Ground â†’ Constitution
+
+After completing the main playbook's Phase 1 grounding queries (architectural patterns, existing services, invariants, design history), feed the findings into Spec Kit's constitution command:
+
+```
+/speckit.constitution
+
+Context from CoreStory codebase analysis:
+
+Architecture: [paste architectural patterns from CoreStory]
+Conventions: [paste naming, file organization, error handling patterns]
+Invariants: [paste system invariants and business rules]
+Technology decisions: [paste stack decisions and rationale]
+Testing: [paste testing strategies and coverage expectations]
+
+Generate a constitution grounded in these actual codebase patterns,
+not generic best practices. Reference specific files and patterns.
+```
+
+**Output:** `.specify/memory/constitution.md` â€” a constitution with specific file references, real patterns, and actual constraints.
+
+**Spec Kit without CoreStory** produces constitutions with generic guidance like "follow clean code practices." **Spec Kit with CoreStory** produces constitutions that reference `UserService` by name, specify that all async operations use the `TaskQueue` pattern, and note that soft deletes are mandatory for audit-sensitive models.
+
+The constitution is a living document. After completing features, ask CoreStory whether new patterns emerged that should be captured, and update the constitution accordingly.
+
+### Phase 2: Specify â†’ Specification
+
+After the main playbook's Phase 2 (writing the delta specification with invariants, reuse, and delta sections), use Spec Kit to structure the output:
+
+```
+/speckit.specify [Feature description]
+
+Context from CoreStory-grounded specification:
+
+Invariants (must NOT change):
+[paste invariants from Phase 2]
+
+Existing components to reuse:
+[paste reuse section from Phase 2]
+
+Delta â€” new/modified components:
+[paste delta section from Phase 2]
+
+Acceptance criteria:
+[paste criteria from Phase 2]
+
+Generate a specification that references these actual components
+and follows the constitution's established patterns.
+```
+
+**Output:** `.specify/memory/features/{name}/spec.md` â€” a specification that inherits the delta structure from the main playbook.
+
+### Phase 3: Validate (CoreStory Only)
+
+Spec Kit has no validation command. This is the gap.
+
+After Spec Kit generates the specification artifact, submit it to CoreStory for architectural pre-mortem â€” exactly as described in the main playbook's Phase 3. Paste the contents of `.specify/memory/features/{name}/spec.md` into the CoreStory query:
+
+```
+Send CoreStory message: "I've generated this specification using Spec Kit.
+[Paste spec.md contents]
+
+Validate against our architecture:
+1. Does anything conflict with existing patterns?
+2. Are there missing dependencies or integration points?
+3. What failure modes should I address?
+4. Does the spec correctly reference existing components?"
+```
+
+If validation finds issues, update the spec artifact directly and re-run `/speckit.specify` if the changes are substantial, or edit `.specify/memory/features/{name}/spec.md` directly for minor corrections.
+
+### Phase 4: Plan â†’ Plan + Tasks
+
+After validation, use Spec Kit's planning and task commands with CoreStory's file-level mapping:
+
+```
+/speckit.plan
+
+CoreStory validation results:
+- Confirmed patterns: [list]
+- Existing services to leverage: [list with file paths]
+- Files to create: [list with exact paths from CoreStory]
+- Files to modify: [list with specific sections]
+- Implementation order: [dependency ordering from CoreStory]
+- Testing approach: [test patterns from CoreStory]
+```
+
+Then break the plan into tasks:
+
+```
+/speckit.tasks
+
+Task ordering from CoreStory analysis:
+- Critical path: [ordered list]
+- Parallel tracks: [groups that can run simultaneously]
+- Integration test checkpoints: [where to validate]
+```
+
+**Outputs:** `.specify/memory/features/{name}/plan.md` and `.specify/memory/features/{name}/tasks.md`.
+
+### Phase 5: Implement
+
+Run `/speckit.implement` and let the agent follow the task list. The main playbook's Phase 5 applies in full â€” write failing tests, implement in dependency order, validate with CoreStory at each step.
+
+The Spec Kit task artifacts provide structured checklists. CoreStory provides real-time validation during implementation. They complement each other.
+
+### Phase 6: Verify & Capture (CoreStory Only)
+
+Spec Kit has no verification or capture command. This is the other gap.
+
+Follow the main playbook's Phase 6 in full: verify spec compliance with CoreStory, verify invariant preservation, commit with context, rename the CoreStory conversation. The Spec Kit artifacts in `.specify/memory/` persist in the repo; the CoreStory conversation persists as the architectural reasoning record.
+
+---
+
+## Agent Configuration
+
+The main playbook's Agent Implementation Guides include full configuration files for Claude Code, GitHub Copilot, Cursor, and Factory.ai. To add Spec Kit awareness to those configurations, append the following to the relevant config file.
+
+### Claude Code â€” Skill File Addition
+
+Append to `.claude/skills/spec-driven-dev/SKILL.md` (after the main playbook's skill content):
+
+```markdown
+## Spec Kit Integration (Optional)
+
+If `.specify/` directory exists, integrate Spec Kit commands:
+- Phase 1: After CoreStory grounding â†’ run `/speckit.constitution`
+- Phase 2: After delta spec â†’ run `/speckit.specify` with invariants/reuse/delta
+- Phase 3: Validate `.specify/memory/features/{name}/spec.md` with CoreStory
+- Phase 4: After CoreStory mapping â†’ run `/speckit.plan` then `/speckit.tasks`
+- Phase 5: Run `/speckit.implement` with CoreStory validation at each step
+
+Pattern: CoreStory BEFORE Spec Kit at every phase.
+Spec Kit structures the output. CoreStory validates the content.
+```
+
+### GitHub Copilot â€” Instructions Addition
+
+Append to `.github/copilot-instructions.md`:
+
+```markdown
+### Spec Kit Integration
+
+If Spec Kit is initialized (`.specify/` exists), use Spec Kit commands
+to structure outputs at each phase. Always query CoreStory BEFORE running
+each Spec Kit command. CoreStory provides grounding; Spec Kit provides structure.
+
+Phase mapping: Ground â†’ `/speckit.constitution`, Specify â†’ `/speckit.specify`,
+Plan â†’ `/speckit.plan` + `/speckit.tasks`, Implement â†’ `/speckit.implement`.
+Validate and Verify phases are CoreStory-only (no Spec Kit equivalent).
+```
+
+### Cursor â€” Rule Addition
+
+Append to `.cursor/rules/spec-driven-dev.mdc`:
+
+```markdown
+## Spec Kit Integration
+
+If `.specify/` directory exists, integrate Spec Kit commands after CoreStory queries:
+- Phase 1: CoreStory grounding â†’ `/speckit.constitution`
+- Phase 2: Delta spec â†’ `/speckit.specify`
+- Phase 3: CoreStory validation of `.specify` artifacts (no Spec Kit command)
+- Phase 4: CoreStory mapping â†’ `/speckit.plan` â†’ `/speckit.tasks`
+- Phase 5: `/speckit.implement` with CoreStory validation
+- Phase 6: CoreStory verification (no Spec Kit command)
+
+Always: CoreStory BEFORE Spec Kit. Spec Kit structures. CoreStory validates.
+```
+
+### Factory.ai â€” Droid Addition
+
+Append to the droid's instructions in `.factory/droids/spec-driven-dev.md`:
+
+```markdown
+## Spec Kit Integration
+
+If `.specify/` directory exists, run Spec Kit commands after CoreStory queries:
+- Phase 1 â†’ `/speckit.constitution`
+- Phase 2 â†’ `/speckit.specify`
+- Phase 4 â†’ `/speckit.plan` + `/speckit.tasks`
+- Phase 5 â†’ `/speckit.implement`
+
+Phases 3 and 6 are CoreStory-only. Always query CoreStory BEFORE Spec Kit.
+```
+
+---
+
+## Tips
+
+**CoreStory before Spec Kit at every phase.** The pattern is always: query CoreStory â†’ get grounded context â†’ feed context into Spec Kit command. Never run a Spec Kit command without CoreStory context first.
+
+**The constitution is your highest-leverage artifact.** A grounded constitution improves every subsequent Spec Kit command because Spec Kit references it automatically. Invest the most CoreStory query time here.
+
+**Update the constitution after features ship.** After completing a feature, ask CoreStory: "Did this implementation introduce new patterns that should be captured?" Feed learnings back into `.specify/memory/constitution.md`.
+
+**Version-control Spec Kit artifacts.** Commit `.specify/memory/` to the repo. This gives you PR-reviewable specs and a historical record of feature specifications alongside the code.
+
+**Use CoreStory conversations for the "why," Spec Kit artifacts for the "what."** The spec artifact says what will be built. The CoreStory conversation explains why those decisions were made, what alternatives were considered, and what architectural constraints shaped the design.
+
+---
+
+## Troubleshooting
+
+**Spec Kit commands not available.**
+Verify Spec Kit is initialized: check for `.specify/` in the project root. If missing, run `specify init --here --ai [your-agent]`. Ensure you launched the agent from the initialized project directory.
+
+**Constitution is too generic despite CoreStory queries.**
+Run CoreStory queries separately before `/speckit.constitution`. Review responses, extract the most specific details (file names, class names, patterns), and paste them directly into the constitution prompt. Generic input produces generic output.
+
+**Spec Kit plan proposes creating services that already exist.**
+This means Phase 3 (Validate) was skipped or insufficient. Submit the plan to CoreStory and ask specifically: "What existing services should this feature leverage instead of creating new ones?" Update the plan artifacts.
+
+**Spec Kit artifacts and CoreStory conversation diverge.**
+The CoreStory conversation is the source of truth for architectural reasoning. If the Spec Kit artifacts drift (e.g., someone edits them without CoreStory validation), re-run the validation phase. Paste the updated artifact into CoreStory and ask for a fresh architectural check.
+
+**All other issues** â€” CoreStory generic responses, project not found, agent not following the workflow â€” are covered in the main [Spec-Driven Development](/playbooks/spec-driven-development) playbook's Troubleshooting section.
