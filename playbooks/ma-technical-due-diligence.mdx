@@ -8,13 +8,13 @@ icon: "magnifying-glass-chart"
 
 ## Overview
 
-Technical due diligence on acquisition targets traditionally relies on CTO interviews, manual code sampling, and documentation review â€” covering less than 10% of the actual codebase. Critical risks hide in the 90% nobody reads: hardcoded secrets in utility modules, GPL dependencies buried three layers deep, PII flowing unencrypted through forgotten microservices.
+Technical due diligence on acquisition targets traditionally relies on CTO interviews, manual code sampling, and documentation review — covering less than 10% of the actual codebase. Critical risks hide in the 90% nobody reads: hardcoded secrets in utility modules, GPL dependencies buried three layers deep, PII flowing unencrypted through forgotten microservices.
 
-CoreStory changes this equation. By ingesting and semantically understanding the target's entire codebase, it gives your diligence team an AI-powered analyst that can answer specific risk questions against the full codebase â€” not a sample. The agent operates as an **Oracle** (explaining system behavior, architectural patterns, and data flows) and a **Navigator** (pointing to specific files, methods, and code paths where risks live).
+CoreStory changes this equation. By ingesting and semantically understanding the target's entire codebase, it gives your diligence team an AI-powered analyst that can answer specific risk questions against the full codebase — not a sample. The agent operates as an **Oracle** (explaining system behavior, architectural patterns, and data flows) and a **Navigator** (pointing to specific files, methods, and code paths where risks live).
 
 **Who this is for:** M&A professionals, PE portfolio teams, technical diligence consultants, and acquiring engineering teams evaluating technology-heavy acquisitions.
 
-**What you'll get:** A structured workflow for interrogating a target codebase across four risk domains â€” technical debt, security, data/PII compliance, and integration complexity â€” producing auditable findings with specific file-level evidence.
+**What you'll get:** A structured workflow for interrogating a target codebase across four risk domains — technical debt, security, data/PII compliance, and integration complexity — producing auditable findings with specific file-level evidence.
 
 ---
 
@@ -38,7 +38,7 @@ This playbook uses the following tools from the CoreStory MCP server:
 | `get_project_prd` | Retrieve the synthesized Product Requirements Document for business context |
 | `get_project_techspec` | Retrieve the Technical Specification for architecture, data models, and security analysis |
 | `create_conversation` | Open a named diligence thread for each audit workstream |
-| `send_message` | Interrogate the codebase â€” the primary investigation tool |
+| `send_message` | Interrogate the codebase — the primary investigation tool |
 | `rename_conversation` | Mark completed threads with "RESOLVED" prefix for audit trail |
 | `list_conversations` | Review existing diligence threads |
 | `get_conversation` | Retrieve conversation history for report synthesis |
@@ -47,14 +47,14 @@ This playbook uses the following tools from the CoreStory MCP server:
 
 M&A technical diligence with CoreStory follows a four-phase pattern:
 
-1. **Setup** â€” Confirm the target project, review synthesized specs for architectural orientation, and create named conversation threads for each workstream.
-2. **Interrogate** â€” Use `send_message` to ask specific risk questions. CoreStory answers from semantic understanding of the full codebase, citing specific files and code paths.
-3. **Cross-reference** â€” Validate critical findings against the actual source code. CoreStory provides the file paths and context; the agent (or your team) confirms.
-4. **Synthesize** â€” Compile findings into structured reports. Conversation history provides the audit trail.
+1. **Setup** — Confirm the target project, review synthesized specs for architectural orientation, and create named conversation threads for each workstream.
+2. **Interrogate** — Use `send_message` to ask specific risk questions. CoreStory answers from semantic understanding of the full codebase, citing specific files and code paths.
+3. **Cross-reference** — Validate critical findings against the actual source code. CoreStory provides the file paths and context; the agent (or your team) confirms.
+4. **Synthesize** — Compile findings into structured reports. Conversation history provides the audit trail.
 
 ### Oracle Before Navigator
 
-The "Oracle before Navigator" principle is especially important in diligence. Before searching for specific vulnerabilities or code paths, first use CoreStory to understand how the system is *designed* to work â€” its intended architecture, data flow patterns, and security model. This baseline makes it far easier to spot deviations, shortcuts, and risks.
+The "Oracle before Navigator" principle is especially important in diligence. Before searching for specific vulnerabilities or code paths, first use CoreStory to understand how the system is *designed* to work — its intended architecture, data flow patterns, and security model. This baseline makes it far easier to spot deviations, shortcuts, and risks.
 
 ---
 
@@ -70,7 +70,7 @@ Start every diligence engagement by confirming the target and building architect
 List my CoreStory projects. I need to identify the project for [TargetName].
 ```
 
-The agent calls `list_projects` and returns your available projects. Confirm the correct project before proceeding â€” this is a critical safety step when multiple targets may be under evaluation simultaneously.
+The agent calls `list_projects` and returns your available projects. Confirm the correct project before proceeding — this is a critical safety step when multiple targets may be under evaluation simultaneously.
 
 **Review synthesized specifications:**
 
@@ -89,7 +89,7 @@ The agent calls `get_project_techspec` and `get_project_prd` to retrieve CoreSto
 
 ```
 Create a CoreStory conversation titled "[Diligence] TargetName - Technical Risk Audit".
-Store the conversation_id â€” we'll use this thread for all risk-related queries.
+Store the conversation_id — we'll use this thread for all risk-related queries.
 ```
 
 Create separate conversation threads for each workstream (risk audit, integration planning, compliance audit). This keeps findings organized and produces clean audit trails.
@@ -112,14 +112,14 @@ stable version, and whether the upgrade path has breaking changes."
 
 ```
 send_message: "Identify areas of the codebase with high complexity or poor
-separation of concerns â€” god classes, circular dependencies, modules with
+separation of concerns — god classes, circular dependencies, modules with
 excessive coupling. For each, provide the file path and a brief description
 of the issue."
 ```
 
 ```
 send_message: "Are there any modules or services that appear to be abandoned
-or unmaintained â€” no recent commits, no test coverage, referenced but not
+or unmaintained — no recent commits, no test coverage, referenced but not
 actively developed? List them with file paths."
 ```
 
@@ -147,7 +147,7 @@ the third-party libraries and frameworks in use, sorted by severity."
 ```
 send_message: "Provide a complete bill of materials for all third-party and
 open-source dependencies. Highlight any libraries with restrictive licenses
-â€” GPL, AGPL, SSPL, or other copyleft licenses that could create obligations
+— GPL, AGPL, SSPL, or other copyleft licenses that could create obligations
 for the acquiring entity."
 ```
 
@@ -199,7 +199,7 @@ vendor lock-in to specific cloud providers or services."
 
 ### Phase 3: Cross-Reference and Validation
 
-CoreStory provides findings with specific file paths and code context. For critical findings â€” especially security issues, licensing risks, and PII exposure â€” validate against the actual source code.
+CoreStory provides findings with specific file paths and code context. For critical findings — especially security issues, licensing risks, and PII exposure — validate against the actual source code.
 
 ```
 For the hardcoded secrets CoreStory identified:
@@ -218,13 +218,13 @@ After completing your interrogation queries, synthesize findings into structured
 Review our entire conversation history for the risk audit thread.
 Synthesize all findings into a Technical Due Diligence Report with these sections:
 
-1. Executive Summary â€” top 3-5 findings that materially affect deal risk or valuation
-2. Critical Risks â€” security vulnerabilities, licensing exposure, PII compliance gaps
+1. Executive Summary — top 3-5 findings that materially affect deal risk or valuation
+2. Critical Risks — security vulnerabilities, licensing exposure, PII compliance gaps
    (each with file-level evidence and severity rating)
-3. Technical Debt â€” end-of-life dependencies, architectural issues, maintainability concerns
-4. Architecture Overview â€” component map, technology stack, external dependencies
-5. Integration Assessment â€” complexity of merging with acquirer's platform, friction points
-6. Recommendations â€” remediation priorities and estimated effort for post-close planning
+3. Technical Debt — end-of-life dependencies, architectural issues, maintainability concerns
+4. Architecture Overview — component map, technology stack, external dependencies
+5. Integration Assessment — complexity of merging with acquirer's platform, friction points
+6. Recommendations — remediation priorities and estimated effort for post-close planning
 ```
 
 **Mark completed threads:**
@@ -245,7 +245,7 @@ The following end-to-end prompt templates combine the patterns above into comple
 
 **Scenario:** A PE firm has one week to perform technical diligence on a target. The goal is to identify major risks and quantify technical debt for negotiation leverage.
 
-**Timeline:** 24â€“48 hours with CoreStory (vs. 2â€“4 weeks traditional).
+**Timeline:** 24–48 hours with CoreStory (vs. 2–4 weeks traditional).
 
 ```
 Perform a rapid technical due diligence risk audit.
@@ -290,7 +290,7 @@ STEP 6: SYNTHESIZE
 
 ### Post-Merger Integration Planning
 
-**Scenario:** The deal is closing. The acquiring engineering team needs an integration blueprint â€” what overlaps, what conflicts, and where the friction will be.
+**Scenario:** The deal is closing. The acquiring engineering team needs an integration blueprint — what overlaps, what conflicts, and where the friction will be.
 
 ```
 Create a post-merger integration blueprint for merging [TargetName]
@@ -306,7 +306,7 @@ STEP 2: CREATE CONVERSATION
 
 STEP 3: MAP ARCHITECTURE
 Use send_message to ask:
-- "Describe the complete system architecture â€” services, databases,
+- "Describe the complete system architecture — services, databases,
   message queues, caches, and external integrations. Include a
   component inventory."
 - "Map all data models and their relationships. Identify the core
@@ -357,7 +357,7 @@ STEP 2: CREATE CONVERSATION
 
 STEP 3: MAP PII FLOWS
 Use send_message to ask:
-- "Map all data flows that handle PII â€” customer registration,
+- "Map all data flows that handle PII — customer registration,
   profile updates, payment processing, support interactions.
   For each flow, show where PII is collected, transmitted, and stored."
 - "Identify all database models or tables containing PII fields.
@@ -379,7 +379,7 @@ Use send_message to ask:
 
 STEP 5: SECURITY POSTURE
 Use send_message to ask:
-- "Identify all hardcoded secrets â€” API keys, passwords, tokens,
+- "Identify all hardcoded secrets — API keys, passwords, tokens,
   connection strings. Provide file paths."
 - "How are secrets managed in production? Is there a secrets manager
   (Vault, AWS Secrets Manager, etc.) or are environment variables used?"
@@ -388,11 +388,11 @@ Use send_message to ask:
 
 STEP 6: SYNTHESIZE
 - Generate a "PII & Security Compliance Report" covering:
-  1. PII inventory â€” what data, where stored, encryption status
-  2. Data flow map â€” collection through deletion lifecycle
-  3. Compliance gaps â€” unencrypted PII, missing deletion flows,
+  1. PII inventory — what data, where stored, encryption status
+  2. Data flow map — collection through deletion lifecycle
+  3. Compliance gaps — unencrypted PII, missing deletion flows,
      third-party data sharing without controls
-  4. Security findings â€” hardcoded secrets, missing validation,
+  4. Security findings — hardcoded secrets, missing validation,
      auth vulnerabilities
   5. Remediation priorities with estimated effort
   6. Regulatory risk assessment (GDPR, CCPA applicability)
@@ -404,7 +404,7 @@ STEP 6: SYNTHESIZE
 
 ### Investigation Patterns
 
-Effective diligence queries are specific and evidence-oriented. They ask for file paths, concrete examples, and traceable findings â€” not summaries.
+Effective diligence queries are specific and evidence-oriented. They ask for file paths, concrete examples, and traceable findings — not summaries.
 
 | Pattern | Example |
 |---------|---------|
@@ -431,7 +431,7 @@ Vague queries produce vague answers. Always include specific anchors:
 For thorough coverage, chain queries within a conversation thread. Each `send_message` builds on prior context:
 
 ```
-Query 1: "Map the system architecture â€” services, databases, and external integrations."
+Query 1: "Map the system architecture — services, databases, and external integrations."
 Query 2: "For each external integration you identified, what data is exchanged
           and what happens if the external service is unavailable?"
 Query 3: "Which of these external dependencies have SLA requirements,
@@ -446,11 +446,11 @@ The conversation accumulates context, so later queries can reference earlier fin
 
 **Create separate threads per workstream.** Don't mix security audit queries with integration planning queries. Separate conversations keep findings organized and make it easier to hand off specific workstreams to different team members.
 
-**Start with the synthesized specs.** Use `get_project_techspec` and `get_project_prd` before diving into `send_message` queries. The specs give you architectural vocabulary â€” service names, data model names, API endpoint patterns â€” that make your queries far more specific and productive.
+**Start with the synthesized specs.** Use `get_project_techspec` and `get_project_prd` before diving into `send_message` queries. The specs give you architectural vocabulary — service names, data model names, API endpoint patterns — that make your queries far more specific and productive.
 
 **Ask for file paths, always.** Every finding in a diligence report needs evidence. Train your queries to always request file paths and line context. "Identify X and provide the file path" should be your default pattern.
 
-**Cross-reference critical findings.** CoreStory's analysis is based on its ingestion snapshot. For findings that materially affect deal terms â€” licensing poison pills, PII exposure, critical security vulnerabilities â€” always validate against the current source.
+**Cross-reference critical findings.** CoreStory's analysis is based on its ingestion snapshot. For findings that materially affect deal terms — licensing poison pills, PII exposure, critical security vulnerabilities — always validate against the current source.
 
 **Use conversation rename for audit trail.** Rename completed threads with a "RESOLVED" prefix using `rename_conversation`. This creates a searchable record that survives team handoffs and can be referenced months later during post-merger integration.
 
@@ -462,7 +462,7 @@ The conversation accumulates context, so later queries can reference earlier fin
 
 **CoreStory gives generic or shallow answers**
 
-Your queries are too broad. Include specific anchors â€” service names, module names, technology names, or code patterns. After reviewing the Technical Specification, use the vocabulary it provides (component names, data model names) in your queries.
+Your queries are too broad. Include specific anchors — service names, module names, technology names, or code patterns. After reviewing the Technical Specification, use the vocabulary it provides (component names, data model names) in your queries.
 
 **Response exceeds token limit**
 

@@ -8,9 +8,9 @@ icon: "bolt"
 
 ## Overview
 
-AI coding agents are only as good as the context they have. Without architectural understanding, they guess â€” reinventing existing services, violating naming conventions, breaking invariants they didn't know existed. The result is code that works in isolation but doesn't fit the system.
+AI coding agents are only as good as the context they have. Without architectural understanding, they guess — reinventing existing services, violating naming conventions, breaking invariants they didn't know existed. The result is code that works in isolation but doesn't fit the system.
 
-CoreStory eliminates this problem by giving your AI agent access to **code intelligence** â€” synthesized knowledge about how your system actually works, drawn from PRDs, technical specifications, user stories, code history, and architecture analysis. The agent queries this intelligence through MCP (Model Context Protocol) to understand the system *before* writing code, not after.
+CoreStory eliminates this problem by giving your AI agent access to **code intelligence** — synthesized knowledge about how your system actually works, drawn from PRDs, technical specifications, user stories, code history, and architecture analysis. The agent queries this intelligence through MCP (Model Context Protocol) to understand the system *before* writing code, not after.
 
 This guide shows you how to connect CoreStory to your AI coding agent, verify the connection, and start using code intelligence in your development workflows. For specific workflow playbooks (bug resolution, feature implementation, spec-driven development), see the links in the Use Cases section.
 
@@ -18,10 +18,10 @@ This guide shows you how to connect CoreStory to your AI coding agent, verify th
 
 CoreStory serves two roles in every workflow:
 
-- **Oracle** â€” answers questions about intended system behavior, invariants, business rules, architectural patterns, and design history. This is context synthesized from your entire codebase â€” not just file contents, but the *meaning* behind them.
-- **Navigator** â€” points to specific files, methods, extension points, and code paths relevant to a task. Instead of grep-wandering through a codebase, the agent gets directed guidance.
+- **Oracle** — answers questions about intended system behavior, invariants, business rules, architectural patterns, and design history. This is context synthesized from your entire codebase — not just file contents, but the *meaning* behind them.
+- **Navigator** — points to specific files, methods, extension points, and code paths relevant to a task. Instead of grep-wandering through a codebase, the agent gets directed guidance.
 
-Together, these roles let the agent operate like a senior engineer who's been on the team for years â€” understanding not just what the code does, but *why* it does it that way.
+Together, these roles let the agent operate like a senior engineer who's been on the team for years — understanding not just what the code does, but *why* it does it that way.
 
 ---
 
@@ -40,7 +40,7 @@ Together, these roles let the agent operate like a senior engineer who's been on
 1. Go to **Settings** in the [CoreStory Dashboard](https://preview.corestory.ai/settings)
 2. Scroll to **IDE Integrations** and click **Configure** under "MCP Connection"
 3. Enter a token name (e.g., "MacBook Pro", "Work Desktop") and click **Generate MCP Token**
-4. **Copy the token immediately** â€” it won't be shown again
+4. **Copy the token immediately** — it won't be shown again
 
 ### Step 2: Configure Your Agent
 
@@ -94,14 +94,14 @@ Once connected, these tools are available to your AI assistant:
 
 Most CoreStory workflows follow this pattern:
 
-1. **Select project** â€” `list_projects` â†’ confirm the right project
-2. **Create conversation** â€” `create_conversation` with a descriptive title
-3. **Query the Oracle** â€” `send_message` to understand system behavior, invariants, and architecture
-4. **Query the Navigator** â€” `send_message` to find specific files, methods, and extension points
-5. **Act on the knowledge** â€” implement, test, or document based on what CoreStory revealed
-6. **Close the loop** â€” `rename_conversation` to mark the thread as resolved
+1. **Select project** — `list_projects` → confirm the right project
+2. **Create conversation** — `create_conversation` with a descriptive title
+3. **Query the Oracle** — `send_message` to understand system behavior, invariants, and architecture
+4. **Query the Navigator** — `send_message` to find specific files, methods, and extension points
+5. **Act on the knowledge** — implement, test, or document based on what CoreStory revealed
+6. **Close the loop** — `rename_conversation` to mark the thread as resolved
 
-The conversation persists as institutional knowledge â€” future queries in the same thread benefit from accumulated context.
+The conversation persists as institutional knowledge — future queries in the same thread benefit from accumulated context.
 
 ---
 
@@ -113,20 +113,20 @@ CoreStory's code intelligence powers a range of development workflows. Each has 
 |----------|-------------|----------|
 | **Bug Resolution** | Diagnose and fix bugs with full architectural context. The agent queries CoreStory to understand how the system *should* work, generates root cause hypotheses, writes a failing test, and implements a minimal fix. | [Agentic Bug Resolution](/playbooks/agentic-bug-resolution) |
 | **Feature Implementation** | Implement features from tickets using CoreStory to understand existing patterns, data structures, and integration points. TDD workflow with continuous architectural validation. | [Feature Implementation](/playbooks/feature-implementation) |
-| **Spec-Driven Development** | Write architecture-grounded specifications before implementation. CoreStory provides the architectural truth that standalone SDD tools can't â€” ensuring specs describe delta changes constrained by what actually exists. | [Spec-Driven Development](/playbooks/spec-driven-development) |
-| **Test Generation** | Derive comprehensive test suites from CoreStory specifications â€” positive cases, negative cases, edge cases, error contracts, and idempotency tests. | [Automated Test Generation](/playbooks/automated-test-generation) |
+| **Spec-Driven Development** | Write architecture-grounded specifications before implementation. CoreStory provides the architectural truth that standalone SDD tools can't — ensuring specs describe delta changes constrained by what actually exists. | [Spec-Driven Development](/playbooks/spec-driven-development) |
+| **Test Generation** | Derive comprehensive test suites from CoreStory specifications — positive cases, negative cases, edge cases, error contracts, and idempotency tests. | [Automated Test Generation](/playbooks/automated-test-generation) |
 | **M&A Technical Due Diligence** | Analyze acquisition targets using CoreStory to understand architecture, identify risks, assess technical debt, and evaluate integration complexity. | [M&A Due Diligence](/playbooks/ma-technical-due-diligence) |
 
 ### Additional Use Cases
 
-These workflows don't have dedicated playbooks but follow the same Oracle â†’ Navigator pattern:
+These workflows don't have dedicated playbooks but follow the same Oracle → Navigator pattern:
 
-- **Spec/Code Gap Analysis** â€” identify discrepancies between CoreStory specifications and actual implementation, then remediate
-- **Architecture Comprehension** â€” understand component boundaries, data flows, and integration points for refactoring or onboarding
-- **API Contract Validation** â€” extract API contracts from specs, validate against code, and generate contract tests
-- **Security Baseline Review** â€” audit error handling, validation, and idempotency against spec security sections
-- **Developer Onboarding Documentation** â€” generate onboarding guides by cross-referencing CoreStory specs with source code
-- **Release Notes Generation** â€” analyze feature changes and generate release notes keyed to business rules and endpoints
+- **Spec/Code Gap Analysis** — identify discrepancies between CoreStory specifications and actual implementation, then remediate
+- **Architecture Comprehension** — understand component boundaries, data flows, and integration points for refactoring or onboarding
+- **API Contract Validation** — extract API contracts from specs, validate against code, and generate contract tests
+- **Security Baseline Review** — audit error handling, validation, and idempotency against spec security sections
+- **Developer Onboarding Documentation** — generate onboarding guides by cross-referencing CoreStory specs with source code
+- **Release Notes Generation** — analyze feature changes and generate release notes keyed to business rules and endpoints
 
 ---
 
@@ -206,7 +206,7 @@ Using input variables keeps tokens out of source control. Each team member enter
 
 **Option B: User settings (personal)**
 
-Open VS Code Settings JSON (`Cmd/Ctrl + ,` â†’ "Open Settings (JSON)") and add:
+Open VS Code Settings JSON (`Cmd/Ctrl + ,` → "Open Settings (JSON)") and add:
 
 ```json
 {
@@ -253,8 +253,8 @@ Create `.cursor/mcp.json`:
 
 **Option B: Via Cursor settings UI**
 
-1. Open Settings (`Cmd/Ctrl + Shift + P` â†’ search "MCP")
-2. Click **Tools & Integrations** â†’ **New MCP Server** under MCP Tools
+1. Open Settings (`Cmd/Ctrl + Shift + P` → search "MCP")
+2. Click **Tools & Integrations** → **New MCP Server** under MCP Tools
 3. Add the configuration above
 
 **Verify:** Open the AI pane, switch to **Agent** mode, and confirm CoreStory tools appear in the tools list.
@@ -356,7 +356,7 @@ The quality of CoreStory's responses depends on the specificity of your queries.
 | "How does authentication work?" | "What is the session timeout configuration? How are JWT tokens validated, and what happens when a token expires during an active request?" |
 | "Tell me about the API" | "What are the error response formats for the payment endpoints? Do they follow RFC-7807? What HTTP status codes map to which error conditions?" |
 
-**Use specific variable names and code references** when you have them â€” CoreStory can resolve references to actual files and methods in the codebase.
+**Use specific variable names and code references** when you have them — CoreStory can resolve references to actual files and methods in the codebase.
 
 ### Oracle Before Navigator
 
@@ -364,14 +364,14 @@ Always query for *understanding* before querying for *location*. The Oracle phas
 
 ### Conversation Hygiene
 
-- **One conversation per task.** Create a conversation with a descriptive title like "Bug Fix: #1234 â€” Payment retry failing on 503 errors" or "Feature: #412 â€” Webhook notification system."
+- **One conversation per task.** Create a conversation with a descriptive title like "Bug Fix: #1234 — Payment retry failing on 503 errors" or "Feature: #412 — Webhook notification system."
 - **Reuse conversations** for follow-up queries on the same task. The conversation accumulates context that improves subsequent responses.
-- **Rename when done.** Mark completed conversations with a prefix like "âœ… Resolved:" so future users can find institutional knowledge.
+- **Rename when done.** Mark completed conversations with a prefix like "✅ Resolved:" so future users can find institutional knowledge.
 
 ### Cost Control
 
 - **Retrieve before regenerating.** Use `get_project_prd` and `get_project_techspec` to check if documents already exist before asking the agent to generate new content.
-- **Reuse conversations** instead of creating new ones for related queries â€” conversation context reduces the need for repeated background queries.
+- **Reuse conversations** instead of creating new ones for related queries — conversation context reduces the need for repeated background queries.
 - **Batch queries.** Plan your questions in advance and ask comprehensive questions instead of many small ones.
 
 ### Security
@@ -392,7 +392,7 @@ Always query for *understanding* before querying for *location*. The Oracle phas
 **Solutions:**
 
 1. Verify the MCP server appears in your agent's server list (e.g., `claude mcp list` for Claude Code, or the tools panel in VS Code/Cursor)
-2. Check that the token is correct and hasn't expired â€” try generating a new one
+2. Check that the token is correct and hasn't expired — try generating a new one
 3. Verify the URL is exactly `https://c2s.corestory.ai/mcp` (no trailing slash)
 4. Restart your agent after configuration changes
 5. Ask the agent to list available MCP servers and tools as a diagnostic
@@ -404,7 +404,7 @@ Always query for *understanding* before querying for *location*. The Oracle phas
 **Solutions:**
 
 1. Verify you have access to the project in the CoreStory dashboard
-2. Check ingestion status â€” projects must show "completed" or "ready" before querying
+2. Check ingestion status — projects must show "completed" or "ready" before querying
 3. If ingestion appears stuck, contact CoreStory support
 4. Don't proceed with heavy queries until ingestion is complete
 
@@ -414,7 +414,7 @@ Always query for *understanding* before querying for *location*. The Oracle phas
 
 **Solutions:**
 
-1. Reduce query frequency â€” batch related questions into single, comprehensive queries
+1. Reduce query frequency — batch related questions into single, comprehensive queries
 2. Reuse conversations instead of creating new ones
 3. Retrieve existing documents instead of regenerating
 4. Use incremental section generation instead of full document generation
@@ -425,7 +425,7 @@ Always query for *understanding* before querying for *location*. The Oracle phas
 
 **Solutions:**
 
-1. Break large tasks into milestones â€” have the agent commit after each phase
+1. Break large tasks into milestones — have the agent commit after each phase
 2. Use the conversation ID to resume context in a new session
 3. For agents with session limits (e.g., Devin ACU limits), prioritize the Oracle and Navigator phases first, then implement in a separate session
 
@@ -435,7 +435,7 @@ Always query for *understanding* before querying for *location*. The Oracle phas
 
 Once you've verified your CoreStory connection, pick a workflow and follow its playbook:
 
-- **First time?** Start with [Bug Resolution](/playbooks/agentic-bug-resolution) â€” it's the most concrete workflow and demonstrates the Oracle â†’ Navigator â†’ Implement pattern clearly.
+- **First time?** Start with [Bug Resolution](/playbooks/agentic-bug-resolution) — it's the most concrete workflow and demonstrates the Oracle → Navigator → Implement pattern clearly.
 - **Building something new?** Use [Spec-Driven Development](/playbooks/spec-driven-development) to ground your specification in the real architecture before implementation.
 - **Working from tickets?** [Feature Implementation](/playbooks/feature-implementation) covers the full ticket-to-merge workflow with TDD and continuous architectural validation.
 

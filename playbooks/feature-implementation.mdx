@@ -8,12 +8,12 @@ icon: "code-branch"
 
 ## Overview
 
-Feature Implementation is a workflow for building new features, enhancements, and general development work using an AI coding agent backed by CoreStory's code intelligence. The agent uses CoreStory's MCP tools to understand your system's architecture, identify implementation patterns, and navigate to the right code locations before writing a single line â€” then implements the feature using a test-driven approach.
+Feature Implementation is a workflow for building new features, enhancements, and general development work using an AI coding agent backed by CoreStory's code intelligence. The agent uses CoreStory's MCP tools to understand your system's architecture, identify implementation patterns, and navigate to the right code locations before writing a single line — then implements the feature using a test-driven approach.
 
 CoreStory serves two roles in this workflow:
 
-- **Oracle** â€” answers questions about system architecture, design patterns, naming conventions, and invariants. The agent queries CoreStory to understand _how the system works_ and _what patterns to follow_ before coding.
-- **Navigator** â€” points to specific files, extension points, base classes, and data structures. The agent queries CoreStory to understand _where to implement_ and _what to reuse_.
+- **Oracle** — answers questions about system architecture, design patterns, naming conventions, and invariants. The agent queries CoreStory to understand _how the system works_ and _what patterns to follow_ before coding.
+- **Navigator** — points to specific files, extension points, base classes, and data structures. The agent queries CoreStory to understand _where to implement_ and _what to reuse_.
 
 This playbook shares its six-phase structure with the Bug Resolution playbook. The difference is the starting point: Bug Resolution starts from something broken, Feature Implementation starts from something that needs building. The questions asked in each phase shift accordingly.
 
@@ -23,14 +23,14 @@ This playbook shares its six-phase structure with the Bug Resolution playbook. T
 
 - **CoreStory account** with at least one project that has completed ingestion
 - **CoreStory MCP server** connected to your AI coding agent (see the [CoreStory MCP Server Setup Guide](https://corestory.notion.site/corestory-mcp-server-setup))
-- **AI coding agent** â€” this playbook includes implementation guides for Claude Code, GitHub Copilot, Cursor, and Factory.ai. The generic workflow applies to any MCP-capable agent.
+- **AI coding agent** — this playbook includes implementation guides for Claude Code, GitHub Copilot, Cursor, and Factory.ai. The generic workflow applies to any MCP-capable agent.
 - **Optional:** Ticketing system MCP (GitHub Issues, Jira, Linear, Azure DevOps) for automatic ticket intake
 
 ---
 
 ## How It Works
 
-The workflow has six phases. Each phase builds on the previous one. Skipping phases â€” especially the oracle and navigator phases â€” increases the risk of architectural misalignment, missed patterns, and avoidable rework.
+The workflow has six phases. Each phase builds on the previous one. Skipping phases — especially the oracle and navigator phases — increases the risk of architectural misalignment, missed patterns, and avoidable rework.
 
 | Phase | Name | Purpose | CoreStory Role |
 |-------|------|---------|----------------|
@@ -45,10 +45,10 @@ The workflow has six phases. Each phase builds on the previous one. Skipping pha
 
 | Tool | When Used |
 |------|-----------|
-| `list_projects` | Phase 1 â€” select the right project |
-| `create_conversation` | Phase 1 â€” create a persistent investigation thread |
-| `send_message` | Phases 2â€“5 â€” all queries to CoreStory |
-| `rename_conversation` | Phase 6 â€” mark conversation as completed |
+| `list_projects` | Phase 1 — select the right project |
+| `create_conversation` | Phase 1 — create a persistent investigation thread |
+| `send_message` | Phases 2–5 — all queries to CoreStory |
+| `rename_conversation` | Phase 6 — mark conversation as completed |
 
 Optional (if ticketing MCP is connected): the agent also uses the ticketing system's tools to fetch ticket details and post implementation summaries.
 
@@ -60,7 +60,7 @@ Optional (if ticketing MCP is connected): the agent also uses the ticketing syst
 
 **Objective:** Import ticket details and set up the CoreStory implementation environment.
 
-**1.1 â€” Get ticket details.** If a ticketing MCP is connected, the agent fetches the ticket directly:
+**1.1 — Get ticket details.** If a ticketing MCP is connected, the agent fetches the ticket directly:
 
 ```
 "Fetch GitHub issue #6992 from myorg/myapp"
@@ -68,7 +68,7 @@ Optional (if ticketing MCP is connected): the agent also uses the ticketing syst
 
 Extract the user story, acceptance criteria, requirements, and constraints. If no ticketing MCP is available, provide these details in the prompt.
 
-**1.2 â€” Select CoreStory project.**
+**1.2 — Select CoreStory project.**
 
 ```
 "List my CoreStory projects"
@@ -77,14 +77,14 @@ Extract the user story, acceptance criteria, requirements, and constraints. If n
 
 If multiple projects exist, confirm which one maps to the codebase being worked on.
 
-**1.3 â€” Create an implementation conversation.**
+**1.3 — Create an implementation conversation.**
 
 ```
 "Create a CoreStory conversation for project myapp-main titled
 'Ticket Implementation: #6992 - Add CSV export for user profiles'"
 ```
 
-This conversation persists across the session and captures the full chain of queries and responses â€” valuable institutional knowledge for future work.
+This conversation persists across the session and captures the full chain of queries and responses — valuable institutional knowledge for future work.
 
 ---
 
@@ -94,7 +94,7 @@ This conversation persists across the session and captures the full chain of que
 
 Without this phase, the agent risks implementing features that don't follow existing patterns, break architectural constraints, or duplicate functionality that already exists.
 
-**2.1 â€” Query system architecture.** Ask CoreStory about the feature area:
+**2.1 — Query system architecture.** Ask CoreStory about the feature area:
 
 ```
 "What files are responsible for [feature area]? I need to understand:
@@ -116,7 +116,7 @@ Without this phase, the agent risks implementing features that don't follow exis
 
 Look for core implementation files, similar existing features (these become reference implementations), utility modules, and integration patterns.
 
-**2.2 â€” Query design patterns and conventions.**
+**2.2 — Query design patterns and conventions.**
 
 ```
 "What architectural patterns are used for [feature type]? Specifically:
@@ -128,7 +128,7 @@ Look for core implementation files, similar existing features (these become refe
 
 Look for class/module structure patterns, naming conventions (e.g., `{Format}ExportService`), async/sync patterns, error handling approaches, and critical invariants (e.g., "all exports require authentication").
 
-**2.3 â€” Query historical context.**
+**2.3 — Query historical context.**
 
 ```
 "Have there been similar features implemented recently? What was the design
@@ -143,7 +143,7 @@ Look for related PRs and design discussions, past implementations that solved si
 
 **Objective:** Map feature requirements to specific code locations and an implementation strategy.
 
-**3.1 â€” Identify extension points.**
+**3.1 — Identify extension points.**
 
 ```
 "Where should I implement [feature]? What are the extension points?
@@ -152,7 +152,7 @@ Walk me through the implementation locations step by step."
 
 Look for files to create (with paths), files to modify (with specific sections), base classes to extend, and test file locations.
 
-**3.2 â€” Understand data structures.**
+**3.2 — Understand data structures.**
 
 ```
 "What data structures should I use for [feature]? What models/schemas are
@@ -161,14 +161,14 @@ involved? What are the relationships and dependencies?"
 
 Look for primary models/entities, required fields, relationships to other entities, and serialization requirements.
 
-**3.3 â€” Identify reference implementations.**
+**3.3 — Identify reference implementations.**
 
 ```
 "What existing features are most similar to [new feature]? Can I reuse code?
 What patterns should I copy?"
 ```
 
-This is one of the highest-value queries. A good reference implementation gives the agent a concrete template to follow â€” not just abstract patterns, but actual working code in the same codebase.
+This is one of the highest-value queries. A good reference implementation gives the agent a concrete template to follow — not just abstract patterns, but actual working code in the same codebase.
 
 ---
 
@@ -176,9 +176,9 @@ This is one of the highest-value queries. A good reference implementation gives 
 
 **Objective:** Write failing tests that define the feature, then implement code to make them pass.
 
-Tests come before implementation code. This is non-negotiable in the workflow â€” it ensures acceptance criteria are codified, requirements are clearly understood, and regressions are caught immediately.
+Tests come before implementation code. This is non-negotiable in the workflow — it ensures acceptance criteria are codified, requirements are clearly understood, and regressions are caught immediately.
 
-**4.1 â€” Write acceptance tests** from the criteria gathered in Phase 1, following the architecture patterns from Phase 2 and data structures from Phase 3:
+**4.1 — Write acceptance tests** from the criteria gathered in Phase 1, following the architecture patterns from Phase 2 and data structures from Phase 3:
 
 ```python
 def test_admin_can_export_user_profiles_as_csv():
@@ -196,7 +196,7 @@ def test_admin_can_export_user_profiles_as_csv():
     assert 'user1@example.com' in response.data.decode('utf-8-sig')
 ```
 
-**4.2 â€” Validate tests with CoreStory.**
+**4.2 — Validate tests with CoreStory.**
 
 ```
 "I've written these tests for [feature]:
@@ -206,9 +206,9 @@ Do these correctly validate the acceptance criteria? Are there edge cases
 I'm missing? Do they follow the testing patterns from [reference tests]?"
 ```
 
-**4.3 â€” Verify tests fail.** Run the tests and confirm they fail. If they pass, the feature already exists or the tests are wrong â€” clarify with CoreStory.
+**4.3 — Verify tests fail.** Run the tests and confirm they fail. If they pass, the feature already exists or the tests are wrong — clarify with CoreStory.
 
-**4.4 â€” Implement the feature** following patterns from Phase 2:
+**4.4 — Implement the feature** following patterns from Phase 2:
 
 ```python
 class CsvExportService(ExportServiceBase):
@@ -222,9 +222,9 @@ class CsvExportService(ExportServiceBase):
         ...
 ```
 
-**4.5 â€” Verify tests pass.** Run the specific test file and confirm all tests go green.
+**4.5 — Verify tests pass.** Run the specific test file and confirm all tests go green.
 
-**4.6 â€” Validate implementation with CoreStory.**
+**4.6 — Validate implementation with CoreStory.**
 
 ```
 "I've implemented [feature] following this structure:
@@ -240,7 +240,7 @@ side effects?"
 
 **Objective:** Add edge case coverage, ensure quality, prevent regressions.
 
-**5.1 â€” Identify edge cases** by querying CoreStory:
+**5.1 — Identify edge cases** by querying CoreStory:
 
 ```
 "My basic [feature] tests pass. What edge cases should I test? What scenarios
@@ -249,19 +249,19 @@ might break in production?"
 
 Common categories: empty state, large datasets, concurrent access, invalid input, permission boundaries, missing related data.
 
-**5.2 â€” Run the full test suite.** Ensure all new tests pass and no existing tests broke. If regressions appear, the implementation introduced unintended side effects â€” revise the approach.
+**5.2 — Run the full test suite.** Ensure all new tests pass and no existing tests broke. If regressions appear, the implementation introduced unintended side effects — revise the approach.
 
-**5.3 â€” Performance and security validation** (when applicable). Add performance tests for features with latency/throughput requirements. Add security tests for features handling sensitive data or authentication.
+**5.3 — Performance and security validation** (when applicable). Add performance tests for features with latency/throughput requirements. Add security tests for features handling sensitive data or authentication.
 
 ---
 
 ### Phase 6: Completion & Knowledge Capture
 
-**Objective:** Close the loop â€” commit, document, and preserve knowledge.
+**Objective:** Close the loop — commit, document, and preserve knowledge.
 
-**6.1 â€” Update ticket** (if ticketing MCP is connected). Post an implementation summary with files created/modified, pattern followed, test count, and coverage.
+**6.1 — Update ticket** (if ticketing MCP is connected). Post an implementation summary with files created/modified, pattern followed, test count, and coverage.
 
-**6.2 â€” Commit with rich context.** The commit message should document the feature, implementation approach, architectural alignment, and testing scope:
+**6.2 — Commit with rich context.** The commit message should document the feature, implementation approach, architectural alignment, and testing scope:
 
 ```
 Feat: Add CSV export for user profiles (#6992)
@@ -289,7 +289,7 @@ References:
 - CoreStory Investigation: [conversation-id]
 ```
 
-**6.3 â€” Preserve the CoreStory conversation.**
+**6.3 — Preserve the CoreStory conversation.**
 
 ```
 "Rename the CoreStory conversation to:
@@ -362,7 +362,7 @@ Resolve ENG-456
 #### Tips
 
 - Skills auto-load from directories added via `--add-dir`, so team-shared skills work across machines.
-- Claude Code detects file changes during sessions â€” you can edit the skill file and it takes effect immediately.
+- Claude Code detects file changes during sessions — you can edit the skill file and it takes effect immediately.
 - Keep the SKILL.md under 500 lines for reliable loading.
 - The skill file includes structured output templates so Claude reports progress at each phase.
 - **Let it run.** The workflow is designed for autonomous execution. Interrupting mid-phase breaks the chain of context.
@@ -380,7 +380,7 @@ description: >
   Implement a feature using CoreStory's code intelligence and TDD methodology.
   Use when the user asks to implement a ticket, build a feature, or resolve
   an issue by ID (e.g., "Implement ticket #6992", "Build feature JIRA-123",
-  "Resolve ENG-456"). Do NOT use for bug fixes â€” use the fix-bug skill instead.
+  "Resolve ENG-456"). Do NOT use for bug fixes — use the fix-bug skill instead.
 ---
 
 # CoreStory Feature Implementation
@@ -420,33 +420,33 @@ Report to user: ticket summary, acceptance criteria, conversation ID.
 Send these queries to CoreStory via `send_message`. After each, summarize
 key findings to user.
 
-**Query 1 â€” Architecture discovery:**
+**Query 1 — Architecture discovery:**
 "What files are responsible for [feature area]? I need: primary implementation
 files, existing test patterns, reusable helper modules, integration points."
 
-**Query 2 â€” Design patterns and conventions:**
+**Query 2 — Design patterns and conventions:**
 "What architectural patterns are used for [feature type]? How are similar
 features structured? What naming conventions apply? What invariants must
 I maintain?"
 
-**Query 3 â€” Historical context:**
+**Query 3 — Historical context:**
 "Have similar features been implemented recently? What was the design intent?
 Are there related PRs or tickets?"
 
 Parse responses for: core files, reference implementations, naming conventions,
-invariants (CRITICAL â€” these must not be violated), and known gotchas.
+invariants (CRITICAL — these must not be violated), and known gotchas.
 
 ### PHASE 3: Navigator Phase (Implementation Planning)
 
-**Query 1 â€” Extension points:**
+**Query 1 — Extension points:**
 "Where should I implement [feature]? What files to create, what files to
 modify? Walk me through step by step."
 
-**Query 2 â€” Data structures:**
+**Query 2 — Data structures:**
 "What data structures should I use? What models/schemas are involved?
 What relationships and dependencies exist?"
 
-**Query 3 â€” Reference implementations:**
+**Query 3 — Reference implementations:**
 "What existing features are most similar? Can I reuse code or patterns?"
 
 Output to user: files to create, files to modify, data structures, reference
@@ -460,7 +460,7 @@ pattern to follow.
    and Phase 3 data structures. Use naming pattern:
    `test_[feature]_[scenario]_[expected]`
 2. Write unit tests for individual components.
-3. Verify all tests FAIL. If they pass, the feature may already exist â€”
+3. Verify all tests FAIL. If they pass, the feature may already exist —
    check with CoreStory.
 4. Validate tests with CoreStory: paste test code and ask if they correctly
    validate the acceptance criteria and follow established testing patterns.
@@ -475,7 +475,7 @@ pattern to follow.
    scenarios might break in production?"
 2. Add edge case tests (empty state, large data, concurrent access,
    invalid input, permission boundaries).
-3. Run FULL test suite â€” all tests must pass, no regressions.
+3. Run FULL test suite — all tests must pass, no regressions.
 4. If feature has performance requirements: add performance tests.
 5. If feature handles auth or sensitive data: add security tests.
 
@@ -529,8 +529,8 @@ git commit -m "Add CoreStory feature implementation instructions for Copilot"
 In Copilot Chat (agent mode), natural language triggers the workflow:
 
 ```
-Implement ticket #6992 â€” add webhook support for project events
-Build feature JIRA-456 â€” user notification preferences
+Implement ticket #6992 — add webhook support for project events
+Build feature JIRA-456 — user notification preferences
 ```
 
 Or reference the prompt file:
@@ -541,7 +541,7 @@ Or reference the prompt file:
 
 #### Tips
 
-- Copilot's agent mode (available in VS Code) can execute terminal commands and edit files autonomously â€” this workflow works best in agent mode.
+- Copilot's agent mode (available in VS Code) can execute terminal commands and edit files autonomously — this workflow works best in agent mode.
 - You can add path-specific instruction files (e.g., `.github/instructions/backend.instructions.md` with `applyTo: "src/backend/**"`) for component-specific guidance.
 - On Team/Enterprise plans, organization-level instructions apply across all repositories.
 - Copilot automatically references `.github/copilot-instructions.md` in chat responses.
@@ -565,12 +565,12 @@ Apply this workflow when user requests feature implementation, ticket resolution
 
 ### Phase 1: Ticket Intake
 1. Extract feature details from ticket (via ticketing MCP) or user description
-2. Identify acceptance criteria â€” ask for them if not provided
+2. Identify acceptance criteria — ask for them if not provided
 3. Select CoreStory project (`CoreStory:list_projects`, verify status is "completed")
 4. Create implementation conversation (`CoreStory:create_conversation`)
 5. Report: feature summary, acceptance criteria, CoreStory conversation ID
 
-### Phase 2: Oracle Phase â€” Understand Architecture
+### Phase 2: Oracle Phase — Understand Architecture
 **Do this BEFORE writing any code.**
 
 Send three CoreStory queries (`CoreStory:send_message`):
@@ -580,7 +580,7 @@ Send three CoreStory queries (`CoreStory:send_message`):
 
 Extract and report: key files, reference implementations, conventions, invariants to maintain.
 
-### Phase 3: Navigator Phase â€” Plan Implementation
+### Phase 3: Navigator Phase — Plan Implementation
 Send three CoreStory queries:
 1. Extension points: where to add new code, what files to create/modify
 2. Data structures: models, schemas, relationships, dependencies
@@ -602,7 +602,7 @@ Report: files to create, files to modify, data structures, pattern to follow.
 ### Phase 5: Feature Completion
 1. Ask CoreStory for edge cases
 2. Add edge case tests (empty state, large data, concurrent access, invalid input, permissions)
-3. Run full test suite â€” no regressions
+3. Run full test suite — no regressions
 4. Add performance tests if relevant
 5. Add security tests if feature touches auth or sensitive data
 
@@ -614,7 +614,7 @@ Report: files to create, files to modify, data structures, pattern to follow.
 
 ## Key Principles
 - **Oracle before Navigator**: understand architecture before planning implementation
-- **Test-first always**: failing tests â†’ implement â†’ verify passes
+- **Test-first always**: failing tests → implement → verify passes
 - **Validate with CoreStory**: check tests and implementation against architecture
 - **Follow existing patterns**: match the codebase's conventions, don't invent new ones
 - **Rich documentation**: commit messages explain architectural decisions
@@ -642,7 +642,7 @@ Implement the specified feature using the CoreStory six-phase workflow.
 
 1. Fetch ticket details and create a CoreStory implementation conversation
 2. Query CoreStory for architecture, patterns, conventions, and invariants
-3. Plan implementation â€” files to create/modify, data structures, reference patterns
+3. Plan implementation — files to create/modify, data structures, reference patterns
 4. Write failing tests BEFORE implementing, then build the feature
 5. Add edge case tests, run full suite, validate with CoreStory
 6. Commit with full context, update ticket, preserve conversation
@@ -654,7 +654,7 @@ Implement the specified feature using the CoreStory six-phase workflow.
 
 #### Setup
 
-1. **Configure the CoreStory MCP server** in Cursor's MCP settings (Settings â†’ MCP Servers, or edit the MCP config JSON directly).
+1. **Configure the CoreStory MCP server** in Cursor's MCP settings (Settings → MCP Servers, or edit the MCP config JSON directly).
 
 2. **Add project rules.** Cursor uses rules in `.cursor/rules/` directories. Each rule folder contains a `RULE.md` file:
 
@@ -676,7 +676,7 @@ git commit -m "Add CoreStory feature implementation rules for Cursor"
 In Cursor's Composer or Chat, the rule activates automatically for feature-related requests:
 
 ```
-Implement ticket #6992 â€” add webhook support for project events
+Implement ticket #6992 — add webhook support for project events
 Build the user notification preferences feature from JIRA-456
 ```
 
@@ -707,7 +707,7 @@ Apply when user requests: feature implementation, ticket work, enhancements, sto
 
 ## Phase 1: Ticket Intake
 - Extract feature details from ticket or user description
-- Identify acceptance criteria â€” ask if missing
+- Identify acceptance criteria — ask if missing
 - Select CoreStory project (`CoreStory:list_projects`)
 - Create implementation conversation (`CoreStory:create_conversation`)
 
@@ -738,13 +738,13 @@ Query CoreStory for:
 ## Phase 5: Feature Completion
 1. Ask CoreStory for edge cases
 2. Add edge case tests
-3. Run full test suite â€” no regressions
+3. Run full test suite — no regressions
 4. Add performance/security tests if needed
 
 ## Phase 6: Completion
 1. Update ticket
 2. Commit: "Feat: [description] (#[ticket-id])" with architecture notes, test summary
-3. Rename CoreStory conversation â†’ "COMPLETED"
+3. Rename CoreStory conversation → "COMPLETED"
 4. Report results
 
 ## Key Principles
@@ -783,7 +783,7 @@ git commit -m "Add CoreStory feature implementation droid"
 Invoke the droid via the Task tool:
 
 ```
-@implement-feature Implement ticket #6992 â€” add webhook support
+@implement-feature Implement ticket #6992 — add webhook support
 ```
 
 Or describe the feature and Factory.ai routes to the droid based on its activation triggers.
@@ -793,7 +793,7 @@ Or describe the feature and Factory.ai routes to the droid based on its activati
 - Use `model: inherit` in the YAML frontmatter to use whatever model the session is configured with.
 - The `tools` field in frontmatter can explicitly list required MCP tools if you want to restrict the droid's capabilities.
 - The Task tool that invokes droids requires experimental features to be enabled.
-- For complex features, the droid's CoreStory queries may produce long streaming responses â€” this is expected.
+- For complex features, the droid's CoreStory queries may produce long streaming responses — this is expected.
 
 #### Custom Droid
 
@@ -827,34 +827,34 @@ Execute the six-phase feature implementation workflow using CoreStory's code int
 - Any feature implementation or enhancement request
 
 ## CoreStory MCP Tools
-- `CoreStory:list_projects` â€” list available projects
-- `CoreStory:get_project` â€” verify project status
-- `CoreStory:create_conversation` â€” start implementation thread
-- `CoreStory:send_message` â€” query code intelligence
-- `CoreStory:rename_conversation` â€” mark as completed
+- `CoreStory:list_projects` — list available projects
+- `CoreStory:get_project` — verify project status
+- `CoreStory:create_conversation` — start implementation thread
+- `CoreStory:send_message` — query code intelligence
+- `CoreStory:rename_conversation` — mark as completed
 
 When instructions say "Query CoreStory", use `CoreStory:send_message`.
 
 ## Phase 1: Ticket Intake
 1. Extract feature details (from ticket MCP or user description)
-2. Identify acceptance criteria â€” ask if missing
+2. Identify acceptance criteria — ask if missing
 3. Select CoreStory project (`CoreStory:list_projects`, verify "completed")
 4. Create conversation: "Ticket Implementation: #[ID] - [description]"
 
-## Phase 2: Oracle Phase â€” Before Code
+## Phase 2: Oracle Phase — Before Code
 Query CoreStory for: architecture, design patterns, conventions, invariants.
 
 ## Phase 3: Navigator Phase
 Query CoreStory for: extension points, data structures, reference implementations.
 
 ## Phase 4: TDD Implementation
-Write failing tests â†’ verify fail â†’ validate with CoreStory â†’ implement â†’ verify pass â†’ validate implementation.
+Write failing tests → verify fail → validate with CoreStory → implement → verify pass → validate implementation.
 
 ## Phase 5: Feature Completion
-Edge case tests â†’ full suite â†’ performance/security tests if needed.
+Edge case tests → full suite → performance/security tests if needed.
 
 ## Phase 6: Completion
-Update ticket â†’ structured commit ("Feat: ...") â†’ rename conversation "COMPLETED" â†’ report.
+Update ticket → structured commit ("Feat: ...") → rename conversation "COMPLETED" → report.
 
 ## Key Principles
 - Oracle before Navigator
@@ -867,7 +867,7 @@ Update ticket â†’ structured commit ("Feat: ...") â†’ rename conversat
 
 ## Tips & Best Practices
 
-**Start with the oracle, not the editor.** The most common mistake is jumping straight to implementation. Even experienced developers benefit from the oracle phase â€” CoreStory often surfaces patterns, utilities, and conventions that aren't obvious from reading code.
+**Start with the oracle, not the editor.** The most common mistake is jumping straight to implementation. Even experienced developers benefit from the oracle phase — CoreStory often surfaces patterns, utilities, and conventions that aren't obvious from reading code.
 
 **One conversation per ticket.** Don't reuse CoreStory conversations across unrelated tickets. Each conversation builds a coherent context thread. Mixing topics dilutes the quality of responses.
 
