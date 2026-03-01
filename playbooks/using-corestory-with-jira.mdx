@@ -1,0 +1,467 @@
+---
+title: "Using CoreStory with Jira"
+sidebarTitle: "Jira Integration"
+description: "Connect Jira to your AI coding agent alongside CoreStory's MCP server to resolve tickets, enrich specs, draft issues, and triage complexity."
+icon: "jira"
+---
+
+## Overview
+
+This playbook covers how to connect Jira to your AI coding agent alongside CoreStory's MCP server, and what you can do once both are connected. Jira becomes the intake and output layer — the agent pulls ticket details from Jira, uses CoreStory's code intelligence to understand the codebase, does the work, and pushes results back to the ticket.
+
+CoreStory doesn't have a native Jira plugin. The integration works through MCP: your AI coding agent connects to both the CoreStory MCP server and a Jira MCP server, and orchestrates between them. This means any MCP-capable agent (Claude Code, GitHub Copilot, Cursor, Windsurf, Factory.ai) can work with both systems in a single session.
+
+**What this unlocks:**
+
+- **Resolve Jira tickets** — pull a bug or feature ticket, use CoreStory to investigate the codebase, implement a fix or feature, update the ticket with results
+- **Enrich Jira tickets** — take a vague or under-specified ticket and add architectural context, acceptance criteria, and implementation guidance using CoreStory intelligence
+- **Draft new Jira tickets** — discover something in the codebase via CoreStory (a missing test, a code smell, a dependency risk) and create a well-structured Jira ticket for it
+- **Triage and estimate** — use CoreStory to assess ticket complexity, identify affected files, and estimate implementation scope before sprint planning
+
+This playbook is agent-agnostic. The workflows apply to any MCP-capable agent. Agent-specific setup instructions are in the [Agent Configuration](#agent-configuration) section.
+
+---
+
+## How It Works
+
+The CoreStory + Jira integration runs through your AI coding agent. The agent connects to two MCP servers simultaneously and orchestrates between them:
+
+| Component | Role |
+|-----------|------|
+| **Jira MCP Server** | Intake and output — read tickets, post comments, create issues, transition statuses |
+| **CoreStory MCP Server** | Code intelligence — query architecture, identify relevant files, understand patterns and dependencies |
+| **AI Coding Agent** | Orchestrator — pulls from Jira, queries CoreStory, implements changes, writes back to Jira |
+
+The typical flow: Jira ticket → CoreStory analysis → implementation → Jira update. The agent handles the full loop. You provide the ticket reference and any specific instructions.
+
+**CoreStory tools used in Jira workflows:**
+
+| Tool | Purpose |
+|------|---------|
+| `create_conversation` | Start a new CoreStory session for the ticket's codebase area |
+| `send_message` | Query architecture, patterns, file locations, and dependencies |
+| `get_project_prd` | Pull product requirements for context on feature tickets |
+| `get_project_techspec` | Pull technical specs for implementation guidance |
+| `list_projects` | Identify which CoreStory project maps to the Jira ticket's codebase |
+
+**Jira MCP server capabilities:**
+
+| Capability | Used In |
+|-----------|---------|
+| Read tickets (summary, description, fields, comments) | All workflows |
+| Post comments | Resolve, Enrich |
+| Create issues | Draft |
+| Transition statuses | Resolve |
+| Update fields (labels, assignee, custom fields) | Resolve, Enrich |
+| Query project metadata | Triage |
+
+For the full six-phase implementation process (Oracle Phase, Navigator Phase, TDD, etc.), see the [Bug Resolution](/playbooks/agentic-bug-resolution) and [Feature Implementation](/playbooks/feature-implementation) playbooks. This playbook focuses on the Jira-specific setup and workflows that wrap around that process.
+
+---
+
+## Prerequisites
+
+**Required:**
+
+- A CoreStory account with at least one project that has completed ingestion
+- The CoreStory MCP server connected to your AI coding agent (see the [CoreStory MCP Server Setup Guide](https://corestory.notion.site/corestory-mcp-server-setup))
+- A Jira Cloud instance with API access enabled
+- A Jira API token (generated from [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens))
+
+**Recommended:**
+
+- A code repository the agent can read and write to (required for resolve and implement workflows)
+- Agent-specific configuration files (skill files, custom instructions, project rules) — covered in the Agent Configuration section below
+
+**Verify your setup:** Ask your agent to "List my CoreStory projects" and "List Jira projects." If both return results, you're ready to go.
+
+---
+
+## Jira MCP Server Setup
+
+The Jira MCP server gives your AI agent the ability to read tickets, create issues, post comments, and transition statuses. Setup varies slightly by agent, but the core configuration is the same.
+
+### What You Need
+
+| Item | Where to Get It |
+|------|----------------|
+| Jira URL | Your Atlassian instance URL, e.g. `https://your-company.atlassian.net` |
+| Jira email | The email address associated with your Atlassian account |
+| Jira API token | Generate at [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens) |
+
+### Configuration
+
+The Jira MCP server configuration follows the same pattern across agents. Here's the core config:
+
+```json
+{
+  "mcpServers": {
+    "jira": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-jira"],
+      "env": {
+        "JIRA_URL": "https://your-company.atlassian.net",
+        "JIRA_EMAIL": "your-email@company.com",
+        "JIRA_API_TOKEN": "your-jira-api-token"
+      }
+    }
+  }
+}
+```
+
+Where to put this depends on your agent — see the Agent Configuration section below for specifics.
+
+### Verify the Connection
+
+After configuration, ask your agent:
+
+```
+List Jira projects
+```
+
+If it returns your Jira projects, the connection is working. If it fails, check the Troubleshooting section.
+
+### Permissions
+
+The API token inherits the permissions of the Atlassian account that generated it. The agent can only see and modify what that account can access. For most workflows, you need:
+
+- **Read** access to the projects you want to pull tickets from
+- **Write** access if you want the agent to post comments, update fields, or transition statuses
+- **Create** access if you want the agent to draft new tickets
+
+If your organization uses Jira permission schemes or project-level restrictions, verify that the account can perform the operations you need. The agent will surface permission errors clearly if it can't complete an action.
+
+---
+
+## Workflows
+
+These workflows use both the CoreStory and Jira MCP servers together. The prompts are agent-agnostic — they work with any MCP-capable agent that has both servers connected.
+
+### Workflow 1: Resolve a Jira Ticket
+
+This is the primary workflow. Pull a ticket, use CoreStory to understand the codebase, implement a solution, and update the ticket. This workflow maps directly to the six-phase process described in the [Bug Resolution](/playbooks/agentic-bug-resolution) and [Feature Implementation](/playbooks/feature-implementation) playbooks — the only difference is that Jira is the ticket source.
+
+**Start the workflow:**
+
+```
+Fetch Jira ticket PROJ-1234 and resolve it using CoreStory for code intelligence.
+```
+
+The agent will:
+
+1. **Pull the ticket** from Jira — extracting the summary, description, acceptance criteria, priority, labels, and any linked issues
+2. **Create a CoreStory conversation** to investigate the relevant codebase
+3. **Query CoreStory** to understand the architecture, identify relevant files, and plan the implementation
+4. **Implement the fix or feature** using test-driven development
+5. **Update the Jira ticket** with an implementation summary, files changed, and test results
+6. **Transition the ticket status** (if configured) — e.g., move from "In Progress" to "In Review"
+
+For the full six-phase workflow details, see the [Bug Resolution playbook](/playbooks/agentic-bug-resolution) (for bugs) or [Feature Implementation playbook](/playbooks/feature-implementation) (for features and enhancements).
+
+**Customizing the ticket update:** By default, the agent posts a comment to the Jira ticket with its implementation summary. You can be specific about what you want:
+
+```
+After resolving PROJ-1234, post a comment with the root cause analysis,
+files modified, and test results. Then move the ticket to "In Review".
+```
+
+---
+
+### Workflow 2: Enrich a Jira Ticket
+
+Use CoreStory to add architectural context and implementation guidance to under-specified tickets. This is useful before sprint planning, when handing tickets to other developers, or when a ticket needs more detail before it's actionable.
+
+**Start the workflow:**
+
+```
+Read Jira ticket PROJ-5678 and use CoreStory to add implementation context.
+I want to know: which files are involved, what patterns to follow,
+and what the acceptance criteria should be.
+```
+
+The agent will:
+
+1. **Pull the ticket** from Jira
+2. **Query CoreStory** about the feature area — architecture, patterns, relevant files, data structures, and historical context
+3. **Post a structured comment** to the Jira ticket with its findings
+
+**Example output posted to Jira:**
+
+```
+## CoreStory Analysis: PROJ-5678
+
+### Affected Files
+- src/services/UserExportService.ts (primary implementation)
+- src/controllers/UserController.ts (endpoint registration)
+- src/models/User.ts (data model)
+
+### Recommended Pattern
+Follow the existing PdfExportService pattern — extend ExportServiceBase,
+register the new format in the export registry.
+
+### Suggested Acceptance Criteria
+- Admin users can export user profiles as CSV
+- Export includes: name, email, role, last login, created date
+- Large exports (>1000 records) use async job processing
+- Export endpoint requires admin authentication
+
+### Estimated Complexity
+Medium — new service class following established pattern,
+one new endpoint, async handling for large datasets.
+```
+
+**Batch enrichment:** You can enrich multiple tickets in sequence:
+
+```
+Read these Jira tickets and add CoreStory analysis as a comment on each:
+PROJ-5678, PROJ-5679, PROJ-5680
+```
+
+---
+
+### Workflow 3: Draft New Jira Tickets
+
+Use CoreStory to discover issues in the codebase and create well-structured Jira tickets for them. This is useful during code reviews, tech debt audits, or when onboarding to a new codebase.
+
+**Start the workflow:**
+
+```
+Use CoreStory to analyze the authentication module in my project.
+If you find any gaps in test coverage, security concerns, or
+tech debt issues, create Jira tickets for each in the PROJ project.
+```
+
+The agent will:
+
+1. **Query CoreStory** about the specified area
+2. **Identify actionable items** — missing tests, security gaps, code quality issues, documentation gaps
+3. **Create Jira tickets** with structured descriptions, suggested priority, and relevant context from CoreStory
+
+You can control the output format:
+
+```
+Create the tickets as Bug type in the PROJ project, assign them to the
+current sprint backlog, and tag them with "tech-debt".
+```
+
+---
+
+### Workflow 4: Triage and Estimate
+
+Use CoreStory to assess ticket complexity before sprint planning. The agent reads the ticket, queries CoreStory about the affected code, and provides an implementation assessment.
+
+**Start the workflow:**
+
+```
+Read these Jira tickets and give me an implementation assessment for each:
+PROJ-100, PROJ-101, PROJ-102, PROJ-103
+```
+
+The agent will, for each ticket:
+
+1. **Pull the ticket details** from Jira
+2. **Query CoreStory** about the affected code area — files, complexity, dependencies, test coverage
+3. **Provide an assessment** including: estimated complexity, files likely affected, dependencies and risks, and suggested approach
+
+**Sprint planning mode:** You can ask for a summary table:
+
+```
+Triage these tickets and give me a table with: ticket ID, summary,
+estimated complexity (S/M/L/XL), key risk, and recommended sprint allocation.
+```
+
+---
+
+## Agent Configuration
+
+### Claude Code
+
+**1. Connect CoreStory MCP server:**
+
+```bash
+claude mcp add --transport http corestory https://c2s.corestory.ai/mcp \
+  --header "Authorization: Bearer mcp_YOUR_TOKEN_HERE"
+```
+
+**2. Connect Jira MCP server:**
+
+```bash
+claude mcp add jira -- npx -y @modelcontextprotocol/server-jira
+```
+
+Set the required environment variables:
+
+```bash
+export JIRA_URL="https://your-company.atlassian.net"
+export JIRA_EMAIL="your-email@company.com"
+export JIRA_API_TOKEN="your-jira-api-token"
+```
+
+Or pass them inline:
+
+```bash
+claude mcp add jira \
+  --env JIRA_URL=https://your-company.atlassian.net \
+  --env JIRA_EMAIL=your-email@company.com \
+  --env JIRA_API_TOKEN=your-jira-api-token \
+  -- npx -y @modelcontextprotocol/server-jira
+```
+
+**3. Verify both connections:**
+
+```
+"List my CoreStory projects"
+"List Jira projects"
+```
+
+Both should return results. If either fails, see Troubleshooting.
+
+**Tips:**
+
+- Claude Code's skill files can reference both CoreStory and Jira MCP tools. The Bug Resolution and Feature Implementation skill files already support Jira ticket intake — they detect ticket IDs in the format `JIRA-1234` or `PROJ-123`.
+- For team-wide configuration, commit MCP settings to `.claude/settings.json` in version control.
+
+---
+
+### GitHub Copilot
+
+**1. Connect CoreStory MCP server** in your VS Code MCP configuration (Settings → MCP Servers, or edit the JSON config directly).
+
+**2. Add Jira MCP server** to the same configuration:
+
+```json
+{
+  "mcp.servers": {
+    "corestory": {
+      "url": "https://c2s.corestory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
+      }
+    },
+    "jira": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-jira"],
+      "env": {
+        "JIRA_URL": "https://your-company.atlassian.net",
+        "JIRA_EMAIL": "your-email@company.com",
+        "JIRA_API_TOKEN": "your-jira-api-token"
+      }
+    }
+  }
+}
+```
+
+**3. Verify** by asking Copilot Chat (in agent mode): "List Jira projects" and "List my CoreStory projects."
+
+**Tips:**
+
+- Copilot's agent mode is required for multi-step workflows that use both MCP servers.
+- The `.github/copilot-instructions.md` file can reference Jira workflows. If you're using the custom instructions from the Feature Implementation or Bug Resolution playbooks, they already support Jira ticket intake.
+- Copilot can use both prompt files (`.github/prompts/`) and custom instructions to learn Jira-specific workflows.
+
+---
+
+### Cursor
+
+**1. Connect CoreStory MCP server** in Cursor's MCP settings (Settings → MCP Servers, or edit the MCP config JSON directly).
+
+**2. Add Jira MCP server** to the same configuration, using the JSON block from the Configuration section above.
+
+**3. Verify** by asking in Composer or Chat: "List Jira projects" and "List my CoreStory projects."
+
+**Tips:**
+
+- Cursor rules in `.cursor/rules/` can reference Jira-specific workflows. If you're using the rules from the Bug Resolution or Feature Implementation playbooks, they already support Jira ticket intake.
+- For team-wide Cursor MCP configuration, use the project-level MCP settings file.
+
+---
+
+### Windsurf
+
+**1. Connect CoreStory MCP server** in Windsurf's MCP settings.
+
+**2. Add Jira MCP server** to the same configuration, using the JSON block from the Configuration section above.
+
+**3. Verify** by asking: "List Jira projects" and "List my CoreStory projects."
+
+---
+
+### Devin
+
+**1. Navigate to** Settings → MCP Marketplace → "Add Your Own"
+
+**2. Add CoreStory MCP server** with Transport Type `HTTP` and Server URL `https://c2s.corestory.ai/mcp`. Add your CoreStory token as a secret and configure the `Authorization: Bearer $API_TOKEN` header.
+
+**3. Add Jira MCP server** as a second custom MCP server. Configure Jira credentials as secrets.
+
+**4. Verify** by asking Devin: "List Jira projects" and "List my CoreStory projects."
+
+**Tips:**
+
+- Devin supports HTTP transport for remote MCP servers. Use HTTP for both CoreStory and Jira.
+- Click "Test listing tools" after configuring each server to verify the connection before starting a session.
+
+---
+
+### Factory.ai
+
+**1. Connect CoreStory MCP server** in your Factory.ai environment. Verify with the `/mcp` command that CoreStory tools are accessible.
+
+**2. Add Jira MCP server** to your Factory.ai MCP configuration.
+
+**3. Verify** by asking: "List Jira projects" and "List my CoreStory projects."
+
+**Tips:**
+
+- Factory.ai droids can use both CoreStory and Jira MCP tools. List both tool sets in the droid's `tools` frontmatter if you want to restrict tool access.
+- The Bug Resolution and Feature Implementation droids already support generic ticketing system intake, including Jira.
+
+---
+
+## Tips & Best Practices
+
+**Start with "enrich" before "resolve."** If your team is new to the CoreStory + Jira workflow, start with Workflow 2 (Enrich). It's read-only — the agent reads tickets and posts comments but doesn't write code. This builds confidence before you move to autonomous ticket resolution.
+
+**Use Jira labels to track AI-assisted work.** Add a label like `corestory-assisted` or `ai-resolved` to tickets the agent works on. This makes it easy to measure impact, audit AI-generated changes, and filter in Jira dashboards.
+
+**Match your Jira workflow statuses.** If your team uses custom Jira workflow statuses (e.g., "QA Review" instead of "In Review"), tell the agent explicitly: "After implementing, move the ticket to QA Review." The agent doesn't know your workflow transitions unless you tell it.
+
+**One ticket per session for complex work.** For bug fixes and feature implementations, give the agent one ticket at a time. The CoreStory conversation context builds throughout the session — mixing unrelated tickets dilutes the quality of architectural queries.
+
+**Batch operations are fine for lightweight workflows.** Enrichment, triage, and ticket drafting can handle multiple tickets in a single session because they don't require deep codebase context for each individual ticket.
+
+**Keep ticket descriptions actionable.** The quality of the agent's output is directly proportional to the quality of the input. A ticket that says "export is broken" produces worse results than one that says "CSV export returns 500 error when user has no profile photo — expected: export succeeds with empty photo field."
+
+**Use linked issues.** If a Jira ticket references other issues (blocks, relates to, duplicates), mention this to the agent. It can query CoreStory about related components and produce more comprehensive fixes.
+
+---
+
+## Troubleshooting
+
+**"List Jira projects" returns an error or empty results.**
+
+Check three things: (1) the `JIRA_URL` is correct and includes `https://`, (2) the `JIRA_EMAIL` matches the account that generated the API token, and (3) the API token hasn't expired. Regenerate the token if unsure.
+
+**Agent can't find a specific ticket.**
+
+Verify the project key is correct (e.g., `PROJ` in `PROJ-1234`). The Jira MCP server respects the account's project permissions — if the account can't see the project in Jira's web UI, the agent can't see it either.
+
+**Agent can't transition ticket status.**
+
+Jira workflow transitions are governed by workflow rules. If the agent tries to move a ticket from "To Do" directly to "Done" but your workflow requires intermediate states, the transition will fail. Tell the agent the valid transitions, or check your Jira workflow configuration.
+
+**Agent can't update custom fields.**
+
+Custom field IDs in Jira are opaque (e.g., `customfield_10042`). The agent may need to discover the field ID before updating it. Ask: "What custom fields are available on ticket PROJ-1234?" The Jira MCP server can list them.
+
+**API rate limiting.**
+
+Jira Cloud has API rate limits. If you're doing batch operations (enriching 20+ tickets, triaging a full sprint backlog), you may hit limits. The agent will report rate limit errors clearly. Space out batch operations or reduce batch size.
+
+**CoreStory and Jira return conflicting information.**
+
+This usually means the Jira ticket describes one thing and the codebase has evolved since the ticket was written. CoreStory reflects the current state of the code. When in doubt, trust CoreStory for architectural questions and the Jira ticket for requirements and acceptance criteria.
+
+**"Permission denied" when posting comments or creating tickets.**
+
+The API token's permissions are inherited from the Atlassian account. Verify the account has the necessary project role (at least "Developer" for comment and transition access, "Administrator" for workflow changes).
