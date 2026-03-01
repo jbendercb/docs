@@ -1,8 +1,31 @@
 ---
 title: "How Does CoreStory Work?"
 sidebarTitle: "How It Works"
-description: "Learn how CoreStory builds and maintains a persistent intelligence layer over your codebase."
+description: "How CoreStory ingests repositories and produces queryable code intelligence."
 icon: "gears"
 ---
 
-Coming soon.
+## Input
+
+The CoreStory platform accepts **public repositories**, **private repositories**, and **direct file uploads** as inputs. Connect a GitHub repo or upload source files to get started.
+
+## Ingestion
+
+Once you connect a repository, CoreStory ingests it to produce a custom **intelligence model** for that repository. This intelligence model is a dynamically queryable central store of system metadata — a rich source of truth for human and AI workers modernizing or maintaining your codebase.
+
+## Output
+
+Your intelligence model can be queried via chat to produce on-demand **code intelligence** about your repository's structure, behavior, and business requirements.
+
+Each standard repository ingestion creates:
+
+- A **chat interface** for natural language queries about your code
+- A standard set of **specification outputs** (executive summary, user personas, user stories, data models, API specifications, and integration points) that can be further customized
+
+## Integration
+
+CoreStory provides an **MCP server** and **REST API** so that third-party tools — including AI coding agents like Claude, Cursor, and GitHub Copilot — can query your intelligence model directly. This means your AI tools make decisions grounded in actual system context rather than guessing.
+
+<Card title="Get Started" icon="rocket" href="/getting-started/getting-started">
+  Connect your first repository and start querying.
+</Card>

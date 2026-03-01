@@ -1,8 +1,53 @@
 ---
 title: "User Stories"
 sidebarTitle: "User Stories"
-description: "Automatically extracted user stories mapped to the features and flows in your codebase."
+description: "AI-generated user stories derived from your codebase's features and workflows."
 icon: "book-open"
 ---
 
-Coming soon.
+{/* Screenshot: User Stories Dashboard */}
+
+## Overview
+
+The User Stories section lists goal-oriented behaviors inferred from your codebase, written in the standard format:
+"As a [persona], I want to [behavior], so that [rationale]."
+It describes the experience each user should have and the outcomes the system is expected to deliver. The list is generated directly from code and related assets, so fields and coverage vary by project.
+
+## Sections
+
+Stories appear in the middle panel and are grouped by epic.
+Each user story includes the following sections:
+
+- User story
+- Associated epic
+- Associated persona
+- Description
+- Business rules
+- Code references
+- Technical requirements
+- UML class diagram (if available)
+- Sequence diagram (if available)
+
+<Info>
+This is an opinionated approach suggested by CoreStory. It is optimized for most general use cases, but it is possible to alter the contents of this section via direct edit.
+</Info>
+
+## Who It's For
+
+- Business stakeholders validating expected behavior
+- Product managers aligning scope and priorities
+- Developers and QA planning implementation and tests
+- Architects reviewing feature boundaries
+
+## How to Use It
+
+- Scan by epic to find the relevant story, then read the description to confirm scope.
+- Use business rules and technical requirements to draft test or validation points.
+- Follow code references to the exact files that implement the story.
+- Use diagrams to confirm flow and integration boundaries before refactoring or extending a feature.
+- When a field is missing, assume the codebase does not expose that information in a form CoreStory can infer; do not treat it as a documentation error.
+
+## What It Is (and Isn't)
+
+- **Is**: a code-derived, persona-focused catalog of behaviors and outcomes, suitable for validation and planning.
+- **Isn't**: a sprint backlog or design document. For interface and endpoint details, see Interface Specifications and API Specifications. For entities and relationships, see Data Models.

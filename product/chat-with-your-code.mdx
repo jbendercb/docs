@@ -1,8 +1,214 @@
 ---
 title: "Chat With Your Code"
 sidebarTitle: "Chat With Your Code"
-description: "Ask questions about your codebase and get answers grounded in your actual architecture."
+description: "Ask natural language questions about your codebase and get grounded answers."
 icon: "comments"
 ---
 
-Coming soon.
+## Overview
+
+The Chat With Your Code section of your project enables you to directly query your intelligence model and surface new insights about your code.
+
+<Tip>
+**Access Deeper Insights:** Chatting with your code enables you to directly access the full intelligence model generated from your codebase. This intelligence model is a rich store of extracted insights and metadata that contains even more information than you'll find in your core documents.
+</Tip>
+
+Chatting with your code is a fast way to get targeted, tightly scoped answers about your codebase.
+
+You can use Chat to further explore the contents of your existing CoreStory specs, to get clarification on your standard outputs, or to dig for new information that isn't captured by CoreStory's core documents.
+
+---
+
+## How to Chat With Your Code
+
+### Starting a New Chat
+
+Selecting any Workspace within your dashboard opens up a new chat window by default. You can also click the blue "+ New Conversation" button in the top-left of the Workspace view to start a new chat.
+
+### Chatting With Your Code
+
+Type any message into the text input field or select a recommended query, then press Enter or click the gold arrow button to send your message.
+
+CoreStory will query your intelligence model for the best response to your prompt and return an answer in the chat window.
+
+### Saved Chats
+
+All of your chats are displayed in the left-hand panel of the Chat window, sorted by your most recent sent message.
+
+### Renaming Chats
+
+You can rename chats to make them easier to browse and reference in the future. To do so, right-click a chat title in the left-hand panel of the Chat window and select "Rename chat".
+
+### Deleting Chats
+
+You can delete a given chat by right-clicking a chat title in the left-hand panel of the Chat window and selecting "Delete chat".
+
+### Exporting Chats
+
+You can export a chat's contents, including citations, timestamps, and conversation information, into Markdown and Plain Text formats. Export a chat by clicking "Export" on the top right of the Chat window and selecting your export preferences.
+
+### Selecting a Model
+
+CoreStory allows you to choose which AI model you would like to power your Chat experience. Choose your model by clicking the dropdown menu below the chat input field.
+
+{/* Screenshot: Model selection dropdown in chat interface */}
+
+<Warning>
+The model that you select at the start of a conversation cannot be changed for that conversation later.
+</Warning>
+
+The recommended default chat option is CoreStory - Cori, which is a chat assistant optimized for using CoreStory's agentic code intelligence tools.
+
+The list of available models is subject to change.
+
+---
+
+## Best Practices
+
+The following are some guidelines for getting the most out of Chat With Your Code.
+
+<Tip>
+**Better Prompts, Better Results:** As with most AI chat tools, prompt quality is an important factor in getting the most out of Chat With Your Code. Specific, detailed, and clearly written prompts will return more accurate and useful answers.
+</Tip>
+
+### Point the chat to specific features within your codebase
+
+When asking questions about your code, instruct the chat to narrow its search to the relevant features and user stories
+
+<details>
+<summary>Examples:</summary>
+
+- "What are the relevant API endpoints for handling \[feature\]?"
+- "How does \[feature\] handle specific edge cases related to \[condition\]?"
+- "Where is \[feature\] implemented in this repository?"
+
+</details>
+
+### Be explicit about your needs
+
+Chat has a large volume of information available to it. Give it a more targeted query by describing the exact outputs you're looking for and instructing it to leave out unnecessary information.
+
+<details>
+<summary>Examples:</summary>
+
+- "Show me where \[feature\] is implemented in the codebase, but exclude test files."
+- "For a \[user persona\], what is a happy path scenario through this application, and what technologies and entities are touched along the way?"
+- "Identify any external dependencies for data, and, for each dependency, provide a one-sentence description of what happens when it is unavailable."
+
+</details>
+
+### Rephrase queries to rule out false negatives
+
+Chat is designed to admit when it can't find information rather than invent answers. This helps to minimize hallucinations, but it also means that you may occasionally get a false negative when chatting with your code.
+
+If Chat doesn't seem to know an answer on the first try, don't give up! Just because Chat can't find data on a given run does not necessarily mean that Chat "doesn't know" the answer to your query.
+
+Rewriting your query with more specificity, different terminology, or different response criteria can often yield a dramatically improved result.
+
+---
+
+## Sample Queries
+
+Here are some standard query patterns for finding different types of information in your repository. Modify them for your specific needs while exploring your codebase.
+
+<details>
+<summary><strong>Quick Start</strong></summary>
+
+- Summarize \[Feature/Story ID or Title\] and cite the exact files and spec sections you used. Output: bullets with file paths.
+- List the top \[N\] places in the repository that implement \[Capability\]. Exclude: tests, mocks, fixtures. Include: file path + function/class + 1-sentence role.
+
+</details>
+
+<details>
+<summary><strong>Feature & User Story Exploration</strong></summary>
+
+- Where is \[Feature\] implemented? Include line ranges if available.
+- What are the acceptance criteria for \[Story ID/Title in PRD\], and where are they enforced in code? Cite both spec and file path.
+- List all edge cases mentioned for \[Feature\] in the specs and indicate whether each is handled in code. Output: case, spec ref, file path, status: handled/missing.
+
+</details>
+
+<details>
+<summary><strong>API & Endpoints</strong></summary>
+
+- Show all API endpoints related to \[Feature\]. Output: method, path, purpose, request model, response model, auth, spec refs, code file(s).
+- For \[Endpoint METHOD + PATH\], trace the request flow: controllers → services → repositories. Cite functions with paths and short descriptions.
+- Identify idempotency or rate-limit handling for \[Endpoint\]. If none, return 'Not implemented' with nearest related code.
+
+</details>
+
+<details>
+<summary><strong>Dependencies & Integrations</strong></summary>
+
+- List external dependencies (APIs, queues, DBs) touched by \[Feature\]. Output: dependency, purpose, failure behavior (from spec), file refs. If unknown, return nearest.
+- For data written by \[Feature\], enumerate affected entities/tables and key fields. Cite model definitions and write points.
+
+</details>
+
+<details>
+<summary><strong>Personas & Happy Paths</strong></summary>
+
+- For the \[Persona name used in PRD\], describe the happy path through \[Workflow/Feature\] and list touched entities, endpoints, UI components. Cite spec sections.
+- Contrast the \[Persona from PRD\] vs \[Other Persona from PRD\] flows for \[Feature\]. Output: side-by-side bullets with spec refs.
+
+</details>
+
+<details>
+<summary><strong>Error Paths & Resilience</strong></summary>
+
+- Enumerate error conditions for \[Feature/Endpoint\] from specs and show where each is raised/handled. Output: condition, source, handling, user-visible message.
+- When \[Dependency\] is unavailable, what is the expected behavior? Provide the one-sentence spec summary and the actual file path.
+
+</details>
+
+<details>
+<summary><strong>Implementation Location & Evidence</strong></summary>
+
+- Return only file paths and function/class names that implement \[Capability\]. No prose. One line per match.
+
+</details>
+
+<details>
+<summary><strong>Security & Risk Auditing</strong></summary>
+
+- List security controls relevant to \[Feature\] (authn, authz, PII handling, encryption, input validation). Output: checklist with spec refs and file paths.
+- Identify data classified as \[PII/Sensitive Tag from PRD\] and show where it is stored, transmitted, logged. Flag any logging of sensitive fields.
+
+</details>
+
+<details>
+<summary><strong>Test Generation</strong></summary>
+
+- Propose \[N\] BDD scenarios for \[User Story\]. Output: Gherkin only. Base steps on cited endpoints/entities.
+- Generate minimal pytest tests for \[Endpoint\] that cover happy path + \[edge case\]. Exclude: network mocks. Include: setup, assertion rationale, and file refs.
+
+</details>
+
+<details>
+<summary><strong>New Code Generation</strong></summary>
+
+- Produce a scaffold for \[Small Feature/Handler\] that satisfies \[Spec §Name/Story ID\]. Output: file tree + stubs. Do not invent requirements; only use cited specs.
+- Suggest migration steps to refactor \[Module\] to comply with \[Constraint from Tech Spec\]. Output: ordered bullets with file and function refs.
+
+</details>
+
+<details>
+<summary><strong>Output & Filtering Controls (use these often!)</strong></summary>
+
+- If the answer is unknown, return "Unknown" and the 3 nearest matches with why they're related. Do not guess.
+- Limit to: \[N\] results • Include: {file path, symbol, 1-line purpose} • Exclude: {tests, mocks, scripts}.
+- Format as JSON array of objects {path, symbol, purpose, spec_refs} suitable for copy/paste.
+- Cite sources for every bullet. If a claim lacks a citation, omit the claim.
+
+</details>
+
+---
+
+## Who It's For
+
+- Software Engineers
+- Architects
+- Product Managers
+- Business Analysts
+- AI Agents
+- Other Stakeholders

@@ -1,8 +1,49 @@
 ---
 title: "Data Models"
 sidebarTitle: "Data Models"
-description: "Visual and structured representations of your application's data models and relationships."
+description: "AI-generated data model documentation derived from your codebase's schema and structures."
 icon: "database"
 ---
 
-Coming soon.
+{/* Screenshot: Data Models Overview - Core system entities and relationships diagram */}
+
+## Overview
+
+The Data Models reference document contains a diagram and a detailed list of the entities, attributes, and relationships in your application's databases. It serves as a source of truth for stored data: names, types, constraints, and how tables relate.
+
+This page is generated directly from your codebase and configuration (for example, ORM models, schema files, migrations). What appears varies by project and may not include transient objects created in other layers.
+
+<Tip>
+This is an opinionated approach suggested by CoreStory. It is optimized for most general use cases, but it is possible to alter the contents of this section via direct edit.
+</Tip>
+
+## Sections
+
+Each section represents a database entity.
+
+For each entity you can expect, when detectable:
+
+- Entity name and purpose
+- Attributes: name, data type, nullability, defaults
+- Relationships: one-to-one, one-to-many, many-to-many (including join tables), cascade rules
+- System columns when present: created_at, updated_at, deleted_at (soft delete), version or lock fields
+
+Not all fields will be present for every entity; what you see reflects what the codebase exposes.
+
+## Who It's For
+
+- Developers implementing features that read or write data
+- Architects reviewing data ownership, coupling, and change impact
+- QA creating data fixtures and validating integrity rules
+- Analytics and reporting teams aligning models with downstream use
+
+## How to Use It
+
+- Start with the diagram to understand the main entities and their relationships.
+- Review an entity to see attributes, constraints, and relationships before changing schemas or writing migrations.
+- Use relationship notes and cascade rules to reason about deletes, updates, and replication of changes.
+
+## What It Is (and Isn't)
+
+- **Is**: a code-derived map of persistent data structures, their fields, constraints, and links.
+- **Isn't**: an application-wide object model or a full analytics semantic layer. For external endpoints, see [API Specifications](/285b12d93cb280d2a266cd7a5cafaa1f?pvs=25); for cross-system flows, see [Integration Points](/285b12d93cb28065a9d5c2c5170fec3f?pvs=25).

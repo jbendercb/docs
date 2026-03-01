@@ -1,8 +1,44 @@
 ---
 title: "API Specifications"
 sidebarTitle: "API Specifications"
-description: "Comprehensive API documentation generated directly from your source code."
-icon: "plug"
+description: "AI-generated API documentation derived from your codebase's endpoints and interfaces."
+icon: "code"
 ---
 
-Coming soon.
+{/* Screenshot: CoreStory API Specifications overview dashboard */}
+
+## Overview
+
+The API Specifications reference document describes the externally callable endpoints exposed by your application: paths, methods, request and response shapes, authentication, and error behaviors. It is generated directly from your codebase and routing configuration, so the exact contents vary by project and framework.
+
+<Note>
+This is an opinionated approach suggested by CoreStory. It is optimized for most general use cases, but it is possible to alter the contents of this section via direct edit.
+</Note>
+
+## Sections
+
+This document lists all identified endpoints in a scrollable list.
+
+Each endpoint entry uses a consistent structure:
+- Path and method
+- Request format
+- Response format
+- Source
+
+## Who It's For
+
+- Client and integration developers consuming the API
+- Backend engineers maintaining controllers and contracts
+- QA creating contract tests and mocks
+- SRE and support teams investigating failures and compatibility issues
+
+## How to Use It
+
+- Start from the endpoint path to understand request fields, required auth, and expected responses.
+- Use source links when you need to trace behavior into controllers and services.
+- Treat missing categories as a reflection of the implementation.
+
+## What It Is (and Isn't)
+
+- **Is**: a code-derived map of externally exposed API contracts with concrete inputs, outputs, and error semantics.
+- **Isn't**: a full design-first OpenAPI manual or a guarantee of backward compatibility. For underlying tables and attributes, see Data Models.

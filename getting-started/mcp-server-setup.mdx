@@ -1,8 +1,505 @@
 ---
 title: "MCP Server Setup"
 sidebarTitle: "MCP Server Setup"
-description: "Connect CoreStory to your AI coding agent via the Model Context Protocol."
+description: "Connect CoreStory to AI coding tools via the Model Context Protocol."
 icon: "server"
 ---
 
-Coming soon.
+## What is the CoreStory MCP Server?
+
+The CoreStory MCP (Model Context Protocol) server enables AI coding assistants to directly access your CoreStory project data—including PRDs, technical specifications, codebase conversations, and project architecture—without manual copy-pasting or context switching.
+
+**What you can do with it:**
+
+- Query project documentation and requirements directly from your AI assistant
+- Access conversation history and codebase insights
+- Generate and retrieve PRD/TechSpec sections
+- Create and manage project conversations
+- Maintain context across multiple coding sessions
+
+**Supported AI Tools:** Claude Desktop, Claude Code, Cursor, VS Code (GitHub Copilot), Windsurf, Devin, Factory.ai
+
+---
+
+## Prerequisites
+
+- CoreStory account with active projects
+- Access to your organization's CoreStory workspace
+- One of the supported AI coding tools installed
+
+---
+
+## Quick Setup (Dashboard)
+
+The fastest way to connect your IDE to CoreStory is through the setup wizard in the CoreStory Dashboard at [preview.corestory.ai/settings](https://preview.corestory.ai/settings).
+
+### Step 1: Open IDE Integrations
+
+1. Go to **Settings** → scroll down to the **IDE Integrations** section
+2. Click the **Configure** button under "MCP Connection"
+
+This launches the guided setup wizard.
+
+### Step 2: Generate an MCP Token
+
+1. Enter a **Token Name** (optional but recommended — e.g., "MacBook Pro", "Work Desktop") to help you identify the token later
+2. Click **Generate MCP Token**
+3. **Copy the token immediately** — it will not be shown again
+
+<Warning>
+The token is displayed only once. Copy it now and store it securely. If you lose it, you'll need to generate a new one.
+</Warning>
+
+### Step 3: Select Your IDE
+
+Choose the IDE you want to connect to CoreStory:
+
+- **VS Code**
+- **Cursor**
+- **Windsurf**
+- **Other MCP Tools** (for Claude Desktop, Devin, Factory.ai, etc.)
+
+### Step 4: Configure Your IDE
+
+The wizard provides IDE-specific setup instructions. For example, for **VS Code**:
+
+1. Open VS Code Settings (`Cmd/Ctrl + ,`)
+2. Click **'Open Settings (JSON)'** in the top right corner
+3. Add the MCP configuration provided by the wizard to your settings
+4. Save the file and reload VS Code (`Cmd/Ctrl + Shift + P` → "Reload Window")
+
+The configuration will look like this (the wizard pre-fills your token):
+
+```json
+{
+  "mcp.servers": {
+    "corestory": {
+      "url": "https://c2s.corestory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
+      }
+    }
+  }
+}
+```
+
+**Config file location:** `~/.vscode/settings.json` or `.vscode/settings.json` in your workspace.
+
+### Step 5: Verify Setup
+
+The final screen confirms your setup is complete and offers an optional token validation check to verify your token exists and hasn't been revoked.
+
+To fully test the connection, open your configured IDE, start a new AI chat or conversation, and try asking about your codebase.
+
+### Managing Tokens from the Dashboard
+
+The **IDE Integrations** section in Settings also shows all your existing MCP tokens in a table with their name, creation date, and last used date. From here you can:
+
+- **Create new tokens** — click "Create New Token" to generate additional tokens (e.g., one per device or IDE)
+- **Delete tokens** — click the delete button next to any token to revoke it immediately
+
+**Best practice:** Use a separate token for each tool or device so you can revoke access individually if needed.
+
+---
+
+## Setup via API
+
+For organizations with direct API access, token creation and MCP configuration can also be done via the API documentation interface.
+
+### Step 1: Get Your MCP Token
+
+MCP tokens are separate from your regular CoreStory login and provide scoped access to your organization's data.
+
+#### Create a Token
+
+1. **Visit the CoreStory API Documentation:**
+   - Go to: `https://c2s.corestory.ai/docs` (or your deployment's `/docs` endpoint)
+   - Log in with your CoreStory credentials if prompted
+
+2. **Navigate to MCP Token Management:**
+   - Scroll to the **"MCP Token Management"** section
+   - Find the **POST** `/api/mcp-tokens` endpoint
+
+3. **Create your token:**
+   - Click **"Execute"** or expand the endpoint
+   - Fill in the request body:
+
+```json
+{
+  "name": "Claude Desktop - MacBook Pro",
+  "description": "Personal development machine",
+  "expires_days": 30
+}
+```
+
+   - Click **"Execute"** button
+
+4. **Copy the token immediately:**
+   - The response will contain your token starting with `mcp_`:
+
+```
+mcp_abc123.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+   - **Important:** This token is shown ONLY ONCE. Copy it now!
+
+5. **Store it securely:**
+   - Save in your password manager
+   - Or store in environment variables
+   - Never commit to Git or share publicly
+
+#### Token Format
+
+```
+mcp_{token_id}.{jwt_token}
+```
+
+**Important:** Tokens are organization-scoped and provide access to all projects in your workspace.
+
+---
+
+### Step 2: Configure MCP Server Connection
+
+The CoreStory MCP server URL structure:
+
+```
+https://c2s.corestory.ai/mcp
+```
+
+---
+
+### Step 3: Setup in Your AI Tool
+
+#### Claude Code
+
+Claude Code is a command-line tool that lets you delegate coding tasks to Claude directly from your terminal.
+
+1. **Add CoreStory MCP server** — In your terminal, run the following command:
+
+```bash
+claude mcp add --transport http corestory https://c2s.corestory.ai/mcp \
+  --header "Authorization: Bearer your-token"
+```
+
+2. **Start Claude Code** — Enter the `claude` command to start a Claude Code session
+
+3. **Verify connection:** Run a test command:
+
+```bash
+"List my CoreStory projects"
+```
+
+**Note:** Claude Code automatically has access to your local filesystem and can create/modify files based on CoreStory context.
+
+---
+
+#### Cursor
+
+1. **Open Cursor Settings** (`Cmd/Ctrl + ,`)
+2. **Navigate to:** Tools & MCP
+3. **Add new MCP server:**
+
+```json
+{
+  "mcpServers": {
+    "corestory": {
+      "url": "https://c2s.corestory.ai/mcp",
+      "type": "http",
+      "headers": {
+        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
+      }
+    }
+  }
+}
+```
+
+4. **Save and restart Cursor**
+5. **Verify:** Open a new chat and check that CoreStory tools are available
+
+---
+
+#### GitHub Copilot / VS Code
+
+1. **Install the MCP extension** (if available) or use VS Code's built-in MCP support
+2. **Open VS Code Settings** (`Cmd/Ctrl + ,`)
+3. **Search for:** "MCP" or "Model Context Protocol"
+4. **Add server configuration:**
+
+```json
+{
+  "mcpServers": {
+    "corestory": {
+      "url": "https://c2s.corestory.ai/mcp",
+      "type": "http",
+      "headers": {
+        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
+      }
+    }
+  }
+}
+```
+
+5. **Reload VS Code window** (`Cmd/Ctrl + Shift + P` → "Reload Window")
+6. **Verify:** Use Copilot Chat and check for CoreStory context availability
+
+---
+
+#### Devin
+
+Devin uses an MCP Marketplace with both pre-configured integrations and custom server support.
+
+1. **Navigate to:** Settings > MCP Marketplace
+2. **Click "Add Your Own"**
+3. **Configure the MCP server:**
+   - **Transport Type:** Select `HTTP`
+   - **Server URL:** `https://c2s.corestory.ai/mcp`
+
+4. **Add a New Secret**:
+   1. Name your secret `$API_TOKEN`
+   2. In the "Secret Value" field, enter `mcp_YOUR_TOKEN_HERE`
+   3. Save secret
+
+5. **Authentication:** Add authorization header
+   - Key: `Authorization`
+   - Value: `Bearer $API_TOKEN`
+
+6. **Enable integration**
+7. **Click "Test listing tools"** to verify connection
+8. **Save configuration**
+
+**Verify:** Start a Devin session and ask: "Can you list my CoreStory projects?"
+
+**Note:** Devin supports three transport methods: stdio, SSE, and HTTP. Use HTTP for CoreStory's remote server.
+
+---
+
+#### Factory.ai
+
+Factory's `droid` CLI connects to remote MCP servers via HTTP.
+
+**Add CoreStory MCP server:**
+
+- Type `/mcp` within droid to open the MCP management UI
+- Choose `+ Add MCP server manually`
+  - Server Name: `CoreStory`
+  - Server Type: `http (remote)`
+  - URL: `https://c2s.corestory.ai/mcp`
+  - Add header: `Authorization: Bearer mcp_YOUR_TOKEN_HERE`
+
+- Test by asking droid: "List my CoreStory projects"
+
+**Configuration stored at:** `~/.factory/mcp.json`
+
+<Tip>
+You may need to open the `.factory/mcp.json` file and save it or restart Droid before the CoreStory MCP will show a "Connected" status.
+</Tip>
+
+**Troubleshooting:**
+
+- Ensure droid CLI is installed and updated
+- Check header syntax if authentication fails
+- Use `/mcp` UI to view server status and error messages
+
+---
+
+## Available Tools
+
+Once connected, these tools are available to your AI assistant:
+
+| Tool | Description |
+| --- | --- |
+| `list_projects` | List all projects in your organization |
+| `get_project_prd` | Retrieve Product Requirements Document |
+| `get_project_techspec` | Retrieve Technical Specification |
+| `list_conversations` | List project conversations |
+| `get_conversation` | Get conversation details and history |
+| `create_conversation` | Create new conversation |
+| `rename_conversation` | Rename existing conversation |
+| `send_message` | Send message to conversation (streaming response) |
+
+**Your AI assistant can use these automatically when you ask questions about your CoreStory projects.**
+
+---
+
+## Testing Your Connection
+
+### Quick Test
+
+Ask your AI assistant:
+
+```
+Can you list my CoreStory projects?
+```
+
+The assistant should call the `list_projects` tool and show your projects.
+
+### Manual Test (curl)
+
+```bash
+# Set your token
+export MCP_TOKEN="mcp_YOUR_TOKEN_HERE"
+
+# Test connection
+curl -X POST https://c2s.corestory.ai/mcp \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $MCP_TOKEN" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "tools/list",
+    "params": {},
+    "id": 1
+  }'
+```
+
+**Expected response:** JSON list of available tools
+
+---
+
+## Troubleshooting
+
+### Connection Issues
+
+**Problem:** "Cannot connect to MCP server"
+
+**Solutions:**
+
+1. Verify the server URL is correct: `https://c2s.corestory.ai/mcp`
+2. Check your internet connection
+3. Confirm MCP server is running (check CoreStory status page)
+
+---
+
+### Authentication Errors
+
+**Problem:** "Authentication failed" or "Invalid token"
+
+**Solutions:**
+
+1. Verify token format starts with `mcp_`
+2. Check token hasn't expired
+3. Ensure `Bearer` prefix is included in header: `Bearer mcp_...`
+4. Create a new token if current one is invalid
+5. Verify token is for the correct organization
+
+---
+
+### Tool Not Available
+
+**Problem:** AI assistant says "CoreStory tools not available"
+
+**Solutions:**
+
+1. Restart your AI tool completely
+2. Verify MCP server appears in tool's connected servers list
+3. Check configuration file syntax (JSON must be valid)
+4. Look for error messages in tool's developer console/logs
+
+---
+
+### Tools List Empty
+
+**Problem:** Connection succeeds but no tools appear
+
+**Solutions:**
+
+1. Test with `tools/list` method manually (see Testing section)
+2. Check if your organization has active projects
+3. Verify token has correct permissions
+4. Review MCP server logs for errors
+
+---
+
+### Slow or Timeout Responses
+
+**Problem:** Tool calls take too long or timeout
+
+**Solutions:**
+
+1. Check your network connection speed
+2. Try with a smaller project first
+3. For large PRDs/TechSpecs, request specific sections
+4. Increase timeout settings in your AI tool if possible
+
+---
+
+## Managing Tokens
+
+### View Your Tokens
+
+1. Visit `https://c2s.corestory.ai/docs`
+2. Navigate to **GET** `/api/mcp-tokens`
+3. Click **"Execute"** to see all your tokens
+
+### View Token Details
+
+1. Navigate to **GET** `/api/mcp-tokens/{token_id}`
+2. Enter the token ID
+3. Click **"Execute"** to see details (name, description, created date, last used, etc.)
+
+### Revoke a Token
+
+1. Navigate to **DELETE** `/api/mcp-tokens/{token_id}`
+2. Enter the token ID you want to revoke
+3. Click **"Execute"** to permanently revoke the token
+
+**Alternative (API):** You can also manage tokens programmatically:
+
+```bash
+# List tokens
+curl https://c2s.corestory.ai/mcp/mcp-tokens \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN"
+
+# Revoke token
+curl -X DELETE https://c2s.corestory.ai/mcp/mcp-tokens/{token_id} \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN"
+```
+
+**Best Practice:** Rotate tokens every 90-365 days, and immediately revoke any compromised tokens.
+
+---
+
+## Security Best Practices
+
+1. **Never commit tokens to Git** — Use environment variables or secure config files
+2. **Use separate tokens per tool** — Easier to track and revoke if needed
+3. **Set reasonable expiration dates** — 90-365 days recommended
+4. **Revoke unused tokens** — Clean up tokens you're no longer using
+5. **Monitor token usage** — Review which tokens are accessing your projects
+
+---
+
+## Support
+
+### Getting Help
+
+- **CoreStory Documentation:** https://docs.corestory.ai
+- **MCP Protocol Spec:** https://modelcontextprotocol.io
+- **Support Email:** support@corestory.ai
+
+### Useful Debug Commands
+
+```bash
+# Check server health
+curl https://c2s.corestory.ai/mcp/health
+
+# Get server info
+curl https://c2s.corestory.ai/mcp
+
+# List available tools
+curl -X POST https://c2s.corestory.ai/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","params":{},"id":1}'
+```
+
+---
+
+## Updates & Changelog
+
+This integration follows the MCP specification. Check CoreStory release notes for:
+
+- New tool additions
+- API changes
+- Deprecation notices
+- Security updates
+
+*Last Updated: February 2026*

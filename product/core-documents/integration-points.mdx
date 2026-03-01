@@ -1,8 +1,44 @@
 ---
 title: "Integration Points"
 sidebarTitle: "Integration Points"
-description: "Map of external services, APIs, and third-party integrations in your codebase."
-icon: "arrows-turn-to-dots"
+description: "AI-generated integration documentation showing how your codebase connects to external systems."
+icon: "plug"
 ---
 
-Coming soon.
+## Overview
+
+The Integration Points section describes how your application interacts with external systems and shared internal services. It focuses on what is exchanged, when, and in which direction, along with the triggers and outcomes of each interaction.
+
+Contents are generated directly from your codebase and configuration, so what appears here varies by project and stack.
+
+<Tip>
+This is an opinionated approach suggested by CoreStory. It is optimized for most general use cases, but it is possible to alter the contents of this section via direct edit.
+</Tip>
+
+## Sections
+
+This document may include one or more of the following, depending on what CoreStory detects:
+
+- **Interaction map** — High-level sequence or flow diagram showing calls between your system and external services
+- **External systems catalog** — System name and purpose, integration type (for example, REST API, message queue, file drop, SDK), data format (for example, JSON, CSV, Avro) if detectable, and typical operations used (for example, authorize payment, generate report)
+- **References in code** — Each listed integration uses a consistent structure: name and purpose, integration type and data format
+
+## Who It's For
+
+- Architects and tech leads planning or reviewing integrations
+- Backend and platform engineers implementing or modifying calls
+- QA and integration testers building stubs and fixtures
+- Operations and support teams tracing cross-system issues
+
+## How to Use It
+
+1. If available, start with the interaction map to understand which systems are involved in a workflow.
+2. Review the external systems catalog to see what each system is for and how your app communicates with it.
+3. Use operations and touchpoints to locate code, confirm triggers, and identify required inputs and expected results.
+4. If a section is absent (for example, no messaging topics), treat that as a reflection of the current implementation, not a documentation gap.
+
+## What It Is (and Isn't)
+
+**Is**: a code-derived view of your system's boundaries with other systems, showing how components talk to each other, when, and why.
+
+**Isn't**: a full vendor integration guide or contract-level schema reference. For endpoint-level contracts, see [API Specifications](/product/core-documents/api-specifications).
