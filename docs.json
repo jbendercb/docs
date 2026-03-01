@@ -65,7 +65,8 @@
               "playbooks/spec-kit-companion",
               "playbooks/automated-test-generation",
               "playbooks/ma-technical-due-diligence",
-              "playbooks/business-rules-extraction"
+              "playbooks/business-rules-extraction",
+              "playbooks/using-corestory-with-jira"
             ]
           }
         ]
