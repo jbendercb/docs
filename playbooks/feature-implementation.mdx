@@ -319,22 +319,12 @@ Verify the connection works:
 "List my CoreStory projects"
 ```
 
-**2. (Optional) Connect a ticketing system MCP.** For automatic ticket intake, add an MCP server for your issue tracker. Examples:
+**2. (Optional) Connect a ticketing system MCP.** For automatic ticket intake, add an MCP server for your issue tracker. Each platform offers an official MCP server — check their documentation for current setup instructions:
 
-GitHub Issues:
-
-```bash
-claude mcp add github -- npx -y @modelcontextprotocol/server-github
-```
-
-Set the `GITHUB_PERSONAL_ACCESS_TOKEN` environment variable, or pass it inline:
-
-```bash
-claude mcp add github --env GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxxx \
-  -- npx -y @modelcontextprotocol/server-github
-```
-
-Jira, Linear, and Azure DevOps MCP servers follow the same pattern. Check the [MCP server registry](https://github.com/modelcontextprotocol/servers) for current packages and configuration.
+- **Jira:** See our [Jira Integration playbook](/playbooks/using-corestory-with-jira) for full setup
+- **GitHub Issues:** [GitHub MCP Server](https://github.com/github/github-mcp-server)
+- **Azure DevOps:** [Azure DevOps MCP Server](https://github.com/microsoft/azure-devops-mcp)
+- **Linear:** [Linear MCP Server](https://linear.app/docs/mcp)
 
 **3. Install the feature implementation skill.** Claude Code skills are the primary way to teach Claude Code repeatable workflows. Create the skill directory and file:
 

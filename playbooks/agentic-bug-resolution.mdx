@@ -72,14 +72,14 @@ The workflow has six phases. The first three gather context; the last three act 
 
 ### Ticketing MCP Integrations (Optional)
 
-The agent can fetch ticket details and post updates automatically if you configure one of these:
+The agent can fetch ticket details and post updates automatically if you configure a ticketing MCP server. Each platform now offers an official MCP server — check their documentation for current setup instructions:
 
-| System | MCP Server | Sample Prompt |
+| System | Official MCP Server | Sample Prompt |
 |--------|-----------|---------------|
-| GitHub Issues | `@modelcontextprotocol/server-github` | "Fetch GitHub issue #6992 from pydata/xarray" |
-| Jira | `@modelcontextprotocol/server-jira` | "Fetch Jira ticket PROJ-1234" |
-| Azure DevOps | `@modelcontextprotocol/server-azure-devops` | "Get work item 12345 from Azure DevOps" |
-| Linear | `@modelcontextprotocol/server-linear` | "Retrieve Linear issue ENG-456" |
+| GitHub Issues | [GitHub MCP Server](https://github.com/github/github-mcp-server) | "Fetch GitHub issue #6992 from pydata/xarray" |
+| Jira | [Atlassian Rovo MCP Server](https://www.atlassian.com/platform/remote-mcp-server) — see our [Jira Integration playbook](/playbooks/using-corestory-with-jira) for setup | "Fetch Jira ticket PROJ-1234" |
+| Azure DevOps | [Azure DevOps MCP Server](https://github.com/microsoft/azure-devops-mcp) | "Get work item 12345 from Azure DevOps" |
+| Linear | [Linear MCP Server](https://linear.app/docs/mcp) | "Retrieve Linear issue ENG-456" |
 
 ---
 
