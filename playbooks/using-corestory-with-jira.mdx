@@ -65,8 +65,8 @@ For the full six-phase implementation process (Oracle Phase, Navigator Phase, TD
 
 - A CoreStory account with at least one project that has completed ingestion
 - The CoreStory MCP server connected to your AI coding agent (see the [CoreStory MCP Server Setup Guide](https://corestory.notion.site/corestory-mcp-server-setup))
-- A Jira Cloud instance with API access enabled
-- A Jira API token (generated from [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens))
+- A Jira instance — Jira Cloud (required for Atlassian's official Rovo MCP Server) or Jira Server/Data Center (requires a community MCP server)
+- Authentication credentials — either an Atlassian account for OAuth (Rovo) or a Jira API token (community servers, generated from [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens))
 
 **Recommended:**
 
@@ -79,29 +79,57 @@ For the full six-phase implementation process (Oracle Phase, Navigator Phase, TD
 
 ## Jira MCP Server Setup
 
-The Jira MCP server gives your AI agent the ability to read tickets, create issues, post comments, and transition statuses. Setup varies slightly by agent, but the core configuration is the same.
+The Jira MCP server gives your AI agent the ability to read tickets, create issues, post comments, and transition statuses. There are two approaches: Atlassian's official Rovo MCP Server (recommended for Jira Cloud) and community-maintained MCP servers (for self-hosted Jira or when you need more control).
 
-### What You Need
+### Option A: Atlassian Rovo MCP Server (Recommended)
 
-| Item | Where to Get It |
-|------|----------------|
-| Jira URL | Your Atlassian instance URL, e.g. `https://your-company.atlassian.net` |
-| Jira email | The email address associated with your Atlassian account |
-| Jira API token | Generate at [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens) |
+The [Atlassian Rovo MCP Server](https://www.atlassian.com/platform/remote-mcp-server) is Atlassian's official, cloud-hosted MCP server. It's now generally available and supports Jira, Confluence, and Compass. Authentication uses OAuth 2.1 — you'll sign in with your Atlassian account through a consent screen, and access is scoped to your existing Jira permissions.
 
-### Configuration
+**Requirements:** Jira Cloud instance. Rovo MCP does not support Jira Server or Data Center.
 
-The Jira MCP server configuration follows the same pattern across agents. Here's the core config:
+**Setup varies by agent** — see the [Agent Configuration](#agent-configuration) section below for specifics. The general pattern:
+
+For agents that support remote/HTTP MCP servers natively (Claude Desktop, newer Cursor builds, VS Code), point to the Rovo endpoint:
+
+```
+https://mcp.atlassian.com/v1/sse
+```
+
+For agents that require a local process proxy (older Cursor builds, some CLI tools), use `mcp-remote`:
+
+```json
+{
+  "mcpServers": {
+    "atlassian": {
+      "command": "npx",
+      "args": ["mcp-remote@latest", "https://mcp.atlassian.com/v1/mcp"]
+    }
+  }
+}
+```
+
+On first use, the agent will open an OAuth consent screen in your browser. Sign in with your Atlassian account to authorize access. Your org admin controls which AI tools can connect via Atlassian's domain settings.
+
+### Option B: Community MCP Servers
+
+If you're on Jira Server/Data Center, or prefer API token auth with a locally-running server, use a community-maintained Jira MCP server. The most actively maintained options:
+
+| Package | Install | Auth | Notes |
+|---------|---------|------|-------|
+| [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) | `pip install mcp-atlassian` | API token | Python. Supports Cloud + Server/Data Center. Covers Jira and Confluence. |
+| [@mcp-devtools/jira](https://www.npmjs.com/package/@mcp-devtools/jira) | `npx @mcp-devtools/jira` | API token | Node.js. Jira-focused. Search, create, update issues. |
+
+Example configuration using `mcp-atlassian` (Python):
 
 ```json
 {
   "mcpServers": {
     "jira": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-jira"],
+      "command": "python",
+      "args": ["-m", "mcp_atlassian"],
       "env": {
         "JIRA_URL": "https://your-company.atlassian.net",
-        "JIRA_EMAIL": "your-email@company.com",
+        "JIRA_USERNAME": "your-email@company.com",
         "JIRA_API_TOKEN": "your-jira-api-token"
       }
     }
@@ -109,11 +137,11 @@ The Jira MCP server configuration follows the same pattern across agents. Here's
 }
 ```
 
-Where to put this depends on your agent — see the Agent Configuration section below for specifics.
+**API token setup:** Generate a token at [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens). The token inherits the permissions of the Atlassian account that generated it.
 
 ### Verify the Connection
 
-After configuration, ask your agent:
+After configuration (either option), ask your agent:
 
 ```
 List Jira projects
@@ -123,7 +151,7 @@ If it returns your Jira projects, the connection is working. If it fails, check 
 
 ### Permissions
 
-The API token inherits the permissions of the Atlassian account that generated it. The agent can only see and modify what that account can access. For most workflows, you need:
+Whether using Rovo or a community server, the agent can only see and modify what your account can access. For most workflows, you need:
 
 - **Read** access to the projects you want to pull tickets from
 - **Write** access if you want the agent to post comments, update fields, or transition statuses
@@ -283,28 +311,23 @@ claude mcp add --transport http corestory https://c2s.corestory.ai/mcp \
   --header "Authorization: Bearer mcp_YOUR_TOKEN_HERE"
 ```
 
-**2. Connect Jira MCP server:**
+**2. Connect Jira — Option A (Rovo, recommended for Jira Cloud):**
 
 ```bash
-claude mcp add jira -- npx -y @modelcontextprotocol/server-jira
+claude mcp add --transport sse atlassian https://mcp.atlassian.com/v1/sse
 ```
 
-Set the required environment variables:
+This opens an OAuth consent screen on first use. Sign in with your Atlassian account to authorize.
+
+**2. Connect Jira — Option B (community server):**
 
 ```bash
-export JIRA_URL="https://your-company.atlassian.net"
-export JIRA_EMAIL="your-email@company.com"
-export JIRA_API_TOKEN="your-jira-api-token"
-```
-
-Or pass them inline:
-
-```bash
+pip install mcp-atlassian
 claude mcp add jira \
   --env JIRA_URL=https://your-company.atlassian.net \
-  --env JIRA_EMAIL=your-email@company.com \
+  --env JIRA_USERNAME=your-email@company.com \
   --env JIRA_API_TOKEN=your-jira-api-token \
-  -- npx -y @modelcontextprotocol/server-jira
+  -- python -m mcp_atlassian
 ```
 
 **3. Verify both connections:**
@@ -327,7 +350,28 @@ Both should return results. If either fails, see Troubleshooting.
 
 **1. Connect CoreStory MCP server** in your VS Code MCP configuration (Settings → MCP Servers, or edit the JSON config directly).
 
-**2. Add Jira MCP server** to the same configuration:
+**2. Add Jira MCP server — Option A (Rovo, recommended for Jira Cloud):**
+
+VS Code supports remote MCP servers. Add the Rovo endpoint:
+
+```json
+{
+  "mcp.servers": {
+    "corestory": {
+      "url": "https://c2s.corestory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
+      }
+    },
+    "atlassian": {
+      "url": "https://mcp.atlassian.com/v1/sse",
+      "type": "sse"
+    }
+  }
+}
+```
+
+**2. Add Jira MCP server — Option B (community server):**
 
 ```json
 {
@@ -339,17 +383,19 @@ Both should return results. If either fails, see Troubleshooting.
       }
     },
     "jira": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-jira"],
+      "command": "python",
+      "args": ["-m", "mcp_atlassian"],
       "env": {
         "JIRA_URL": "https://your-company.atlassian.net",
-        "JIRA_EMAIL": "your-email@company.com",
+        "JIRA_USERNAME": "your-email@company.com",
         "JIRA_API_TOKEN": "your-jira-api-token"
       }
     }
   }
 }
 ```
+
+Requires `pip install mcp-atlassian` first.
 
 **3. Verify** by asking Copilot Chat (in agent mode): "List Jira projects" and "List my CoreStory projects."
 
@@ -365,7 +411,20 @@ Both should return results. If either fails, see Troubleshooting.
 
 **1. Connect CoreStory MCP server** in Cursor's MCP settings (Settings → MCP Servers, or edit the MCP config JSON directly).
 
-**2. Add Jira MCP server** to the same configuration, using the JSON block from the Configuration section above.
+**2. Add Jira MCP server — Option A (Rovo):** Newer Cursor builds support remote MCP servers natively via the MCP settings panel. Add the Rovo endpoint URL: `https://mcp.atlassian.com/v1/sse`. For older Cursor builds, use the `mcp-remote` proxy in `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "atlassian": {
+      "command": "npx",
+      "args": ["mcp-remote@latest", "https://mcp.atlassian.com/v1/mcp"]
+    }
+  }
+}
+```
+
+**2. Add Jira MCP server — Option B (community server):** Use the JSON block from the [Jira MCP Server Setup](#jira-mcp-server-setup) section (Option B).
 
 **3. Verify** by asking in Composer or Chat: "List Jira projects" and "List my CoreStory projects."
 
@@ -380,7 +439,9 @@ Both should return results. If either fails, see Troubleshooting.
 
 **1. Connect CoreStory MCP server** in Windsurf's MCP settings.
 
-**2. Add Jira MCP server** to the same configuration, using the JSON block from the Configuration section above.
+**2. Add Jira MCP server — Option A (Rovo):** Add the Rovo endpoint in Windsurf's MCP settings: `https://mcp.atlassian.com/v1/sse`. If Windsurf requires a local process proxy, use the `mcp-remote` approach from the Cursor section.
+
+**2. Add Jira MCP server — Option B (community server):** Use the JSON block from the [Jira MCP Server Setup](#jira-mcp-server-setup) section (Option B).
 
 **3. Verify** by asking: "List Jira projects" and "List my CoreStory projects."
 
@@ -392,7 +453,9 @@ Both should return results. If either fails, see Troubleshooting.
 
 **2. Add CoreStory MCP server** with Transport Type `HTTP` and Server URL `https://c2s.corestory.ai/mcp`. Add your CoreStory token as a secret and configure the `Authorization: Bearer $API_TOKEN` header.
 
-**3. Add Jira MCP server** as a second custom MCP server. Configure Jira credentials as secrets.
+**3. Add Jira — Option A (Rovo):** Add the Rovo endpoint as a remote MCP server: `https://mcp.atlassian.com/v1/sse`. Devin supports remote HTTP/SSE transport natively.
+
+**3. Add Jira — Option B (community server):** Add as a custom MCP server with the `mcp-atlassian` command and configure Jira credentials as secrets.
 
 **4. Verify** by asking Devin: "List Jira projects" and "List my CoreStory projects."
 
@@ -440,7 +503,7 @@ Both should return results. If either fails, see Troubleshooting.
 
 **"List Jira projects" returns an error or empty results.**
 
-Check three things: (1) the `JIRA_URL` is correct and includes `https://`, (2) the `JIRA_EMAIL` matches the account that generated the API token, and (3) the API token hasn't expired. Regenerate the token if unsure.
+If using Rovo: verify the OAuth consent completed successfully — check your browser for any pending authorization prompts, and confirm your org admin has allowed the AI tool to connect. If using a community server: check three things — (1) the `JIRA_URL` is correct and includes `https://`, (2) the username/email matches the account that generated the API token, and (3) the API token hasn't expired. Regenerate the token if unsure.
 
 **Agent can't find a specific ticket.**
 
