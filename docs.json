@@ -69,10 +69,6 @@
             ]
           }
         ]
-      },
-      {
-        "tab": "API",
-        "href": "https://c2s-dev.crowdbotics.com/redoc"
       }
     ]
   },
