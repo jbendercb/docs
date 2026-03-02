@@ -75,27 +75,21 @@ The following are some guidelines for getting the most out of Chat With Your Cod
 
 When asking questions about your code, instruct the chat to narrow its search to the relevant features and user stories
 
-<details>
-<summary>Examples:</summary>
-
+<Accordion title="Examples">
 - "What are the relevant API endpoints for handling \[feature\]?"
 - "How does \[feature\] handle specific edge cases related to \[condition\]?"
 - "Where is \[feature\] implemented in this repository?"
-
-</details>
+</Accordion>
 
 ### Be explicit about your needs
 
 Chat has a large volume of information available to it. Give it a more targeted query by describing the exact outputs you're looking for and instructing it to leave out unnecessary information.
 
-<details>
-<summary>Examples:</summary>
-
+<Accordion title="Examples">
 - "Show me where \[feature\] is implemented in the codebase, but exclude test files."
 - "For a \[user persona\], what is a happy path scenario through this application, and what technologies and entities are touched along the way?"
 - "Identify any external dependencies for data, and, for each dependency, provide a one-sentence description of what happens when it is unavailable."
-
-</details>
+</Accordion>
 
 ### Rephrase queries to rule out false negatives
 
@@ -111,96 +105,65 @@ Rewriting your query with more specificity, different terminology, or different 
 
 Here are some standard query patterns for finding different types of information in your repository. Modify them for your specific needs while exploring your codebase.
 
-<details>
-<summary><strong>Quick Start</strong></summary>
-
+<AccordionGroup>
+<Accordion title="Quick Start">
 - Summarize \[Feature/Story ID or Title\] and cite the exact files and spec sections you used. Output: bullets with file paths.
 - List the top \[N\] places in the repository that implement \[Capability\]. Exclude: tests, mocks, fixtures. Include: file path + function/class + 1-sentence role.
+</Accordion>
 
-</details>
-
-<details>
-<summary><strong>Feature & User Story Exploration</strong></summary>
-
+<Accordion title="Feature & User Story Exploration">
 - Where is \[Feature\] implemented? Include line ranges if available.
 - What are the acceptance criteria for \[Story ID/Title in PRD\], and where are they enforced in code? Cite both spec and file path.
 - List all edge cases mentioned for \[Feature\] in the specs and indicate whether each is handled in code. Output: case, spec ref, file path, status: handled/missing.
+</Accordion>
 
-</details>
-
-<details>
-<summary><strong>API & Endpoints</strong></summary>
-
+<Accordion title="API & Endpoints">
 - Show all API endpoints related to \[Feature\]. Output: method, path, purpose, request model, response model, auth, spec refs, code file(s).
 - For \[Endpoint METHOD + PATH\], trace the request flow: controllers → services → repositories. Cite functions with paths and short descriptions.
 - Identify idempotency or rate-limit handling for \[Endpoint\]. If none, return 'Not implemented' with nearest related code.
+</Accordion>
 
-</details>
-
-<details>
-<summary><strong>Dependencies & Integrations</strong></summary>
-
+<Accordion title="Dependencies & Integrations">
 - List external dependencies (APIs, queues, DBs) touched by \[Feature\]. Output: dependency, purpose, failure behavior (from spec), file refs. If unknown, return nearest.
 - For data written by \[Feature\], enumerate affected entities/tables and key fields. Cite model definitions and write points.
+</Accordion>
 
-</details>
-
-<details>
-<summary><strong>Personas & Happy Paths</strong></summary>
-
+<Accordion title="Personas & Happy Paths">
 - For the \[Persona name used in PRD\], describe the happy path through \[Workflow/Feature\] and list touched entities, endpoints, UI components. Cite spec sections.
 - Contrast the \[Persona from PRD\] vs \[Other Persona from PRD\] flows for \[Feature\]. Output: side-by-side bullets with spec refs.
+</Accordion>
 
-</details>
-
-<details>
-<summary><strong>Error Paths & Resilience</strong></summary>
-
+<Accordion title="Error Paths & Resilience">
 - Enumerate error conditions for \[Feature/Endpoint\] from specs and show where each is raised/handled. Output: condition, source, handling, user-visible message.
 - When \[Dependency\] is unavailable, what is the expected behavior? Provide the one-sentence spec summary and the actual file path.
+</Accordion>
 
-</details>
-
-<details>
-<summary><strong>Implementation Location & Evidence</strong></summary>
-
+<Accordion title="Implementation Location & Evidence">
 - Return only file paths and function/class names that implement \[Capability\]. No prose. One line per match.
+</Accordion>
 
-</details>
-
-<details>
-<summary><strong>Security & Risk Auditing</strong></summary>
-
+<Accordion title="Security & Risk Auditing">
 - List security controls relevant to \[Feature\] (authn, authz, PII handling, encryption, input validation). Output: checklist with spec refs and file paths.
 - Identify data classified as \[PII/Sensitive Tag from PRD\] and show where it is stored, transmitted, logged. Flag any logging of sensitive fields.
+</Accordion>
 
-</details>
-
-<details>
-<summary><strong>Test Generation</strong></summary>
-
+<Accordion title="Test Generation">
 - Propose \[N\] BDD scenarios for \[User Story\]. Output: Gherkin only. Base steps on cited endpoints/entities.
 - Generate minimal pytest tests for \[Endpoint\] that cover happy path + \[edge case\]. Exclude: network mocks. Include: setup, assertion rationale, and file refs.
+</Accordion>
 
-</details>
-
-<details>
-<summary><strong>New Code Generation</strong></summary>
-
+<Accordion title="New Code Generation">
 - Produce a scaffold for \[Small Feature/Handler\] that satisfies \[Spec §Name/Story ID\]. Output: file tree + stubs. Do not invent requirements; only use cited specs.
 - Suggest migration steps to refactor \[Module\] to comply with \[Constraint from Tech Spec\]. Output: ordered bullets with file and function refs.
+</Accordion>
 
-</details>
-
-<details>
-<summary><strong>Output & Filtering Controls (use these often!)</strong></summary>
-
+<Accordion title="Output & Filtering Controls (use these often!)">
 - If the answer is unknown, return "Unknown" and the 3 nearest matches with why they're related. Do not guess.
 - Limit to: \[N\] results • Include: \{file path, symbol, 1-line purpose\} • Exclude: \{tests, mocks, scripts\}.
 - Format as JSON array of objects \{path, symbol, purpose, spec_refs\} suitable for copy/paste.
 - Cite sources for every bullet. If a claim lacks a citation, omit the claim.
-
-</details>
+</Accordion>
+</AccordionGroup>
 
 ---
 
