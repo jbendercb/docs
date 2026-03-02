@@ -63,8 +63,7 @@
               "playbooks/feature-implementation",
               "playbooks/spec-driven-development",
               "playbooks/spec-kit-companion",
-              "playbooks/automated-test-generation",
-              "playbooks/ma-technical-due-diligence",
+"playbooks/ma-technical-due-diligence",
               "playbooks/business-rules-extraction",
               "playbooks/using-corestory-with-jira"
             ]
