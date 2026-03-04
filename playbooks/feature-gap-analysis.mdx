@@ -393,50 +393,203 @@ activation:
 
 # Feature Gap Analysis with CoreStory
 
-## Purpose
-Systematically compare a feature specification against the existing codebase to produce a structured gap report and dependency-ordered implementation plan.
+When this skill activates, execute the four-phase gap analysis workflow.
+
+## Activation Triggers
+
+Activate when user requests:
+- Gap analysis or pre-implementation analysis
+- Implementation surface area assessment
+- "What needs to change to build [feature]?"
+- Any request containing "gap analysis", "what's missing", "what needs to change"
 
 ## Prerequisites
-- CoreStory MCP server connected
+
+- CoreStory MCP server configured
+- At least one CoreStory project with completed ingestion
 - Feature specification available (PRD, user story, or design doc)
-- Access to the target repository
 
-## Workflow
+## Phase 1: Context Loading
 
-### Phase 1: Context Loading
-1. Use `list_projects` to find the target project
-2. Use `create_conversation` to start a "Gap Analysis: <Feature Name>" thread
-3. Use `get_project_prd` and `get_project_techspec` for architectural context
-4. Send an orientation message confirming CoreStory understands the relevant subsystems
+1. **Select CoreStory Project**
+   ```
+   Use CoreStory MCP: list_projects
+   ```
+   - Multiple projects → ask user which one
+   - Single project → auto-select
+   - Verify status is "completed"
 
-### Phase 2: Gap Identification
-5. Send the seven-category gap analysis query covering:
-   - Existing Capabilities
-   - Data Model Gaps
-   - UI Gaps
-   - Business Logic Gaps
-   - Rendering/Output Gaps
-   - Integration Gaps
-   - Constraint Gaps
-6. Drill into any sparse categories with targeted follow-ups
-7. Ask for cross-cutting concerns that span multiple categories
+2. **Create Gap Analysis Conversation**
+   ```
+   Use CoreStory MCP: create_conversation
+   Title: "Gap Analysis: [Feature Name]"
+   ```
+   Store conversation_id for all subsequent queries.
 
-### Phase 3: Validation
-8. Run the completeness check (missing files, downstream effects, pattern contradictions)
-9. Check for architectural pattern conflicts
-10. Request a scope summary (files to create/modify, highest-risk changes, deferrable items)
+3. **Load Architectural Context**
+   ```
+   Use CoreStory MCP: get_project_prd
+   Use CoreStory MCP: get_project_techspec
+   ```
+   If either document is too large, use `send_message` to query specific sections.
 
-### Phase 4: Implementation Planning
-11. Generate a dependency-ordered plan: Data Model → Business Logic → UI → Rendering → Integration
-12. Rename the conversation to "Gap Analysis: <Feature Name> — Complete"
+4. **Orient CoreStory to the Feature**
+   ```
+   I'm preparing to implement a new feature and need to understand how it
+   interacts with the existing codebase. Here is the feature specification:
 
-## Output
-Produce a structured gap analysis report with:
-- Gap IDs per category (DM-001, UI-001, BL-001, etc.)
-- Specific files and changes for each gap
-- Cross-cutting concerns
-- Scope summary
-- Dependency-ordered implementation plan
+   [Paste or summarize the feature specification]
+
+   Before we begin the gap analysis, confirm:
+   1. Which major subsystems or modules are most relevant to this feature?
+   2. Are there existing features with similar patterns I should be aware of?
+   3. What are the primary architectural patterns in this codebase?
+   ```
+
+**Report:**
+```
+Starting gap analysis for [Feature Name]
+Project: [project name]
+CoreStory conversation: [conversation-id]
+Relevant subsystems: [list from CoreStory response]
+Similar existing features: [list from CoreStory response]
+```
+
+## Phase 2: Gap Identification
+
+**Send the seven-category gap analysis query:**
+```
+I need to implement the following feature in the existing codebase:
+
+[Feature specification]
+
+Provide a detailed gap analysis across these categories:
+
+1. EXISTING CAPABILITIES: What parts are already supported? What can be reused as-is?
+2. DATA MODEL GAPS: New fields, tables, enums, or structures to add? Existing structures to modify?
+3. UI GAPS: New screens, forms, or components to create? Existing UI to modify?
+4. BUSINESS LOGIC GAPS: New validation rules, calculations, or logic to implement? Existing logic to extend?
+5. RENDERING/OUTPUT GAPS: New rendering or output logic needed? Existing rendering to update?
+6. INTEGRATION GAPS: Existing integration points (APIs, events, workflows) to update?
+7. CONSTRAINT GAPS: New constraints or validation rules? How do they interact with existing constraints?
+
+For each gap, identify specific files that need to change and describe the change at a
+level of detail sufficient for a developer to implement it.
+```
+
+**Drill into sparse categories:**
+```
+The [CATEGORY] section seems sparse. Look more carefully at:
+- [Specific area of concern]
+- Indirect dependencies or downstream effects in this category
+- Files that might not be obviously related but would need changes
+```
+
+**Identify cross-cutting concerns:**
+```
+Are there cross-cutting concerns that span multiple gap categories? For example:
+- A data model change that cascades to UI, validation, and API layers
+- A constraint that affects both business logic and rendering
+- An integration change requiring coordinated updates across subsystems
+
+List these and the full chain of files affected.
+```
+
+**Report:** Summarize gap counts per category, highlight any sparse categories investigated.
+
+## Phase 3: Validation & Completeness
+
+**Completeness check:**
+```
+Review this gap analysis for completeness:
+- Are there any files or components I'm missing?
+- Are there any downstream effects that aren't captured?
+- Are there any existing patterns that the gap analysis contradicts?
+- What is the recommended implementation order?
+```
+
+**Pattern conflict check:**
+```
+For each proposed change in the gap analysis, does it follow the existing
+architectural patterns in the codebase? Flag any changes that would introduce
+inconsistencies or require pattern exceptions.
+```
+
+**Scope summary:**
+```
+Based on the validated gap analysis, provide a scope summary:
+- Total number of files to create vs. modify
+- Highest-risk changes (most dependencies, most complex logic)
+- Any gaps that could be deferred to a later iteration without blocking the core feature
+```
+
+## Phase 4: Implementation Planning
+
+**Generate the plan:**
+```
+Produce a dependency-ordered implementation plan. Group changes:
+1. Data Model changes (foundations everything else depends on)
+2. Business Logic changes (rules and calculations)
+3. UI changes (components and screens)
+4. Rendering/Output changes (visual output and reports)
+5. Integration changes (APIs, events, external systems)
+
+For each group, list:
+- Specific files to create or modify
+- The change required
+- Which existing patterns to follow
+- What tests should validate the change
+- Dependencies on other groups
+```
+
+**Label the conversation:**
+```
+Use CoreStory MCP: rename_conversation
+Title: "Gap Analysis: [Feature Name] — Complete"
+```
+
+**Report:** Present the full gap analysis report using this structure:
+```
+# Feature Gap Analysis: [Feature Name]
+
+## Executive Summary
+[2-3 sentences: what the feature does, gap count, key risks]
+
+## Gaps by Category
+For each category, use gap IDs (DM-001, UI-001, BL-001, RO-001, IG-001, CG-001):
+- Gap ID, description, files affected, priority
+- Current state vs. required state
+- Dependencies on other gaps
+
+## Cross-Cutting Concerns
+[Gaps spanning multiple categories with full dependency chains]
+
+## Scope Summary
+- Files to create: [count]
+- Files to modify: [count]
+- Highest-risk changes: [list]
+- Deferrable items: [list]
+
+## Implementation Plan
+Ordered: Data Model → Business Logic → UI → Rendering → Integration
+Per step: file, change, pattern to follow, tests, dependencies
+```
+
+## Error Handling
+
+- **Project not found:** List available projects, ask user to specify
+- **PRD/TechSpec too large:** Use `send_message` to query specific sections instead of loading full documents
+- **Sparse category results:** Drill in with targeted follow-up; some categories legitimately have no gaps
+- **CoreStory response is vague:** Provide more specific feature requirements — concrete fields, screens, rules
+- **Conflicting recommendations:** Ask CoreStory to identify the dominant pattern and recommend which to follow
+- **Too many gaps:** Break the feature into sub-features and run separate analyses
+
+## When NOT to Use
+
+- Entirely greenfield features with no existing codebase interaction
+- Pure business rules extraction (use Business Rules Extraction skill instead)
+- User is past analysis and ready to implement (use Feature Implementation skill instead)
+- No CoreStory project available
 ````
 
 ### GitHub Copilot
@@ -451,40 +604,83 @@ description: Run a feature gap analysis using CoreStory to identify what exists,
 
 # Feature Gap Analysis with CoreStory
 
-## Purpose
-Systematically compare a feature specification against the existing codebase to produce a structured gap report and dependency-ordered implementation plan.
+When this skill activates, execute the four-phase gap analysis workflow.
+
+## Activation Triggers
+
+Activate when user requests gap analysis, implementation surface area, or pre-implementation analysis for a feature.
 
 ## Prerequisites
-- CoreStory MCP server connected
+
+- CoreStory MCP server configured
 - Feature specification available (PRD, user story, or design doc)
 - Access to the target repository
 
-## Workflow
+## Phase 1: Context Loading
 
-### Phase 1: Context Loading
-1. Use `list_projects` to find the target project
-2. Use `create_conversation` to start a "Gap Analysis: <Feature Name>" thread
+1. Use `list_projects` to find the target project (verify status is "completed")
+2. Use `create_conversation` to start a "Gap Analysis: [Feature Name]" thread
 3. Use `get_project_prd` and `get_project_techspec` for architectural context
-4. Send an orientation message confirming CoreStory understands the relevant subsystems
+4. Send an orientation message with the feature specification and ask CoreStory to confirm:
+   - Which major subsystems or modules are most relevant
+   - Existing features with similar patterns
+   - Primary architectural patterns in the codebase
 
-### Phase 2: Gap Identification
-5. Send the seven-category gap analysis query covering:
-   - Existing Capabilities, Data Model Gaps, UI Gaps, Business Logic Gaps,
-     Rendering/Output Gaps, Integration Gaps, Constraint Gaps
-6. For each gap, require specific file paths and change descriptions
-7. Drill into sparse categories and identify cross-cutting concerns
+## Phase 2: Gap Identification
 
-### Phase 3: Validation
-8. Run completeness check for missing files, downstream effects, and pattern contradictions
-9. Verify proposed changes follow existing architectural patterns
-10. Request scope summary with risk assessment
+Send the core gap analysis query:
+```
+I need to implement the following feature in the existing codebase:
+[Feature specification]
 
-### Phase 4: Implementation Planning
-11. Generate dependency-ordered plan: Data Model → Business Logic → UI → Rendering → Integration
-12. Rename the conversation for future reference
+Provide a detailed gap analysis across these categories:
+1. EXISTING CAPABILITIES: What can be reused as-is?
+2. DATA MODEL GAPS: New fields, tables, enums, structures to add or modify?
+3. UI GAPS: New screens, forms, components to create or modify?
+4. BUSINESS LOGIC GAPS: New validation, calculations, logic to implement or extend?
+5. RENDERING/OUTPUT GAPS: New rendering or output logic needed?
+6. INTEGRATION GAPS: Existing APIs, events, workflows to update?
+7. CONSTRAINT GAPS: New constraints? Interactions with existing constraints?
 
-## Output
-Produce a structured gap analysis report with gap IDs, file-level changes, cross-cutting concerns, scope summary, and dependency-ordered implementation plan.
+For each gap, identify specific files and describe the change at implementation-ready detail.
+```
+
+Then:
+- Drill into any sparse categories with targeted follow-ups
+- Ask for cross-cutting concerns spanning multiple categories with full file chains
+
+## Phase 3: Validation
+
+Run three validation queries:
+- **Completeness:** "Are there missing files, downstream effects, or pattern contradictions?"
+- **Pattern conflicts:** "Does each proposed change follow existing architectural patterns? Flag inconsistencies."
+- **Scope summary:** "Total files to create vs. modify, highest-risk changes, deferrable items."
+
+## Phase 4: Implementation Planning
+
+Generate a dependency-ordered plan grouped as:
+1. Data Model → 2. Business Logic → 3. UI → 4. Rendering/Output → 5. Integration
+
+Per group include: specific files, change required, pattern to follow, tests to validate, dependencies on other groups.
+
+Rename the conversation to "Gap Analysis: [Feature Name] — Complete".
+
+## Output Format
+
+Structure the report with:
+- Gap IDs per category (DM-001, UI-001, BL-001, RO-001, IG-001, CG-001)
+- Per gap: description, files affected, current state vs. required state, priority, dependencies
+- Cross-cutting concerns with full dependency chains
+- Scope summary (create/modify counts, risks, deferrable items)
+- Dependency-ordered implementation plan with test strategies
+
+## Error Handling
+
+- **Project not found:** List available projects, ask user to specify
+- **PRD/TechSpec too large:** Query specific sections via `send_message` instead
+- **Sparse category:** Drill in with targeted follow-up; some categories legitimately have no gaps
+- **Vague results:** Provide more specific feature requirements — concrete fields, screens, rules
+- **Too many gaps:** Break into sub-features and run separate analyses
 ````
 
 **Lightweight alternative:** Add this to `.github/copilot-instructions.md`:
@@ -493,11 +689,12 @@ Produce a structured gap analysis report with gap IDs, file-level changes, cross
 ## Feature Gap Analysis
 
 When asked to perform a gap analysis or assess implementation surface area:
-1. Connect to CoreStory via MCP and load project context
-2. Run the seven-category gap analysis (Existing Capabilities, Data Model, UI, Business Logic, Rendering/Output, Integration, Constraints)
-3. Validate for completeness, pattern conflicts, and downstream effects
-4. Produce a dependency-ordered implementation plan (Data Model → Business Logic → UI → Rendering → Integration)
-5. Output a structured report with gap IDs, affected files, and scope summary
+1. Connect to CoreStory via MCP. Use `list_projects`, `create_conversation`, `get_project_prd`, `get_project_techspec`.
+2. Send the seven-category gap analysis query (Existing Capabilities, Data Model, UI, Business Logic, Rendering/Output, Integration, Constraints). Require specific file paths and implementation-ready change descriptions for each gap.
+3. Drill into sparse categories. Identify cross-cutting concerns spanning multiple categories.
+4. Validate: check for missing files, downstream effects, pattern conflicts. Estimate scope (files to create/modify, risks, deferrable items).
+5. Produce a dependency-ordered implementation plan (Data Model → Business Logic → UI → Rendering → Integration) with test strategies per group.
+6. Output a structured report with gap IDs (DM-001, UI-001, BL-001, etc.), file-level changes, cross-cutting concerns, scope summary, and the implementation plan.
 ```
 
 ### Cursor
@@ -512,17 +709,52 @@ Create the file `.cursor/rules/playbooks/feature-gap-analysis.md` in your reposi
 - User wants to know what needs to change before building a feature
 
 ## Workflow
-1. **Context Loading:** Connect to CoreStory via MCP. Use `list_projects`, `create_conversation`, `get_project_prd`, `get_project_techspec` to establish context.
-2. **Gap Identification:** Run the seven-category analysis (Existing Capabilities, Data Model, UI, Business Logic, Rendering/Output, Integration, Constraints). Require specific file paths. Identify cross-cutting concerns.
-3. **Validation:** Check completeness, pattern conflicts, and downstream effects. Estimate scope.
-4. **Implementation Planning:** Order by dependency — Data Model → Business Logic → UI → Rendering → Integration.
+
+### Phase 1: Context Loading
+1. Connect to CoreStory via MCP. Use `list_projects` to find the target project (verify status is "completed").
+2. Use `create_conversation` to start a "Gap Analysis: [Feature Name]" thread.
+3. Use `get_project_prd` and `get_project_techspec` for architectural context. If too large, use `send_message` to query specific sections.
+4. Send an orientation message with the feature specification. Ask CoreStory to confirm relevant subsystems, similar existing features, and primary architectural patterns.
+
+### Phase 2: Gap Identification
+5. Send the seven-category gap analysis query:
+   ```
+   Provide a detailed gap analysis for [feature]:
+   1. EXISTING CAPABILITIES: What can be reused as-is?
+   2. DATA MODEL GAPS: New/modified fields, tables, enums, structures?
+   3. UI GAPS: New/modified screens, forms, components?
+   4. BUSINESS LOGIC GAPS: New/extended validation, calculations, logic?
+   5. RENDERING/OUTPUT GAPS: New/updated rendering or output logic?
+   6. INTEGRATION GAPS: APIs, events, workflows to update?
+   7. CONSTRAINT GAPS: New constraints? Interactions with existing ones?
+   For each gap, identify specific files and describe the change at implementation-ready detail.
+   ```
+6. Drill into any sparse categories: "The [CATEGORY] section seems sparse. Look at indirect dependencies, downstream effects, and non-obvious files."
+7. Identify cross-cutting concerns: "What gaps span multiple categories? List each with the full chain of files affected."
+
+### Phase 3: Validation
+8. Completeness check: "Are there missing files, downstream effects, or pattern contradictions?"
+9. Pattern conflict check: "Does each proposed change follow existing architectural patterns? Flag inconsistencies."
+10. Scope summary: "Total files to create vs. modify, highest-risk changes, deferrable items."
+
+### Phase 4: Implementation Planning
+11. Generate dependency-ordered plan: Data Model → Business Logic → UI → Rendering → Integration. Per group: specific files, change, pattern to follow, tests, dependencies.
+12. Rename the conversation to "Gap Analysis: [Feature Name] — Complete".
 
 ## Output Format
+Structure the report with:
 - Gap IDs per category (DM-001, UI-001, BL-001, RO-001, IG-001, CG-001)
-- Specific files and changes for each gap
+- Per gap: description, files affected, current state vs. required state, priority, dependencies
 - Cross-cutting concerns with full dependency chains
-- Scope summary (files to create/modify, risks, deferrable items)
+- Scope summary (create/modify counts, risks, deferrable items)
 - Dependency-ordered implementation plan with test strategies
+
+## Error Handling
+- **Project not found:** List available projects, ask user to specify
+- **PRD/TechSpec too large:** Query specific sections via `send_message`
+- **Sparse category:** Drill in; some categories legitimately have no gaps
+- **Vague results:** Ask user for more specific requirements
+- **Too many gaps:** Break into sub-features and run separate analyses
 ````
 
 ### Factory.ai
@@ -538,20 +770,45 @@ description: >
   structured gap report with file-level changes and a dependency-ordered
   implementation plan.
 instructions: |
-  1. Connect to CoreStory via MCP and load project context
-  2. Run seven-category gap analysis:
-     - Existing Capabilities
-     - Data Model Gaps
-     - UI Gaps
-     - Business Logic Gaps
-     - Rendering/Output Gaps
-     - Integration Gaps
-     - Constraint Gaps
-  3. Require specific file paths and developer-ready change descriptions for each gap
-  4. Validate: check completeness, pattern conflicts, downstream effects
-  5. Produce dependency-ordered implementation plan:
-     Data Model → Business Logic → UI → Rendering → Integration
-  6. Output structured report with gap IDs, scope summary, and risk assessment
+  Phase 1 — Context Loading:
+  1. Use list_projects to find the target project (verify status is "completed")
+  2. Use create_conversation to start a "Gap Analysis: [Feature Name]" thread
+  3. Use get_project_prd and get_project_techspec for context (if too large, query sections via send_message)
+  4. Orient CoreStory: send the feature spec, confirm relevant subsystems and similar existing features
+
+  Phase 2 — Gap Identification:
+  5. Send the seven-category gap analysis query:
+     - Existing Capabilities (what can be reused as-is)
+     - Data Model Gaps (new/modified fields, tables, enums, structures)
+     - UI Gaps (new/modified screens, forms, components)
+     - Business Logic Gaps (new/extended validation, calculations, logic)
+     - Rendering/Output Gaps (new/updated rendering or output logic)
+     - Integration Gaps (APIs, events, workflows to update)
+     - Constraint Gaps (new constraints, interactions with existing ones)
+     Require specific file paths and implementation-ready change descriptions for each gap.
+  6. Drill into any sparse categories with targeted follow-ups
+  7. Identify cross-cutting concerns spanning multiple categories with full file chains
+
+  Phase 3 — Validation:
+  8. Check completeness: missing files, downstream effects, pattern contradictions
+  9. Check pattern conflicts: flag changes that break existing architectural patterns
+  10. Produce scope summary: files to create/modify, highest-risk changes, deferrable items
+
+  Phase 4 — Implementation Planning:
+  11. Generate dependency-ordered plan:
+      Data Model → Business Logic → UI → Rendering → Integration
+      Per group: specific files, change, pattern to follow, tests, dependencies
+  12. Rename conversation to "Gap Analysis: [Feature Name] — Complete"
+
+  Output: Structured report with gap IDs (DM-001, UI-001, BL-001, RO-001, IG-001, CG-001),
+  file-level changes, cross-cutting concerns, scope summary, and implementation plan.
+
+  Error handling:
+  - Project not found → list available, ask user to specify
+  - PRD/TechSpec too large → query sections via send_message
+  - Sparse categories → drill in with follow-ups
+  - Vague results → ask user for more specific requirements
+  - Too many gaps → break into sub-features
 ```
 
 ---
