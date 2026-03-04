@@ -61,8 +61,13 @@
             "pages": [
               "playbooks/agentic-bug-resolution",
               "playbooks/feature-implementation",
-              "playbooks/spec-driven-development",
-              "playbooks/spec-kit-companion",
+              {
+                "group": "Spec-Driven Development",
+                "pages": [
+                  "playbooks/spec-driven-development",
+                  "playbooks/spec-kit-companion"
+                ]
+              },
               "playbooks/ma-technical-due-diligence",
               "playbooks/business-rules-extraction",
               "playbooks/using-corestory-with-jira",
