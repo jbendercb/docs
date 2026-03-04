@@ -65,7 +65,8 @@
               "playbooks/spec-kit-companion",
               "playbooks/ma-technical-due-diligence",
               "playbooks/business-rules-extraction",
-              "playbooks/using-corestory-with-jira"
+              "playbooks/using-corestory-with-jira",
+              "playbooks/feature-gap-analysis"
             ]
           }
         ]
