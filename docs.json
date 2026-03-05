@@ -39,7 +39,7 @@
             "pages": [
               "product/chat-with-your-code",
               {
-                "group": "Core Documents",
+                "group": "Generated Spec Documents",
                 "pages": [
                   "product/core-documents/executive-summary",
                   "product/core-documents/user-personas",
