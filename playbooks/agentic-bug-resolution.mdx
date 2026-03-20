@@ -72,14 +72,14 @@ The workflow has six phases. The first three gather context; the last three act 
 
 ### Ticketing MCP Integrations (Optional)
 
-The agent can fetch ticket details and post updates automatically if you configure a ticketing MCP server. Each platform now offers an official MCP server — check their documentation for current setup instructions:
+The agent can fetch ticket details and post updates automatically if you configure one of these:
 
-| System | Official MCP Server | Sample Prompt |
+| System | MCP Server | Sample Prompt |
 |--------|-----------|---------------|
-| GitHub Issues | [GitHub MCP Server](https://github.com/github/github-mcp-server) | "Fetch GitHub issue #6992 from pydata/xarray" |
-| Jira | [Atlassian Rovo MCP Server](https://www.atlassian.com/platform/remote-mcp-server) — see our [Jira Integration playbook](/playbooks/using-corestory-with-jira) for setup | "Fetch Jira ticket PROJ-1234" |
-| Azure DevOps | [Azure DevOps MCP Server](https://github.com/microsoft/azure-devops-mcp) | "Get work item 12345 from Azure DevOps" |
-| Linear | [Linear MCP Server](https://linear.app/docs/mcp) | "Retrieve Linear issue ENG-456" |
+| GitHub Issues | `@modelcontextprotocol/server-github` | "Fetch GitHub issue #6992 from pydata/xarray" |
+| Jira | `@modelcontextprotocol/server-jira` | "Fetch Jira ticket PROJ-1234" |
+| Azure DevOps | `@modelcontextprotocol/server-azure-devops` | "Get work item 12345 from Azure DevOps" |
+| Linear | `@modelcontextprotocol/server-linear` | "Retrieve Linear issue ENG-456" |
 
 ---
 
@@ -478,7 +478,7 @@ Consider a unified fix if appropriate. Create separate CoreStory conversations f
 
 #### Setup
 
-1. **Configure the CoreStory MCP server** in your Claude Code settings (see [CoreStory MCP Server Setup Guide](/getting-started/mcp-server-setup)).
+1. **Configure the CoreStory MCP server** in your Claude Code settings (see [CoreStory MCP Server Setup Guide](https://corestory.notion.site/corestory-mcp-server-setup)).
 
 2. **Add the skill file.** Claude Code uses skills (`.claude/skills/` directory) as its preferred mechanism for teaching Claude specialized workflows. Create the skill:
 
@@ -541,6 +541,8 @@ description: Resolves bugs using CoreStory's code intelligence and TDD methodolo
 # CoreStory Bug Resolver
 
 When this skill activates, execute the six-phase bug resolution workflow.
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
 
 ## Activation Triggers
 
@@ -761,6 +763,8 @@ You are a bug resolution assistant with access to CoreStory's code intelligence 
 
 Apply this workflow when user requests bug fixes, investigations, or ticket resolution. Trigger phrases: "bug", "issue", "broken", "not working", "fix", "investigate".
 
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
 ## Workflow
 
 ### Phase 1: Bug Intake
@@ -899,6 +903,8 @@ alwaysApply: false
 
 You are a bug resolution agent with access to CoreStory's code intelligence via MCP. Follow the six-phase workflow for bug investigation and resolution.
 
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
 ## Activation Triggers
 
 Apply when user requests: bug fix, investigation, ticket resolution, or any phrase containing "bug", "issue", "broken", "not working".
@@ -1016,6 +1022,8 @@ tools:
 # CoreStory Bug Resolver
 
 Execute the six-phase bug resolution workflow using CoreStory's code intelligence.
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
 
 ## Activation Triggers
 - "Fix bug #[ID]"
