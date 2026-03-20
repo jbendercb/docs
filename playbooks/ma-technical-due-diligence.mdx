@@ -458,6 +458,525 @@ The conversation accumulates context, so later queries can reference earlier fin
 
 ---
 
+## Agent Implementation Guides
+
+### Claude Code
+
+#### Setup
+
+1. **Configure the CoreStory MCP server** in your Claude Code settings (see [CoreStory MCP Server Setup Guide](/getting-started/mcp-server-setup)).
+
+2. **Add the skill file.** Claude Code uses skills (`.claude/skills/` directory) as its preferred mechanism for teaching Claude specialized workflows. Create the skill:
+
+```bash
+mkdir -p .claude/skills/ma-due-diligence
+```
+
+Create `.claude/skills/ma-due-diligence/SKILL.md` with the content from the skill file below.
+
+3. **(Optional) Add the slash command.** Slash commands provide a shortcut to invoke the workflow:
+
+```bash
+mkdir -p .claude/commands
+```
+
+Create `.claude/commands/ma-due-diligence.md` with a short description referencing the four-phase diligence workflow.
+
+4. **Commit to version control** for team sharing:
+
+```bash
+git add .claude/skills/ .claude/commands/
+git commit -m "Add CoreStory M&A due diligence skill and command"
+```
+
+#### Usage
+
+The skill activates automatically when Claude Code detects diligence-related requests:
+
+```
+Run due diligence on the target codebase
+Perform a technical assessment for the acquisition
+Start a diligence audit on project X
+```
+
+Or invoke explicitly:
+
+```
+/ma-due-diligence [TargetName]
+```
+
+#### Tips
+
+- Skills auto-load from directories added via `--add-dir`, so team-shared skills work across machines.
+- Claude Code detects file changes during sessions — you can edit the skill file and it takes effect immediately.
+- Keep the SKILL.md under 500 lines for reliable loading.
+- Create separate CoreStory conversations per risk domain (security, licensing, PII) to keep findings organized.
+
+#### Skill File
+
+Save as `.claude/skills/ma-due-diligence/SKILL.md`:
+
+````markdown
+---
+name: CoreStory M&A Due Diligence
+description: Performs technical due diligence on acquisition targets using CoreStory's code intelligence. Activates on diligence, assessment, or M&A review requests.
+---
+
+# CoreStory M&A Due Diligence
+
+When this skill activates, execute the four-phase due diligence workflow.
+
+## Activation Triggers
+
+Activate when user requests:
+- Due diligence or diligence audit
+- Technical assessment
+- M&A review or acquisition review
+- Any request containing "due diligence", "diligence audit", "technical assessment", "M&A review", "acquisition review"
+
+## Prerequisites
+
+- CoreStory MCP server configured
+- At least one CoreStory project with completed ingestion (the target codebase)
+- Read access to the target's repository for cross-referencing findings
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
+## Phase 1: Project Setup & Orientation
+
+1. **Identify the Target Project**
+   ```
+   Use CoreStory MCP: list_projects
+   ```
+   - Multiple projects → ask user which one is the acquisition target
+   - Single project → confirm with user before proceeding
+   - Verify ingestion is complete
+
+2. **Retrieve Synthesized Specifications**
+   ```
+   Use CoreStory MCP: get_project_techspec
+   Use CoreStory MCP: get_project_prd
+   ```
+   - Summarize: system architecture, technology stack, external integrations, data model overview
+   - This establishes the architectural vocabulary for all subsequent queries
+
+3. **Create Diligence Conversation**
+   ```
+   Use CoreStory MCP: create_conversation
+   Title: "[Diligence] TargetName - Technical Risk Audit"
+   ```
+   Store conversation_id for all subsequent queries.
+
+**Report:**
+```
+🔍 Starting M&A technical due diligence
+Target: [project name]
+Architecture: [high-level summary]
+Tech Stack: [languages, frameworks, infrastructure]
+CoreStory conversation: [conversation-id]
+```
+
+## Phase 2: Risk Interrogation
+
+Use `send_message` to interrogate the codebase across risk domains. Ask specific, evidence-oriented questions — always request file paths.
+
+**Technical Debt & Obsolescence:**
+- "List all services, modules, and frameworks running on end-of-life or unsupported versions. For each, provide current version, latest stable version, and upgrade complexity."
+- "Identify high-complexity modules with poor separation of concerns — god classes, circular dependencies, excessive coupling. Provide file paths."
+
+**Security & Secrets:**
+- "Identify all code locations that hardcode API keys, passwords, tokens, or other secrets. For each, provide the file path and line context."
+- "Map the authentication flow from login through session management. Identify whether it follows standard patterns or uses custom logic."
+- "List all known CVEs from third-party libraries, sorted by severity."
+
+**Licensing & Open Source Risk:**
+- "Provide a complete bill of materials for all third-party dependencies. Flag any with GPL, AGPL, SSPL, or other copyleft licenses."
+- "Are there any dependencies that are abandoned, archived, or have known unpatched vulnerabilities?"
+
+**PII & Data Handling:**
+- "Map data flows where PII is collected, transmitted, and stored. For each stage, state whether encryption is applied at rest and in transit."
+- "Identify all database models containing PII fields. For each, list fields, encryption status, and access controls."
+- "How is data deletion handled? Is there a right-to-be-forgotten implementation? Identify where PII might persist after deletion."
+
+**Architecture & Integration Complexity:**
+- "Map all external integrations, showing third-party dependencies, API touchpoints, and data flows."
+- "What message queues, event buses, or async patterns are used? Identify single points of failure."
+- "Describe the deployment architecture, CI/CD pipeline, and any cloud vendor lock-in."
+
+## Phase 3: Cross-Reference & Validation
+
+For critical findings — security issues, licensing risks, PII exposure:
+1. Open each file path CoreStory identified and confirm the finding against source code
+2. Check if findings reflect current state (CoreStory's analysis is based on ingestion snapshot)
+3. Assess severity: production secrets vs. test placeholders, actual GPL usage vs. dev-only dependencies
+4. Note any discrepancies between CoreStory findings and source code
+
+## Phase 4: Synthesis & Reporting
+
+1. **Compile Structured Report**
+   Review conversation history and synthesize into:
+   - Executive Summary — top 3-5 findings affecting deal risk or valuation
+   - Critical Risks — security vulnerabilities, licensing exposure, PII compliance gaps (with file-level evidence and severity)
+   - Technical Debt — end-of-life dependencies, architectural issues, maintainability concerns
+   - Architecture Overview — component map, technology stack, external dependencies
+   - Integration Assessment — complexity of merging with acquirer's platform
+   - Recommendations — remediation priorities and estimated effort
+
+2. **Mark Completed**
+   ```
+   Use CoreStory MCP: rename_conversation
+   New title: "RESOLVED - [Diligence] TargetName - Technical Risk Audit"
+   ```
+
+## Error Handling
+
+- **Project not found:** List available projects, ask user to specify the target
+- **CoreStory gives generic answers:** Narrow queries — use specific service names, module names, and technology names from the Tech Spec
+- **Response too long:** Break into smaller risk-domain queries
+- **Findings don't match source:** Note ingestion date, request re-ingestion if target codebase has changed significantly
+````
+
+---
+
+### GitHub Copilot
+
+#### Setup
+
+1. **Configure the CoreStory MCP server** in your VS Code settings. Add it to your MCP server configuration (typically in VS Code settings JSON or the MCP configuration UI).
+
+2. **Add custom instructions.** Copilot reads project-level instructions from `.github/copilot-instructions.md`. This is the primary mechanism for teaching Copilot specialized workflows:
+
+```bash
+mkdir -p .github
+```
+
+Create `.github/copilot-instructions.md` with the content from the custom instructions file below.
+
+3. **(Optional) Add a reusable prompt file.** Prompt files (`.github/prompts/ma-due-diligence.prompt.md`) provide reusable task templates. See the prompt file below.
+
+4. **Commit to version control:**
+
+```bash
+git add .github/copilot-instructions.md .github/prompts/
+git commit -m "Add CoreStory M&A due diligence instructions for Copilot"
+```
+
+#### Usage
+
+In Copilot Chat (agent mode), natural language triggers the workflow:
+
+```
+Run technical due diligence on the target codebase
+Perform a diligence audit for the acquisition
+Start an M&A review on project X
+```
+
+Or reference the prompt file:
+
+```
+@workspace /ma-due-diligence [TargetName]
+```
+
+#### Tips
+
+- Copilot's agent mode (available in VS Code) can execute terminal commands and edit files autonomously — this workflow works best in agent mode.
+- You can add path-specific instruction files (e.g., `.github/instructions/diligence.instructions.md` with `applyTo: "**"`) for project-wide guidance.
+- On Team/Enterprise plans, organization-level instructions apply across all repositories.
+- Copilot automatically references `.github/copilot-instructions.md` in chat responses.
+
+#### Custom Instructions
+
+Save as `.github/copilot-instructions.md`:
+
+````markdown
+# CoreStory M&A Due Diligence Workflow
+
+## Role
+
+You are a technical due diligence analyst with access to CoreStory's code intelligence via MCP. When users request due diligence, technical assessments, or M&A reviews, follow the four-phase workflow below.
+
+## Activation
+
+Apply this workflow when user requests due diligence, technical assessments, or acquisition reviews. Trigger phrases: "due diligence", "diligence audit", "technical assessment", "M&A review", "acquisition review".
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
+## Workflow
+
+### Phase 1: Project Setup & Orientation
+1. Identify target project (`CoreStory:list_projects`)
+2. Retrieve synthesized specs (`CoreStory:get_project_techspec`, `CoreStory:get_project_prd`)
+3. Summarize architecture, tech stack, integrations, data models
+4. Create diligence conversation (`CoreStory:create_conversation`)
+5. Report: target summary, architecture overview, conversation ID
+
+### Phase 2: Risk Interrogation
+Use `CoreStory:send_message` to query across risk domains:
+
+**Technical Debt:** EOL frameworks, high-complexity modules, abandoned code, test coverage gaps
+**Security & Secrets:** Hardcoded credentials, auth flow analysis, CVEs in dependencies
+**Licensing:** Bill of materials, copyleft license detection, abandoned dependencies
+**PII & Data Handling:** PII data flow mapping, encryption status, deletion mechanisms, third-party data sharing
+**Architecture & Integration:** External integrations, async patterns, deployment architecture, vendor lock-in
+
+Always request file paths and line context for every finding.
+
+### Phase 3: Cross-Reference & Validation
+1. Verify critical findings against source code (file paths from CoreStory)
+2. Assess severity: production vs. test, actual vs. dev-only
+3. Note discrepancies between CoreStory findings and current source
+4. Flag findings that materially affect deal terms
+
+### Phase 4: Synthesis & Reporting
+1. Compile structured report: Executive Summary, Critical Risks, Technical Debt, Architecture Overview, Integration Assessment, Recommendations
+2. Each finding includes file-level evidence and severity rating
+3. Rename CoreStory conversation with "RESOLVED" prefix (`CoreStory:rename_conversation`)
+
+## Key Principles
+- **Oracle before Navigator**: understand architecture from specs before deep-diving into risk queries
+- **Evidence-based findings**: every finding needs a file path and concrete evidence
+- **Separate threads per workstream**: don't mix security audit with integration planning
+- **Cross-reference critical findings**: validate against source for anything affecting deal terms
+- **Specific queries**: use architectural vocabulary from the Tech Spec to ask targeted questions
+
+## CoreStory Query Patterns
+
+Architecture: "What files are responsible for [service]? What are the integration points?"
+Security: "Identify all hardcoded secrets. Provide file path and line context for each."
+Licensing: "Provide a bill of materials. Flag copyleft licenses."
+PII: "Map PII data flows. Show encryption status at each stage."
+Validation: "Looking at [file path]: I found [issue]. Confirm this is a risk."
+````
+
+#### Prompt File (Optional)
+
+Save as `.github/prompts/ma-due-diligence.prompt.md`:
+
+````markdown
+---
+mode: agent
+description: Perform M&A technical due diligence using CoreStory's code intelligence
+---
+
+Perform technical due diligence on the specified target using the CoreStory four-phase workflow.
+
+1. Identify the target project and retrieve synthesized specifications for architectural orientation
+2. Interrogate the codebase across risk domains: technical debt, security, licensing, PII, architecture
+3. Cross-reference critical findings against source code
+4. Compile a structured due diligence report and mark the conversation resolved
+````
+
+---
+
+### Cursor
+
+#### Setup
+
+1. **Configure the CoreStory MCP server** in Cursor's MCP settings (Settings → MCP Servers, or edit the MCP config JSON directly).
+
+2. **Add project rules.** Cursor uses rules in `.cursor/rules/` directories. Each rule folder contains a `RULE.md` file:
+
+```bash
+mkdir -p .cursor/rules/ma-due-diligence
+```
+
+Create `.cursor/rules/ma-due-diligence/RULE.md` with the content from the rule file below.
+
+3. **Commit to version control:**
+
+```bash
+git add .cursor/rules/
+git commit -m "Add CoreStory M&A due diligence rules for Cursor"
+```
+
+#### Usage
+
+In Cursor's Composer or Chat, the rule activates automatically for diligence-related requests:
+
+```
+Run due diligence on the target codebase
+Perform a technical assessment for the acquisition
+Start an M&A review on project X
+```
+
+#### Tips
+
+- Rules with `alwaysApply: true` load in every session. Set this if your team regularly performs diligence. Otherwise, use `alwaysApply: false` with a good `description` so Cursor loads it intelligently when relevant.
+- The legacy `.cursorrules` file still works but the `.cursor/rules/` directory structure is the current recommended approach.
+- Rules apply to Composer and Chat but do not affect Cursor Tab or inline edits (Cmd/Ctrl+K).
+- On Team/Enterprise plans, team rules apply across all members.
+
+#### Project Rule
+
+Save as `.cursor/rules/ma-due-diligence/RULE.md`:
+
+````markdown
+---
+description: CoreStory-powered M&A due diligence workflow. Activates for due diligence, technical assessments, and acquisition reviews.
+alwaysApply: false
+---
+
+# CoreStory M&A Due Diligence
+
+You are a technical due diligence analyst with access to CoreStory's code intelligence via MCP. Follow the four-phase workflow for M&A technical due diligence.
+
+## Activation Triggers
+
+Apply when user requests: due diligence, diligence audit, technical assessment, M&A review, acquisition review.
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
+## Phase 1: Project Setup & Orientation
+- Identify target project (`CoreStory:list_projects`)
+- Retrieve specs (`CoreStory:get_project_techspec`, `CoreStory:get_project_prd`)
+- Summarize architecture, tech stack, integrations, data models
+- Create diligence conversation (`CoreStory:create_conversation`)
+
+## Phase 2: Risk Interrogation
+Use `CoreStory:send_message` across five risk domains:
+1. **Technical Debt:** EOL frameworks, complexity, abandoned modules
+2. **Security & Secrets:** Hardcoded credentials, auth flows, CVEs
+3. **Licensing:** Copyleft licenses, abandoned dependencies
+4. **PII & Data Handling:** PII flows, encryption, deletion mechanisms
+5. **Architecture & Integration:** External dependencies, async patterns, vendor lock-in
+
+Always request file paths and evidence.
+
+## Phase 3: Cross-Reference & Validation
+- Verify critical findings against source code
+- Assess severity (production vs. test, actual vs. dev-only)
+- Flag findings that materially affect deal terms
+
+## Phase 4: Synthesis & Reporting
+- Compile report: Executive Summary, Critical Risks, Technical Debt, Architecture, Integration Assessment, Recommendations
+- Each finding includes file-level evidence and severity
+- Rename conversation with "RESOLVED" prefix (`CoreStory:rename_conversation`)
+
+## Key Principles
+- Oracle before Navigator: understand architecture from specs first
+- Evidence-based: every finding needs a file path
+- Separate threads per workstream
+- Cross-reference critical findings against source
+- Specific queries using architectural vocabulary
+````
+
+---
+
+### Factory.ai
+
+#### Setup
+
+1. **Configure the CoreStory MCP server** in your Factory.ai environment. Verify with the `/mcp` command that CoreStory tools are accessible.
+
+2. **Add the custom droid.** Factory.ai uses droids stored in `.factory/droids/` (project-level) or `~/.factory/droids/` (personal):
+
+```bash
+mkdir -p .factory/droids
+```
+
+Create `.factory/droids/ma-due-diligence.md` with the content from the droid file below.
+
+3. **Commit to version control** (for project-level droids):
+
+```bash
+git add .factory/droids/
+git commit -m "Add CoreStory M&A due diligence droid"
+```
+
+#### Usage
+
+Invoke the droid via the Task tool:
+
+```
+@ma-due-diligence Run due diligence on [TargetName]
+```
+
+Or describe the task and Factory.ai routes to the droid based on its activation triggers.
+
+#### Tips
+
+- Use `model: inherit` in the YAML frontmatter to use whatever model the session is configured with.
+- The `tools` field in frontmatter explicitly lists required MCP tools — this restricts the droid to only the CoreStory tools needed for diligence.
+- The Task tool that invokes droids requires experimental features to be enabled.
+- For thorough diligence, the droid's CoreStory queries may produce long streaming responses — this is expected.
+
+#### Custom Droid
+
+Save as `.factory/droids/ma-due-diligence.md`:
+
+````markdown
+---
+name: CoreStory M&A Due Diligence
+description: Performs technical due diligence on acquisition targets using CoreStory code intelligence
+model: inherit
+tools:
+  - CoreStory:list_projects
+  - CoreStory:get_project_prd
+  - CoreStory:get_project_techspec
+  - CoreStory:create_conversation
+  - CoreStory:send_message
+  - CoreStory:rename_conversation
+  - CoreStory:list_conversations
+  - CoreStory:get_conversation
+---
+
+# CoreStory M&A Due Diligence
+
+Execute the four-phase due diligence workflow using CoreStory's code intelligence.
+
+## Activation Triggers
+- "Run due diligence on [target]"
+- "Perform technical assessment"
+- "M&A review" or "acquisition review"
+- "Diligence audit"
+- Any due diligence or technical assessment request
+
+## CoreStory MCP Tools
+- `CoreStory:list_projects` — identify the target project
+- `CoreStory:get_project_prd` — retrieve synthesized PRD for business context
+- `CoreStory:get_project_techspec` — retrieve Tech Spec for architecture analysis
+- `CoreStory:create_conversation` — open named diligence thread
+- `CoreStory:send_message` — interrogate the codebase (primary investigation tool)
+- `CoreStory:rename_conversation` — mark completed threads with "RESOLVED" prefix
+- `CoreStory:list_conversations` — review existing diligence threads
+- `CoreStory:get_conversation` — retrieve conversation history for report synthesis
+
+When instructions say "Query CoreStory", use `CoreStory:send_message`.
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
+## Phase 1: Project Setup & Orientation
+1. Identify target project (`CoreStory:list_projects`)
+2. Retrieve specs (`CoreStory:get_project_techspec`, `CoreStory:get_project_prd`)
+3. Summarize architecture, tech stack, integrations, data models
+4. Create diligence conversation: "[Diligence] TargetName - Technical Risk Audit"
+
+## Phase 2: Risk Interrogation
+Query CoreStory across five domains:
+- **Technical Debt:** EOL frameworks, complexity, abandoned modules
+- **Security & Secrets:** Hardcoded credentials, auth flows, CVEs
+- **Licensing:** Copyleft licenses, abandoned dependencies
+- **PII & Data Handling:** PII flows, encryption, deletion mechanisms
+- **Architecture & Integration:** External dependencies, async patterns, vendor lock-in
+
+Always request file paths and evidence for every finding.
+
+## Phase 3: Cross-Reference & Validation
+Verify critical findings against source code. Assess severity. Flag deal-affecting issues.
+
+## Phase 4: Synthesis & Reporting
+Compile report → Executive Summary, Critical Risks, Technical Debt, Architecture, Integration Assessment, Recommendations → rename conversation "RESOLVED".
+
+## Key Principles
+- Oracle before Navigator: understand architecture from specs first
+- Evidence-based: every finding needs a file path
+- Separate threads per workstream
+- Cross-reference critical findings against source
+- Specific queries using architectural vocabulary
+````
+
+---
+
 ## Troubleshooting
 
 **CoreStory gives generic or shallow answers**

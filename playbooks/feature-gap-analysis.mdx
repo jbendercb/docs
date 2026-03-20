@@ -395,6 +395,8 @@ activation:
 
 When this skill activates, execute the four-phase gap analysis workflow.
 
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
 ## Activation Triggers
 
 Activate when user requests:
@@ -606,6 +608,8 @@ description: Run a feature gap analysis using CoreStory to identify what exists,
 
 When this skill activates, execute the four-phase gap analysis workflow.
 
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
 ## Activation Triggers
 
 Activate when user requests gap analysis, implementation surface area, or pre-implementation analysis for a feature.
@@ -704,6 +708,8 @@ Create the file `.cursor/rules/playbooks/feature-gap-analysis.md` in your reposi
 ````markdown
 # Feature Gap Analysis with CoreStory
 
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
 ## When to Activate
 - User asks for gap analysis, implementation surface area, or pre-implementation analysis
 - User wants to know what needs to change before building a feature
@@ -770,6 +776,8 @@ description: >
   structured gap report with file-level changes and a dependency-ordered
   implementation plan.
 instructions: |
+  **If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
   Phase 1 — Context Loading:
   1. Use list_projects to find the target project (verify status is "completed")
   2. Use create_conversation to start a "Gap Analysis: [Feature Name]" thread

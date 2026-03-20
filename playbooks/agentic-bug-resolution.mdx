@@ -542,6 +542,8 @@ description: Resolves bugs using CoreStory's code intelligence and TDD methodolo
 
 When this skill activates, execute the six-phase bug resolution workflow.
 
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
 ## Activation Triggers
 
 Activate when user requests:
@@ -753,6 +755,8 @@ Save as `.github/copilot-instructions.md`:
 ````markdown
 # CoreStory Bug Resolution Workflow
 
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
 ## Role
 
 You are a bug resolution assistant with access to CoreStory's code intelligence via MCP. When users request bug fixes or investigations, follow the six-phase workflow below.
@@ -899,6 +903,8 @@ alwaysApply: false
 
 You are a bug resolution agent with access to CoreStory's code intelligence via MCP. Follow the six-phase workflow for bug investigation and resolution.
 
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
 ## Activation Triggers
 
 Apply when user requests: bug fix, investigation, ticket resolution, or any phrase containing "bug", "issue", "broken", "not working".
@@ -1016,6 +1022,8 @@ tools:
 # CoreStory Bug Resolver
 
 Execute the six-phase bug resolution workflow using CoreStory's code intelligence.
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
 
 ## Activation Triggers
 - "Fix bug #[ID]"

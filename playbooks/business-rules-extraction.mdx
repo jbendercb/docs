@@ -506,6 +506,8 @@ activation:
 
 When the user asks to extract or document business rules, follow this workflow:
 
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
 ## Phase 1: Setup
 1. Call `list_projects` to find the target project
 2. Call `create_conversation` with title "Business Rules Extraction — <scope>"
@@ -580,6 +582,8 @@ description: "Extract, document, and verify business rules from the codebase usi
 # Business Rules Extraction Skill
 
 When the user asks to extract or document business rules, follow this workflow:
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
 
 ## Phase 1: Setup
 1. Call `list_projects` to find the target project
@@ -662,6 +666,8 @@ Create `.cursor/rules//playbooks/business-rules-extraction`:
 
 When extracting business rules from this codebase:
 
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
 1. ALWAYS query CoreStory before searching code (Oracle before Code)
 2. Use domain-specific queries: "What validation rules exist for [entity]?"
    not "What are the business rules?"
@@ -699,6 +705,8 @@ name: business-rules-extractor
 description: Extract and document business rules using CoreStory and local code analysis
 instructions: |
   You extract business rules from codebases using a systematic process:
+
+  **If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
 
   1. Set up a CoreStory conversation for the extraction session
   2. Survey the architecture to understand where business logic lives
