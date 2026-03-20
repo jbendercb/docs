@@ -215,8 +215,6 @@ Append to `.claude/skills/spec-driven-dev/SKILL.md` (after the main playbook's s
 ```markdown
 ## Spec Kit Integration (Optional)
 
-**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
-
 If `.specify/` directory exists, integrate Spec Kit commands:
 - Phase 1: After CoreStory grounding → run `/speckit.constitution`
 - Phase 2: After delta spec → run `/speckit.specify` with invariants/reuse/delta
@@ -235,8 +233,6 @@ Append to `.github/copilot-instructions.md`:
 ```markdown
 ### Spec Kit Integration
 
-**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
-
 If Spec Kit is initialized (`.specify/` exists), use Spec Kit commands
 to structure outputs at each phase. Always query CoreStory BEFORE running
 each Spec Kit command. CoreStory provides grounding; Spec Kit provides structure.
@@ -252,8 +248,6 @@ Append to `.cursor/rules/spec-driven-dev.mdc`:
 
 ```markdown
 ## Spec Kit Integration
-
-**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
 
 If `.specify/` directory exists, integrate Spec Kit commands after CoreStory queries:
 - Phase 1: CoreStory grounding → `/speckit.constitution`
@@ -272,8 +266,6 @@ Append to the droid's instructions in `.factory/droids/spec-driven-dev.md`:
 
 ```markdown
 ## Spec Kit Integration
-
-**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
 
 If `.specify/` directory exists, run Spec Kit commands after CoreStory queries:
 - Phase 1 → `/speckit.constitution`
