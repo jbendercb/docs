@@ -1,0 +1,80 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a1a2e', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#c9a84c', 'lineColor': '#666666', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
+
+graph TB
+    subgraph external["External Systems"]
+        EXT1["Payment Gateway<br/><i>REST API</i>"]
+        EXT2["Identity Provider<br/><i>SAML / OAuth 2.0</i>"]
+        EXT3["Email Service<br/><i>SMTP</i>"]
+    end
+
+    subgraph app["Application Components"]
+        direction TB
+        subgraph web["Web Layer"]
+            UI["Web UI<br/><i>React · 45k LOC</i>"]
+            API["API Gateway<br/><i>Express · 12k LOC</i>"]
+        end
+
+        subgraph services["Service Layer"]
+            ORD["OrderService<br/><i>Java · 28k LOC</i>"]
+            INV["InventoryService<br/><i>Java · 15k LOC</i>"]
+            PAY["PaymentService<br/><i>Java · 22k LOC</i>"]
+            USR["UserService<br/><i>Java · 18k LOC</i>"]
+            RPT["ReportingService<br/><i>Python · 8k LOC</i>"]
+        end
+
+        subgraph batch["Batch Jobs"]
+            B1["Nightly Reconciliation"]
+            B2["Monthly Billing"]
+        end
+    end
+
+    subgraph data["Data Stores"]
+        DB1[("Primary DB<br/><i>PostgreSQL</i><br/>⚠️ Shared writes")]
+        DB2[("Reporting DB<br/><i>PostgreSQL replica</i>")]
+        CACHE[("Cache<br/><i>Redis</i>")]
+        MQ[["Message Queue<br/><i>RabbitMQ</i>"]]
+    end
+
+    UI -->|REST| API
+    API -->|sync| ORD
+    API -->|sync| USR
+    ORD -->|sync| INV
+    ORD -->|sync| PAY
+    ORD -.->|async| MQ
+    MQ -.->|async| RPT
+
+    PAY -->|REST| EXT1
+    USR -->|SAML| EXT2
+    ORD -->|SMTP| EXT3
+
+    ORD -->|read/write| DB1
+    INV -->|read/write| DB1
+    PAY -->|read/write| DB1
+    USR -->|read/write| DB1
+    RPT -->|read| DB2
+    ORD -->|read/write| CACHE
+    B1 -->|read/write| DB1
+    B2 -->|read| DB1
+
+    style DB1 fill:#4a1a1a,stroke:#ff6b6b,stroke-width:2px,color:#ffffff
+    style external fill:#0f3460,stroke:#c9a84c,stroke-width:1px,color:#c9a84c
+    style app fill:#1a1a2e,stroke:#c9a84c,stroke-width:1px,color:#c9a84c
+    style web fill:#16213e,stroke:#555,stroke-width:1px,color:#aaa
+    style services fill:#16213e,stroke:#555,stroke-width:1px,color:#aaa
+    style batch fill:#16213e,stroke:#555,stroke-width:1px,color:#aaa
+    style data fill:#1a1a2e,stroke:#c9a84c,stroke-width:1px,color:#c9a84c
+    style UI fill:#1a1a2e,stroke:#c9a84c,color:#fff
+    style API fill:#1a1a2e,stroke:#c9a84c,color:#fff
+    style ORD fill:#1a1a2e,stroke:#c9a84c,color:#fff
+    style INV fill:#1a1a2e,stroke:#c9a84c,color:#fff
+    style PAY fill:#1a1a2e,stroke:#c9a84c,color:#fff
+    style USR fill:#1a1a2e,stroke:#c9a84c,color:#fff
+    style RPT fill:#1a1a2e,stroke:#c9a84c,color:#fff
+    style B1 fill:#1a1a2e,stroke:#666,color:#aaa
+    style B2 fill:#1a1a2e,stroke:#666,color:#aaa
+    style DB2 fill:#1a1a2e,stroke:#c9a84c,color:#fff
+    style CACHE fill:#1a1a2e,stroke:#c9a84c,color:#fff
+    style MQ fill:#1a1a2e,stroke:#c9a84c,color:#fff
+    style EXT1 fill:#0f3460,stroke:#c9a84c,color:#fff
+    style EXT2 fill:#0f3460,stroke:#c9a84c,color:#fff
+    style EXT3 fill:#0f3460,stroke:#c9a84c,color:#fff

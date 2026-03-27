@@ -59,6 +59,17 @@
           {
             "group": "Playbooks",
             "pages": [
+              {
+                "group": "Code Modernization",
+                "pages": [
+                  "playbooks/code-modernization",
+                  "playbooks/modernization/codebase-assessment",
+                  "playbooks/modernization/target-architecture",
+                  "playbooks/modernization/decomposition-sequencing",
+                  "playbooks/modernization/behavioral-verification",
+                  "playbooks/modernization/monolith-to-microservices"
+                ]
+              },
               "playbooks/agentic-bug-resolution",
               "playbooks/feature-implementation",
               {
@@ -70,6 +81,14 @@
               },
               "playbooks/ma-technical-due-diligence",
               "playbooks/business-rules-extraction",
+              {
+                "group": "Spec-Driven Test Generation",
+                "pages": [
+                  "playbooks/spec-driven-test-generation",
+                  "playbooks/test-generation/behavioral-test-coverage",
+                  "playbooks/test-generation/e2e-test-generation"
+                ]
+              },
               "playbooks/using-corestory-with-jira",
               "playbooks/feature-gap-analysis"
             ]

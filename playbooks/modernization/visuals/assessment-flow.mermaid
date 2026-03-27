@@ -1,0 +1,39 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a1a2e', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#c9a84c', 'lineColor': '#c9a84c', 'secondaryColor': '#16213e', 'tertiaryColor': '#0f3460', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
+
+graph TD
+    subgraph foundation["🧭 Oracle Before Navigator — Understand architecture from specs before searching for issues"]
+        direction LR
+        F1[" "]
+    end
+
+    P1["<b>Phase 1: Setup & Orientation</b><br/>Confirm project · Load TechSpec + PRD<br/>Create assessment conversation"]
+    P2["<b>Phase 2: Architecture Mapping</b><br/>Components · Communication patterns<br/>Data stores · Entry points · Non-code artifacts"]
+    P3["<b>Phase 3: Dependency Analysis</b><br/>Internal coupling · Shared data stores<br/>External dependencies · Integration fragility"]
+    P4["<b>Phase 4: Tech Debt & Risk</b><br/>Code quality · Security · Compliance<br/>Testability · Operational complexity"]
+    P5["<b>Phase 5: Readiness Scoring</b><br/>Per-component 1–5 score<br/>7 Rs strategy recommendation"]
+    P6["<b>Phase 6: Report Generation</b><br/>Modernization Readiness Report"]
+    HITL{"👤 HITL Gate<br/>Stakeholder review<br/>Go / No-go"}
+    NEXT["→ Phase 3: Target Architecture"]
+
+    P1 --> P2
+    P2 --> P3
+    P3 --> P4
+    P4 --> P5
+    P5 --> P6
+    P6 --> HITL
+    HITL -->|Approved| NEXT
+    HITL -->|Not Ready| PREREQ["Address prerequisites<br/>before proceeding"]
+
+    foundation ~~~ P1
+
+    style P1 fill:#1a1a2e,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style P2 fill:#1a1a2e,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style P3 fill:#1a1a2e,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style P4 fill:#1a1a2e,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style P5 fill:#1a1a2e,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style P6 fill:#1a1a2e,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style HITL fill:#c9a84c,stroke:#1a1a2e,stroke-width:2px,color:#1a1a2e
+    style NEXT fill:#0f3460,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style PREREQ fill:#4a1a1a,stroke:#c9a84c,stroke-width:1px,color:#ffffff
+    style foundation fill:#0f3460,stroke:#c9a84c,stroke-width:1px,color:#c9a84c
+    style F1 fill:none,stroke:none

@@ -1,0 +1,1138 @@
+---
+title: "Behavioral Test Coverage"
+sidebarTitle: "Behavioral Tests"
+description: "Systematically generate behavioral test coverage from CoreStory's specification intelligence — acceptance criteria, invariants, business rules, state transitions, and edge cases — using AI coding agents."
+icon: "flask-vial"
+---
+
+
+## Overview
+
+Test suites rot from the inside. Teams write tests for the features they build, skip the ones they inherit, and never go back to fill the gaps. The result is coverage that correlates with recency, not criticality — the newest code is well-tested, the most important code is not. AI coding agents can generate tests at scale, but without knowing what the system is *supposed to do*, they produce tests that mirror implementation: tests that pass today, break on every refactor, and verify nothing meaningful.
+
+This playbook teaches you how to use the CoreStory MCP server, combined with local source code, to systematically generate tests that verify **behavioral specifications** — acceptance criteria, business rules, invariants, state transitions, and authorization policies — rather than implementation details. The approach uses CoreStory as a **Specification Oracle**: the agent queries CoreStory for what the system should do, discovers how the system actually does it, and generates tests that bridge the two.
+
+The primary deliverable is **executable test code** that matches the project's existing test conventions — framework, directory structure, naming patterns, fixture approach, and assertion style. There is no intermediate documentation artifact. The behavioral inventory lives in the CoreStory conversation; the tests are the output.
+
+**How this relates to other playbooks:** This playbook generates tests for existing, already-implemented behavior — it doesn't implement new features or fix bugs. If you're implementing a new feature and want tests as part of that process, use the [Feature Implementation](/playbooks/feature-implementation) playbook, which includes TDD as Phase 4. If you're verifying behavioral equivalence between legacy and modernized code, use the [Behavioral Verification](/playbooks/modernization/behavioral-verification) playbook. If you need to extract and document business rules before generating tests, use the [Business Rules Extraction](/playbooks/business-rules-extraction) playbook — its output feeds directly into Phase 2 of this playbook. This playbook's unique contribution is systematic, specification-driven test generation for existing codebases that lack adequate coverage.
+
+### When to Use This Playbook
+
+- A codebase has significant untested business logic and you want to close coverage gaps systematically
+- You're onboarding to an unfamiliar codebase and want to build a safety net before making changes
+- Preparing for a major refactor, migration, or dependency upgrade and need comprehensive regression tests
+- A compliance or audit requirement demands documented test coverage of specific business rules
+- You've completed a [Business Rules Extraction](/playbooks/business-rules-extraction) and want to turn the inventory into executable tests
+- The team's test coverage is implementation-heavy (mocking everything, testing method signatures) and you want to shift toward behavioral tests
+
+### When to Skip This Playbook
+
+- You're implementing a new feature (use the [Feature Implementation](/playbooks/feature-implementation) playbook — its TDD phase generates tests as part of implementation)
+- The codebase is trivially small (under ~5k LOC) — write the tests directly
+- No CoreStory project exists for the codebase and you can't create one
+- You need to verify behavioral equivalence between two implementations (use the [Behavioral Verification](/playbooks/modernization/behavioral-verification) playbook)
+- The system under test has no observable behavior (pure infrastructure, configuration-only)
+
+## Prerequisites
+
+- CoreStory account with at least one project that has completed ingestion
+- CoreStory MCP server connected to your AI coding agent (see the [CoreStory MCP Server Setup Guide](/getting-started/mcp-server-setup))
+- A code repository the agent can read and write to locally
+- An existing test framework configured in the project (the playbook generates tests matching existing conventions — it doesn't set up test infrastructure from scratch)
+- (Recommended) A prior [Business Rules Extraction](/playbooks/business-rules-extraction) conversation — if one exists, Phase 2 can consume it directly instead of starting from scratch
+- (Recommended) Ability to run the test suite locally to verify generated tests
+
+## How It Works
+
+### The Workflow Phases
+
+| Phase | Name | Purpose | CoreStory Role |
+|-------|------|---------|----------------|
+| 1 | Setup & Scoping | Select project, create conversation, define generation scope | Setup |
+| 2 | Behavioral Inventory | Extract testable specifications: acceptance criteria, invariants, business rules, state transitions | Oracle |
+| 3 | Test Convention Discovery | Understand the project's existing test patterns, framework, fixtures, and structure | Oracle + Navigator |
+| 4 | Coverage Gap Analysis | Map behavioral inventory against existing tests to identify what's missing | Navigator |
+| 5 | Test Generation & Validation | Generate test code, run it, verify tests are meaningful | — (local code + CoreStory validation) |
+| 6 | Completion & Capture | Review coverage, commit tests, rename conversation | Knowledge capture |
+
+The core principle is **Specification before Code**: query CoreStory for behavioral specifications before examining source code or writing tests. This ensures tests verify *intended behavior*, not implementation accidents.
+
+### CoreStory MCP Tools Used
+
+| Tool | Phase(s) | Purpose |
+|------|----------|---------|
+| `list_projects` | 1 | Find the target project |
+| `create_conversation` | 1 | Create a persistent conversation for the generation session |
+| `send_message` | 2, 3, 4, 5 | Query CoreStory for specifications, test conventions, and validation |
+| `get_project_prd` | 2 | Skim PRD structure for domain vocabulary and acceptance criteria sections |
+| `get_project_techspec` | 2 | Skim TechSpec for data model constraints and architectural invariants |
+| `list_conversations` | 1 | Check for prior Business Rules Extraction sessions to build on |
+| `get_conversation` | 1 | Resume or consume a prior extraction session |
+| `rename_conversation` | 6 | Mark the conversation as resolved |
+
+**A note on the PRD and TechSpec:** As with other playbooks, these documents are typically too large for an agent's context window. Don't try to read them end-to-end. Query CoreStory about their contents via `send_message` instead — CoreStory has already ingested them and can answer targeted questions about acceptance criteria, business rules, and constraints more efficiently than the agent can parse the raw documents.
+
+### HITL Gate
+
+> **After Phase 4 (Coverage Gap Analysis):** Before generating tests, a human should review the behavioral inventory and prioritized gap list. This is the checkpoint where domain knowledge matters most — the human validates that the extracted specifications are correct, that the prioritization makes sense, and that the scope is appropriate. Generating tests from incorrect specifications produces confidently wrong assertions.
+
+---
+
+## Step-by-Step Walkthrough
+
+### Phase 1 — Setup & Scoping
+
+**Goal:** Establish the test generation session and define what you're generating tests for.
+
+**Step 1.1: Find the project.**
+
+```
+Tool: list_projects
+```
+
+Identify the target project by name. Note the `project_id` — you'll use it for every subsequent call.
+
+**Step 1.2: Check for prior work.**
+
+```
+Tool: list_conversations
+Parameters: project_id = <your project>
+```
+
+Look for two types of prior conversations:
+
+- **Business Rules Extraction** conversations (titles containing "Business Rules") — if one exists for the module you're targeting, it contains a pre-built behavioral inventory. You can consume it in Phase 2 instead of extracting from scratch.
+- **Prior Test Generation** conversations (titles containing "Test Generation") — if you've run this playbook before on a different module, review it for conventions and patterns that worked well.
+
+Use `get_conversation` to review any relevant prior work.
+
+**Step 1.3: Create a conversation.**
+
+```
+Tool: create_conversation
+Parameters:
+  project_id = <your project>
+  title = "Test Generation — <scope description>"
+```
+
+Use a descriptive title that includes the generation scope. Examples:
+- "Test Generation — Order Processing Module"
+- "Test Generation — Full System Behavioral Coverage"
+- "Test Generation — Authentication & Authorization Rules"
+
+**Step 1.4: Define scope.**
+
+Choose the generation scope before querying:
+
+| Scope | When to Use | Expected Output |
+|-------|------------|-----------------|
+| Single module | You need tests for one specific area (e.g., payments, auth) | 10–30 test cases |
+| Single domain | You need tests across a domain (e.g., all e-commerce rules) | 30–80 test cases |
+| Full system | You need comprehensive behavioral coverage | 80+ test cases, done in multiple sessions |
+
+For a first run, start with a single module — preferably one with known coverage gaps and high business criticality. Full-system generation should be done one domain at a time across multiple sessions.
+
+---
+
+### Phase 2 — Behavioral Inventory (Oracle)
+
+**Goal:** Extract a comprehensive list of testable behavioral specifications for the scoped area.
+
+This is the phase that distinguishes specification-driven test generation from naive code-coverage-driven generation. You're building an inventory of *what the system should do*, not what it happens to do. Each item in this inventory becomes one or more test cases.
+
+**If a Business Rules Extraction conversation exists** for the target scope, consume it:
+
+```
+Tool: get_conversation
+Parameters:
+  project_id = <your project>
+  conversation_id = <business rules conversation>
+```
+
+Review the extracted rules. Each rule with its domain, type, enforcement layer, source files, and invariants translates directly into test cases. Skip to Step 2.6 (gap-filling) — you already have the core inventory.
+
+**If no prior extraction exists**, build the inventory from scratch using targeted queries. This is a lighter version of the Business Rules Extraction playbook, focused specifically on testable specifications rather than comprehensive documentation.
+
+**Step 2.1: Query for acceptance criteria.**
+
+```
+Tool: send_message
+Query: "What are the documented acceptance criteria for [module/domain]?
+I need the specific, testable conditions — input/output expectations,
+success/failure criteria, and boundary conditions. Group them by
+feature or user story."
+```
+
+Acceptance criteria are the most directly testable specifications — they often map 1:1 to test cases.
+
+**Step 2.2: Query for validation rules.**
+
+```
+Tool: send_message
+Query: "What validation rules exist for [entity/module]? Include input
+validation, required fields, format constraints, uniqueness checks,
+cross-field validation, and error messages returned on failure."
+```
+
+Validation rules produce highly specific tests: given this input, expect this outcome. CoreStory typically returns constraint values (e.g., "password must be 8–12 characters"), enforcement locations, and error responses.
+
+**Step 2.3: Query for state transitions.**
+
+```
+Tool: send_message
+Query: "What are the state transitions for [entity, e.g., orders,
+user accounts, subscriptions]? For each transition: what triggers it,
+what preconditions must hold, what postconditions are guaranteed, and
+what invalid transitions should be rejected?"
+```
+
+State transitions produce two categories of tests: positive tests (valid transitions succeed and produce correct postconditions) and negative tests (invalid transitions are rejected with appropriate errors).
+
+**Step 2.4: Query for authorization rules.**
+
+```
+Tool: send_message
+Query: "What authorization and permission rules govern [feature area]?
+Who can perform which operations? What role checks exist? What happens
+when an unauthorized user attempts each operation?"
+```
+
+Authorization rules produce tests for every role × operation combination: permitted users succeed, forbidden users get appropriate errors.
+
+**Step 2.5: Query for invariants and edge cases.**
+
+```
+Tool: send_message
+Query: "What invariants must always hold for [entity/module]? What are
+the known edge cases — null inputs, maximum values, concurrent access,
+boundary conditions? What happens when [specific edge case scenario]?"
+```
+
+Invariants produce assertion-style tests: after any operation, these conditions must still be true. Edge cases produce boundary tests that often catch the most subtle bugs.
+
+**Step 2.6: Gap-filling — query for implicit and undocumented behavior.**
+
+```
+Tool: send_message
+Query: "What behaviors in [module] are implemented in code but not
+documented in the PRD or acceptance criteria? What implicit rules
+exist — error handling conventions, fallback behaviors, default values,
+side effects of operations?"
+```
+
+This surfaces the behaviors that teams "just know" but never wrote down — and therefore never tested. These are often the highest-value test cases.
+
+**Step 2.7: Query for calculation and transformation logic.**
+
+```
+Tool: send_message
+Query: "What calculations, transformations, or derived values exist in
+[module]? What are the inputs, formulas, rounding rules, and expected
+outputs? Are there tiered or conditional calculation paths?"
+```
+
+Calculation logic is where property-based and parameterized tests shine — given these inputs, the output must satisfy these properties.
+
+**Expected output from Phase 2:**
+A behavioral inventory in the CoreStory conversation, organized by category:
+- Acceptance criteria (from PRD / user stories)
+- Validation rules (per entity/operation)
+- State transitions (valid and invalid)
+- Authorization rules (per role × operation)
+- Invariants (always-true conditions)
+- Implicit behaviors (undocumented but enforced)
+- Calculations and transformations
+
+Each item should have enough specificity to translate into a test: inputs, expected outputs, preconditions, postconditions.
+
+---
+
+### Phase 3 — Test Convention Discovery (Oracle + Navigator)
+
+**Goal:** Understand how the project's existing tests are structured so generated tests match perfectly.
+
+This phase ensures generated tests are indistinguishable from hand-written tests by the team. The agent must discover the testing conventions before writing any test code.
+
+**Step 3.1: Query for test framework and structure.**
+
+```
+Tool: send_message
+Query: "What testing frameworks, libraries, and tools does this project
+use? How are tests organized — directory structure, file naming
+conventions, test class naming? Are there separate unit, integration,
+and end-to-end test directories?"
+```
+
+The agent needs: framework (pytest, Jest, JUnit, xUnit, RSpec, etc.), directory layout, file naming pattern (e.g., `test_*.py`, `*.test.ts`, `*Test.java`), and any test configuration files.
+
+**Step 3.2: Query for fixture and setup patterns.**
+
+```
+Tool: send_message
+Query: "How does this project set up test data? What fixture patterns
+are used — factories, fixtures, builders, shared setup? Are there
+shared test utilities or base test classes? How are database state
+and external dependencies handled in tests?"
+```
+
+The agent needs: fixture approach (factories vs. fixtures vs. inline setup), shared utilities, database handling (transactions, in-memory DB, mocks), and external service handling (mocks, stubs, test doubles).
+
+**Step 3.3: Query for assertion and mock patterns.**
+
+```
+Tool: send_message
+Query: "What assertion styles does this project use? What mocking
+framework and patterns are standard? Are there custom assertions
+or test helpers? What's the convention for testing error conditions
+and exceptions?"
+```
+
+**Step 3.4: Verify conventions against local code.**
+
+Navigate to the existing test directories in the local codebase and read 2–3 representative test files. Confirm that CoreStory's description of conventions matches reality. Pay attention to:
+
+- Import patterns
+- Setup/teardown patterns
+- Assertion style (fluent, classic, custom)
+- Mock/stub conventions
+- Test naming (descriptive strings vs. method names)
+- Comment and docstring conventions
+
+If conventions vary across the codebase (common in older projects), identify which convention applies to the module you're generating tests for.
+
+**Expected output from Phase 3:**
+A concrete understanding of:
+- Test framework and runner
+- Directory and file naming conventions
+- Fixture and setup patterns to follow
+- Mock/stub approach
+- Assertion style
+- 2–3 reference test files to use as templates
+
+---
+
+### Phase 4 — Coverage Gap Analysis (Navigator)
+
+**Goal:** Map the behavioral inventory against existing tests to identify what's missing. Prioritize the gaps.
+
+**Step 4.1: Query for existing test coverage.**
+
+```
+Tool: send_message
+Query: "What tests currently exist for [module/domain]? What behaviors
+are covered? What test files correspond to the source files we
+identified in Phase 2?"
+```
+
+**Step 4.2: Inspect existing tests locally.**
+
+Navigate to the test files CoreStory identified. Read them to understand:
+- Which behaviors are already tested
+- Which behaviors are tested but weakly (e.g., only happy path, no edge cases)
+- Which behaviors have no test coverage at all
+
+**Step 4.3: Build the gap matrix.**
+
+Cross-reference the behavioral inventory (Phase 2) against existing tests (Steps 4.1–4.2). For each behavior:
+
+| Status | Meaning | Action |
+|--------|---------|--------|
+| **Covered** | Existing tests adequately verify this behavior | Skip — no new test needed |
+| **Partially covered** | Tests exist but miss edge cases, error paths, or boundary conditions | Generate supplemental tests |
+| **Uncovered** | No tests verify this behavior | Generate full test coverage |
+
+**Step 4.4: Prioritize gaps.**
+
+Not all gaps are equal. Prioritize by:
+
+1. **Business criticality** — Rules that affect money, security, data integrity, or regulatory compliance
+2. **Risk of breakage** — Behaviors in frequently modified code, complex logic, or cross-component interactions
+3. **Specificity of specification** — Behaviors where the Phase 2 inventory has precise, testable specifications (vague specifications produce vague tests)
+4. **Testability** — Behaviors that can be tested in isolation without excessive infrastructure
+
+**Expected output from Phase 4:**
+A prioritized list of behavioral specifications that need tests, categorized as "uncovered" or "partially covered," with the specific gaps identified for each.
+
+> **HITL Gate:** Present the gap analysis to the human for review before proceeding. Key questions: Are the extracted specifications correct? Is the prioritization sensible? Is the scope appropriate for this session?
+
+---
+
+### Phase 5 — Test Generation & Validation
+
+**Goal:** Generate test code for each gap, verify tests pass, and confirm they're meaningful.
+
+Work through the prioritized gap list from Phase 4. For each behavioral specification:
+
+**Step 5.1: Generate the test.**
+
+Using the behavioral specification from Phase 2, the test conventions from Phase 3, and the reference test files as templates, write the test. Each test should:
+
+- Follow the project's naming conventions exactly
+- Use the project's fixture and setup patterns
+- Assert the behavioral specification, not implementation details
+- Include a docstring or comment linking back to the specification (e.g., the acceptance criterion, business rule ID, or invariant)
+- Handle setup, action, and assertion in the project's standard structure (AAA, Given-When-Then, etc.)
+
+**Step 5.2: Run the test.**
+
+Execute the test and verify it passes against the current codebase. A generated test that fails immediately indicates one of three things:
+
+| Failure Type | Meaning | Action |
+|--------------|---------|--------|
+| Setup failure | Test infrastructure is wrong (bad imports, missing fixtures, incorrect setup) | Fix the test mechanics — this is a convention mismatch, not a specification issue |
+| Assertion failure | The code doesn't match the specification | Investigate: is the spec wrong or is the code wrong? This is valuable discovery — flag it for human review |
+| Runtime error | Test triggers an error path not anticipated in the specification | Add to the behavioral inventory as a discovered edge case |
+
+**Step 5.3: Validate the test is meaningful.**
+
+A test that passes is not necessarily a good test. For high-priority tests, validate that the test would *fail* if the behavior it verifies were broken. The simplest approach:
+
+```
+Tool: send_message
+Query: "I've written this test for [behavioral specification]:
+
+[paste test code]
+
+Is this test actually verifying the intended behavior? Could it pass
+even if the underlying rule were violated? What would make this test
+more robust?"
+```
+
+For critical invariants and business rules, consider a manual mutation check: temporarily alter the source code to violate the rule and confirm the test catches it. Restore the code afterward.
+
+**Step 5.4: Generate edge case tests.**
+
+For each core behavioral test, query CoreStory for edge cases specific to that behavior:
+
+```
+Tool: send_message
+Query: "For the behavior '[specific behavior]', what edge cases should
+I test? What boundary conditions, null inputs, concurrent scenarios,
+or unusual input combinations could cause different behavior?"
+```
+
+Generate additional tests for the most important edge cases.
+
+**Step 5.5: Run the full test suite.**
+
+After generating a batch of tests (typically per-module or per-domain), run the full test suite. Verify:
+- All new tests pass
+- No existing tests broke (new test files shouldn't affect existing tests, but shared fixture changes might)
+- Test execution time is reasonable (generated tests should not significantly slow the suite)
+
+**Expected output from Phase 5:**
+Test files matching the project's conventions, organized in the project's standard test directory structure, covering the gaps identified in Phase 4.
+
+---
+
+### Phase 6 — Completion & Capture
+
+**Goal:** Finalize generated tests, capture the session, and report coverage.
+
+**Step 6.1: Review coverage against the behavioral inventory.**
+
+Map the generated tests back to the Phase 2 behavioral inventory. Produce a summary:
+
+```
+Behavioral specifications inventoried: [count]
+Previously covered: [count]
+New tests generated: [count]
+Remaining uncovered: [count] (with reasons — e.g., "requires integration
+  environment", "specification too vague", "deferred to next session")
+```
+
+**Step 6.2: Organize test files.**
+
+Ensure generated tests are in the correct directories, follow the project's file naming conventions, and are ready to commit. If the project separates unit and integration tests, ensure each generated test is in the right category.
+
+**Step 6.3: Commit the tests.**
+
+Commit with a message that explains what was generated and why:
+
+```
+Test: Add behavioral test coverage for [module/domain]
+
+Coverage:
+- [X] acceptance criteria tests from PRD user stories
+- [X] validation rule tests for [entities]
+- [X] state transition tests for [entity lifecycle]
+- [X] authorization tests for [feature area]
+- [X] invariant tests for [data model constraints]
+- [X] edge case tests for [specific scenarios]
+
+Behavioral specifications from CoreStory conversation [conversation-id].
+Total new tests: [count]
+All existing tests still pass — no regressions.
+
+References:
+- CoreStory conversation: [conversation-id]
+- Business Rules Inventory: [conversation-id, if applicable]
+```
+
+**Step 6.4: Rename the conversation.**
+
+```
+Tool: rename_conversation
+Parameters:
+  project_id = <your project>
+  conversation_id = <your conversation>
+  title = "RESOLVED — Test Generation — <scope description>"
+```
+
+The RESOLVED prefix signals that this conversation contains a completed test generation session. Future sessions can reference it for conventions and patterns.
+
+---
+
+## Tips & Best Practices
+
+**The specificity principle applies to test generation even more than to extraction.** Compare:
+
+| Query | Test Quality |
+|-------|-------------|
+| "What should I test in the order module?" | Generic, shallow tests |
+| "What validation rules exist for order submission, including minimum order amounts, inventory checks, and payment method validation?" | Precise, high-value tests with specific assertions |
+
+Always name the specific entity, operation, and rule types you're asking about.
+
+**Behavioral tests vs. implementation tests — how to tell the difference:**
+
+A behavioral test asserts *what* the system does:
+```python
+def test_order_rejected_when_below_minimum_amount():
+    order = create_order(total=4.99)
+    result = submit_order(order)
+    assert result.status == "rejected"
+    assert "minimum order amount" in result.error
+```
+
+An implementation test asserts *how* the system does it:
+```python
+def test_order_calls_minimum_check_validator():
+    order = create_order(total=4.99)
+    with mock.patch("OrderValidator.check_minimum") as mock_check:
+        mock_check.return_value = False
+        submit_order(order)
+        mock_check.assert_called_once_with(4.99)
+```
+
+The first test survives refactoring. The second breaks the moment anyone renames the validator. This playbook generates the first kind.
+
+**How to scope generation to avoid overwhelming the agent and the reviewer:**
+
+- Generate tests one domain at a time, completing the full cycle (inventory → conventions → gaps → generate → validate) before moving on
+- Within a domain, generate core behavioral tests first, edge case tests second
+- Target 10–30 test cases per session — enough to be meaningful, small enough for thorough human review
+- For a full-system effort, plan multiple sessions with clear domain boundaries
+
+**When generated tests fail — treat it as discovery, not failure:**
+
+A generated test that fails on assertion (not on setup) is telling you something valuable: either the specification is wrong or the code is wrong. Both are important to know. Flag these for human review rather than discarding the test or adjusting the assertion to match current behavior.
+
+**How to handle specifications that are too vague to test:**
+
+If CoreStory returns a behavioral specification that's too vague for a precise test (e.g., "the system should handle errors gracefully"), ask a follow-up:
+
+```
+Tool: send_message
+Query: "For the behavior 'errors are handled gracefully in [module]',
+what specifically happens? What error types exist? What does the user
+see? What is logged? What state changes occur (or don't)?"
+```
+
+If the specification remains vague after a targeted follow-up, it's likely underdefined in the codebase itself. Note it as a gap in the coverage report rather than generating a meaningless test.
+
+**When to involve a domain expert:**
+
+- After Phase 2 (behavioral inventory) — to validate extracted specifications, especially implicit rules that exist only in code
+- After Phase 4 (gap analysis) — to confirm prioritization and scope
+- When generated tests fail on assertion — to determine whether the spec or the code is wrong
+- For low-confidence specifications (found only in code with no supporting documentation)
+
+---
+
+## Advanced Patterns
+
+### Consuming a Business Rules Inventory
+
+If the [Business Rules Extraction](/playbooks/business-rules-extraction) playbook has been run for this module, the output is a structured inventory with rule IDs (BR-XXX), domains, types, enforcement layers, source files, and invariants. Each rule maps to tests as follows:
+
+| Rule Type | Test Pattern |
+|-----------|-------------|
+| Validation | Given invalid input → assert rejection with specific error |
+| Authorization | Given unauthorized user/role → assert access denied |
+| State Transition | Given entity in state A → perform action → assert state B + postconditions |
+| Calculation | Given inputs → assert output matches formula/expected value |
+| Constraint | After any operation → assert invariant still holds |
+| Workflow | Given preconditions → execute full workflow → assert end state + side effects |
+
+Reference the BR-XXX IDs in test docstrings for traceability:
+
+```python
+def test_password_minimum_length_enforced():
+    """BR-012: Password must be 8–12 characters."""
+    result = register_user(password="short")
+    assert result.status == 400
+    assert "password" in result.errors
+```
+
+### Parameterized Tests for Validation Rules
+
+When a validation rule has multiple constraint values (e.g., field length limits, allowed formats, enum values), generate parameterized tests rather than individual test functions:
+
+```python
+@pytest.mark.parametrize("password,expected_valid", [
+    ("short", False),           # Below minimum (8 chars)
+    ("exactly8", True),         # At minimum boundary
+    ("twelve12char", True),     # At maximum boundary
+    ("thirteenchars", False),   # Above maximum (12 chars)
+    ("noDigit!!", False),       # Missing digit
+    ("noSpecial1", False),      # Missing special char
+    ("Valid1Pass!", True),      # All criteria met
+])
+def test_password_validation(password, expected_valid):
+    """BR-012: Password must be 8–12 chars, 1 digit, 1 special."""
+    result = validate_password(password)
+    assert result.is_valid == expected_valid
+```
+
+The exact parameterization syntax depends on the project's framework — adapt to match.
+
+### Authorization Matrix Testing
+
+When the behavioral inventory includes authorization rules across multiple roles and operations, generate the tests systematically from the matrix:
+
+```
+Tool: send_message
+Query: "Give me the complete authorization matrix for [feature area]:
+which roles can perform which operations. Format as a matrix with
+roles as rows and operations as columns, marking each as allowed
+or denied."
+```
+
+This produces a matrix that maps directly to parameterized tests:
+
+```python
+@pytest.mark.parametrize("role,operation,expected", [
+    ("admin", "create_user", True),
+    ("admin", "delete_user", True),
+    ("manager", "create_user", True),
+    ("manager", "delete_user", False),
+    ("viewer", "create_user", False),
+    ("viewer", "delete_user", False),
+])
+def test_authorization_matrix(role, operation, expected):
+    user = create_user(role=role)
+    result = perform_operation(user, operation)
+    if expected:
+        assert result.status != 403
+    else:
+        assert result.status == 403
+```
+
+### State Transition Testing
+
+For entities with defined lifecycles, generate tests for both valid and invalid transitions:
+
+```
+Tool: send_message
+Query: "For [entity], give me the complete state machine: all valid
+transitions (from_state → to_state with trigger) and all invalid
+transitions that should be rejected. What postconditions are
+guaranteed after each valid transition?"
+```
+
+Generate positive tests for each valid transition and negative tests for representative invalid transitions:
+
+```python
+def test_order_can_transition_from_pending_to_confirmed():
+    """Valid transition: PENDING → CONFIRMED via payment_received."""
+    order = create_order(status="pending")
+    order.receive_payment(amount=order.total)
+    assert order.status == "confirmed"
+    assert order.payment_received_at is not None  # postcondition
+
+def test_order_cannot_transition_from_delivered_to_pending():
+    """Invalid transition: DELIVERED → PENDING is not allowed."""
+    order = create_order(status="delivered")
+    with pytest.raises(InvalidTransitionError):
+        order.revert_to_pending()
+```
+
+### Integration with CI/CD
+
+Generated tests should be integrated into the project's CI/CD pipeline like any other tests. No special configuration should be needed — the tests use the same framework, fixtures, and assertion patterns as existing tests. If the project has coverage reporting (e.g., `pytest-cov`, Istanbul, JaCoCo), the generated tests will automatically improve reported coverage.
+
+For teams running this playbook regularly, consider a periodic cadence: run test generation for one domain per sprint, rotating through the system. This gradually builds comprehensive behavioral coverage without requiring a single large effort.
+
+---
+
+## Troubleshooting
+
+**CoreStory returns vague behavioral specifications.**
+Your query is too broad. Replace "What should I test?" with "What validation rules exist for [specific entity] including [specific rule types]?" Always name the module, entity, or workflow. See the specificity principle in Tips above.
+
+**Generated tests fail on setup, not on assertions.**
+The test conventions from Phase 3 don't match reality. Re-inspect the existing test files locally. Common causes: wrong import paths, missing fixture setup, incorrect mock targets, or framework version mismatches.
+
+**Generated tests all pass but don't feel meaningful.**
+The tests may be asserting implementation details rather than behavioral specifications. Review against the "behavioral vs. implementation" distinction in Tips. If the test would still pass after changing the underlying business rule, it's not testing the rule.
+
+**CoreStory's behavioral specification contradicts what the code does.**
+This is valuable discovery. The specification (from the PRD or CoreStory's understanding) says X; the code does Y. Flag it as a conflict rather than adjusting the test to match the code. One of two things is true: the code has a bug, or the specification is outdated. Both are worth knowing.
+
+**Too many gaps to address in one session.**
+This is normal for large, undertested codebases. Focus on one domain per session, prioritized by business criticality. Use the gap matrix from Phase 4 to plan a multi-session campaign. Each session produces value independently — you don't need to cover everything at once.
+
+**Phase 2 surfaces behaviors that are already well-tested.**
+Skip them. The gap analysis in Phase 4 exists precisely to avoid generating redundant tests. If Phase 4 shows most behaviors are covered, the module has good existing coverage — move to a different module.
+
+**Tests take too long to run.**
+Generated behavioral tests should be fast. If they're slow, check whether they're accidentally hitting real databases, APIs, or file systems instead of using the project's standard mocks and fixtures. Ensure generated tests follow the same isolation patterns as existing tests.
+
+---
+
+## Agent Implementation Guides
+
+### Claude Code
+
+#### Setup
+
+**1. Connect CoreStory MCP server.** Run this in your terminal:
+
+```bash
+claude mcp add --transport http corestory https://c2s.corestory.ai/mcp \
+  --header "Authorization: Bearer mcp_YOUR_TOKEN_HERE"
+```
+
+Verify the connection works:
+
+```
+"List my CoreStory projects"
+```
+
+**2. (Optional) Connect a ticketing system MCP.** Useful if test generation is driven by ticket requirements. See each platform's official MCP server documentation.
+
+**3. Install the test generation skill.** Create the skill directory and file:
+
+```bash
+mkdir -p .claude/skills/generate-tests
+```
+
+Then create `.claude/skills/generate-tests/SKILL.md` with the contents from the **Skill File** section below. Commit it to version control so the whole team gets it:
+
+```bash
+git add .claude/skills/generate-tests/SKILL.md
+git commit -m "Add CoreStory test generation skill"
+```
+
+#### Usage
+
+The skill activates automatically when Claude Code detects test generation requests:
+
+```
+"Generate tests for the order processing module"
+"Add behavioral test coverage for authentication"
+"Create tests from the business rules inventory"
+```
+
+#### Tips
+
+- Skills auto-load from directories added via `--add-dir`, so team-shared skills work across machines.
+- Claude Code detects file changes during sessions — you can edit the skill file and it takes effect immediately.
+- Keep the SKILL.md under 500 lines for reliable loading.
+- **Let it run.** The workflow is designed for autonomous execution. Interrupting mid-phase breaks the chain of context.
+- **Start with a focused module.** A single-module run produces tests you can review in one sitting. Full-system runs produce too much to review at once.
+- The skill works with other skills. If you have a Business Rules Extraction skill, Claude Code will use its output as input to Phase 2.
+
+#### Skill File
+
+Save as `.claude/skills/generate-tests/SKILL.md`:
+
+````markdown
+---
+name: generate-tests
+description: >
+  Generate comprehensive behavioral test coverage using CoreStory's code
+  intelligence. Use when asked to generate tests, add test coverage,
+  create tests from business rules, or improve test coverage for a
+  module or domain. Do NOT use for TDD during feature implementation —
+  use the implement-feature skill instead.
+---
+
+# CoreStory Test Generation
+
+Systematically generate behavioral tests using CoreStory for specification
+extraction and the local codebase for convention matching.
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
+## Prerequisites Check
+
+Before starting, verify:
+1. CoreStory MCP server is connected (`list_projects` returns results)
+2. Target project has completed ingestion
+3. A test framework is configured in the project
+
+## Workflow
+
+Execute all six phases in order. Do not skip phases.
+
+### PHASE 1: Setup & Scoping
+
+1. Call `list_projects` to find the target project
+2. Call `list_conversations` — check for prior Business Rules Extraction
+   or Test Generation conversations
+3. Call `create_conversation` with title "Test Generation — <scope>"
+4. Confirm scope with user (single module, domain, or full system)
+
+Report: scope, conversation ID, any prior work found.
+
+### PHASE 2: Behavioral Inventory (Oracle)
+
+If a Business Rules Extraction conversation exists, consume it via
+`get_conversation`. Otherwise, extract from scratch.
+
+Send these queries via `send_message`, specific to the scoped module:
+
+1. "What are the documented acceptance criteria for [module]?"
+2. "What validation rules exist for [entity/module]?"
+3. "What state transitions exist for [entity]?"
+4. "What authorization rules govern [feature area]?"
+5. "What invariants must always hold for [entity/module]?"
+6. "What implicit/undocumented behaviors exist in [module]?"
+7. "What calculations or transformations exist in [module]?"
+
+IMPORTANT: Use specific entity/module names in every query.
+
+NOTE: Do NOT call `get_project_prd` or `get_project_techspec` and
+try to read them in full. Query CoreStory about their contents via
+`send_message` instead.
+
+Report: categorized behavioral inventory with count per category.
+
+### PHASE 3: Test Convention Discovery
+
+Query CoreStory via `send_message`:
+1. "What test framework, directory structure, and naming conventions
+   does this project use?"
+2. "What fixture, setup, and mock patterns are standard?"
+3. "What assertion styles and test helpers exist?"
+
+Then read 2–3 existing test files locally to verify and use as templates.
+
+Report: framework, conventions, reference files identified.
+
+### PHASE 4: Coverage Gap Analysis
+
+1. Query CoreStory: "What tests currently exist for [module]?"
+2. Read existing test files locally
+3. Cross-reference behavioral inventory vs. existing tests
+4. Categorize each behavior: Covered / Partially Covered / Uncovered
+5. Prioritize gaps: business criticality > risk > specificity > testability
+
+**Present gap analysis to user for review before proceeding.**
+
+Report: gap count, priority list, request user confirmation.
+
+### PHASE 5: Test Generation & Validation
+
+For each prioritized gap:
+1. Write test matching project conventions exactly
+2. Include docstring linking to behavioral specification
+3. Run the test — verify it passes
+4. For high-priority tests: validate with CoreStory that the test
+   is actually verifying the intended behavior
+5. Generate edge case tests for critical behaviors
+
+After each batch, run the full test suite — no regressions allowed.
+
+### PHASE 6: Completion
+
+1. Map generated tests back to behavioral inventory — report coverage
+2. Ensure tests are in correct directories with correct naming
+3. Commit with structured message (specification source, test count,
+   coverage summary)
+4. Rename conversation → "RESOLVED — Test Generation — <scope>"
+
+## Key Principles
+- Specification before Code — always
+- Match existing conventions exactly
+- Behavioral tests, not implementation tests
+- A failing generated test is discovery, not failure
+- Specific queries produce specific tests
+````
+
+---
+
+### GitHub Copilot
+
+#### Setup
+
+1. **Configure the CoreStory MCP server.** Add to your VS Code MCP settings (`.vscode/mcp.json` or user settings). Verify by asking Copilot Chat: "List my CoreStory projects."
+
+2. **Add project-level custom instructions.** Create or update `.github/copilot-instructions.md` with the content from the instructions file below.
+
+3. **Optionally add a reusable prompt file.** Create `.github/prompts/generate-tests.prompt.md` with `mode: agent` frontmatter for on-demand invocation.
+
+4. **Commit to version control:**
+
+```bash
+git add .github/
+git commit -m "Add CoreStory test generation instructions"
+```
+
+#### Usage
+
+With custom instructions active, Copilot Chat applies the workflow automatically when you ask about test generation:
+
+```
+"Generate behavioral tests for the order processing module"
+```
+
+If using a prompt file:
+
+```
+@workspace /generate-tests Add test coverage for authentication rules
+```
+
+#### Tips
+
+- `.github/copilot-instructions.md` is always active — it's global custom instructions for the project. Keep it focused on principles.
+- Prompt files (`.github/prompts/`) are invoked on demand and support `mode: agent` for agentic execution.
+- Copilot Chat accesses MCP tools through the VS Code MCP configuration. Ensure CoreStory tools appear in the available tools list.
+
+#### Custom Instructions File
+
+Save as `.github/copilot-instructions.md` (append to existing content if the file already exists):
+
+```markdown
+## Test Generation with CoreStory
+
+When asked to generate tests, add test coverage, or create behavioral tests, execute this workflow using CoreStory's MCP tools.
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
+### CoreStory MCP Tools
+- `CoreStory:list_projects` — list available projects
+- `CoreStory:create_conversation` — start test generation thread
+- `CoreStory:send_message` — query code intelligence
+- `CoreStory:list_conversations` — find prior Business Rules Extraction sessions
+- `CoreStory:get_conversation` — consume prior extraction work
+- `CoreStory:rename_conversation` — mark as completed
+
+When instructions say "Query CoreStory", use `CoreStory:send_message`.
+
+### Phase 1: Setup
+1. Select CoreStory project, check for prior Business Rules Extraction
+2. Create conversation: "Test Generation — <scope>"
+
+### Phase 2: Behavioral Inventory
+Query CoreStory for: acceptance criteria, validation rules, state transitions,
+authorization rules, invariants, implicit behaviors, calculations.
+Use specific entity/module names in every query.
+
+### Phase 3: Test Convention Discovery
+Query CoreStory + inspect local test files: framework, structure, fixtures,
+mocks, assertion style. Identify reference test files as templates.
+
+### Phase 4: Coverage Gap Analysis
+Cross-reference inventory vs. existing tests. Present gaps to user before
+generating. Prioritize by business criticality.
+
+### Phase 5: Test Generation
+Write tests matching project conventions exactly. Run and verify. Validate
+high-priority tests with CoreStory. No regressions allowed.
+
+### Phase 6: Completion
+Report coverage, commit tests, rename conversation "RESOLVED".
+
+### Key Principles
+- Specification before Code
+- Match existing conventions exactly
+- Behavioral tests, not implementation tests
+- Specific queries produce specific tests
+```
+
+---
+
+### Cursor
+
+#### Setup
+
+1. **Configure the CoreStory MCP server.** Add to your Cursor MCP configuration (`.cursor/mcp.json` or user settings). Verify by asking Cursor Chat: "List my CoreStory projects."
+
+2. **Add the project rule.** Cursor uses rules stored in `.cursor/rules/`:
+
+```bash
+mkdir -p .cursor/rules
+```
+
+Create `.cursor/rules/generate-tests.mdc` with the content from the rule file below.
+
+3. **Commit to version control:**
+
+```bash
+git add .cursor/rules/
+git commit -m "Add CoreStory test generation rule"
+```
+
+#### Usage
+
+With `alwaysApply: true`, the rule activates automatically when Cursor detects test generation context. Or trigger it explicitly:
+
+```
+"Use CoreStory to generate behavioral tests for the payment module"
+```
+
+#### Tips
+
+- Cursor rules use `.mdc` extension with YAML frontmatter containing `description`, `globs`, and `alwaysApply`.
+- Set `alwaysApply: true` for rules that should always be active, or use `globs` to restrict to specific files.
+- Rules apply in both Composer and Chat modes.
+
+#### Project Rule
+
+Save as `.cursor/rules/generate-tests.mdc`:
+
+````markdown
+---
+description: Generate behavioral test coverage using CoreStory's code intelligence. Activates for test generation, coverage improvement, and behavioral testing workflows.
+globs:
+alwaysApply: true
+---
+
+# Test Generation with CoreStory
+
+Generate comprehensive behavioral tests using CoreStory for specification extraction and local code for convention matching.
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
+## CoreStory MCP Tools
+- `CoreStory:list_projects` — list available projects
+- `CoreStory:create_conversation` — start test generation thread
+- `CoreStory:send_message` — query code intelligence
+- `CoreStory:list_conversations` — find prior Business Rules Extraction sessions
+- `CoreStory:get_conversation` — consume prior work
+- `CoreStory:rename_conversation` — mark as completed
+
+When instructions say "Query CoreStory", use `CoreStory:send_message`.
+
+## Phase 1: Setup
+1. Select CoreStory project, check for prior Business Rules Extraction
+2. Create conversation: "Test Generation — <scope>"
+3. Confirm scope with user
+
+## Phase 2: Behavioral Inventory
+Query CoreStory for: acceptance criteria, validation rules, state transitions,
+authorization rules, invariants, implicit behaviors, calculations.
+
+IMPORTANT: Use specific entity/module names in every query. Broad queries
+produce shallow specifications that produce shallow tests.
+
+NOTE: Do NOT try to read the full PRD or TechSpec. Query CoreStory about
+their contents via `send_message` instead.
+
+## Phase 3: Test Convention Discovery
+1. Query CoreStory for test framework, structure, fixtures, mocks
+2. Read 2–3 existing test files locally as templates
+3. Match conventions exactly in all generated tests
+
+## Phase 4: Coverage Gap Analysis
+1. Query CoreStory for existing test coverage
+2. Inspect existing test files locally
+3. Cross-reference behavioral inventory vs. existing tests
+4. Present prioritized gap list to user for approval
+
+**Do not generate tests until user confirms the gap analysis.**
+
+## Phase 5: Test Generation
+For each gap:
+1. Write test matching project conventions
+2. Include docstring linking to behavioral specification
+3. Run test — verify it passes
+4. Validate critical tests with CoreStory
+5. Run full suite after each batch
+
+## Phase 6: Completion
+1. Report coverage against behavioral inventory
+2. Commit with structured message
+3. Rename conversation → "RESOLVED"
+
+## Key Principles
+- Specification before Code — always
+- Match existing conventions exactly
+- Behavioral tests, not implementation tests
+- A failing assertion is discovery, not failure
+- Specific queries → specific tests
+````
+
+---
+
+### Factory.ai
+
+#### Setup
+
+1. **Configure the CoreStory MCP server** in your Factory.ai environment. Verify with the `/mcp` command that CoreStory tools are accessible.
+
+2. **Add the custom droid.** Factory.ai uses droids stored in `.factory/droids/` (project-level) or `~/.factory/droids/` (personal):
+
+```bash
+mkdir -p .factory/droids
+```
+
+Create `.factory/droids/generate-tests.md` with the content from the droid file below.
+
+3. **Commit to version control:**
+
+```bash
+git add .factory/droids/
+git commit -m "Add CoreStory test generation droid"
+```
+
+#### Usage
+
+Invoke the droid:
+
+```
+@generate-tests Add behavioral tests for the authentication module
+```
+
+Or describe the task naturally — Factory.ai routes to the appropriate droid:
+
+```
+"Generate test coverage for order processing"
+```
+
+#### Droid File
+
+Save as `.factory/droids/generate-tests.md`:
+
+```yaml
+name: generate-tests
+description: Generate comprehensive behavioral test coverage using CoreStory code intelligence and local convention matching
+instructions: |
+  You generate behavioral tests from CoreStory's code intelligence:
+
+  **If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
+  1. Set up a CoreStory conversation for the test generation session
+  2. Check for prior Business Rules Extraction — consume if available
+  3. Extract behavioral specifications: acceptance criteria, validation
+     rules, state transitions, authorization rules, invariants, implicit
+     behaviors, calculations (use specific entity/module names)
+  4. Discover test conventions: framework, directory structure, fixtures,
+     mocks, assertion style. Read existing test files as templates.
+  5. Map specifications against existing tests to find gaps. Present
+     to user for approval before generating.
+  6. Generate tests matching project conventions exactly. Run and verify.
+     Validate critical tests with CoreStory. Run full suite.
+  7. Report coverage, commit, rename conversation "RESOLVED"
+
+  Key behaviors:
+  - Specification before Code — extract what to test before looking at how
+  - Match existing test conventions exactly — generated tests should be
+    indistinguishable from hand-written tests
+  - Generate behavioral tests that assert what the system does, not how
+  - Treat failing assertions as discovery — flag for human review
+  - Use specific entity/module names in all CoreStory queries
+```

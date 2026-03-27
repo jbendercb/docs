@@ -1,0 +1,48 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a1a2e', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#c9a84c', 'lineColor': '#666666', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
+
+graph TD
+    subgraph wave0["Phase 0: Infrastructure"]
+        INFRA["WP-000<br/><b>API Gateway + CI/CD + Monitoring</b>"]
+    end
+
+    subgraph wave1["Wave 1"]
+        WP1["WP-001<br/><b>ReportingService</b><br/><i>Replatform</i>"]
+        WP2["WP-002<br/><b>UserService</b><br/><i>Refactor</i>"]
+    end
+
+    subgraph wave2["Wave 2"]
+        WP3["WP-003<br/><b>InventoryService</b><br/><i>Refactor</i>"]
+        WP4["WP-004<br/><b>BatchReconciliation</b><br/><i>Re-architect</i>"]
+    end
+
+    subgraph wave3["Wave 3"]
+        WP5["WP-005<br/><b>PaymentService</b><br/><i>Re-architect</i>"]
+    end
+
+    subgraph wave4["Wave 4"]
+        WP6["WP-006<br/><b>OrderService</b><br/><i>Re-architect</i>"]
+    end
+
+    INFRA ==>|"hard"| WP1
+    INFRA ==>|"hard"| WP2
+    WP1 -.->|"soft"| WP4
+    WP2 ==>|"hard"| WP5
+    WP2 -.->|"soft"| WP3
+    WP3 ==>|"hard"| WP6
+    WP5 ==>|"hard"| WP6
+
+    style INFRA fill:#0f3460,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style WP1 fill:#1a1a2e,stroke:#06b6d4,stroke-width:2px,color:#ffffff
+    style WP2 fill:#1a1a2e,stroke:#3b82f6,stroke-width:2px,color:#ffffff
+    style WP3 fill:#1a1a2e,stroke:#3b82f6,stroke-width:2px,color:#ffffff
+    style WP4 fill:#1a1a2e,stroke:#8b5cf6,stroke-width:2px,color:#ffffff
+    style WP5 fill:#1a1a2e,stroke:#8b5cf6,stroke-width:2px,color:#ffffff
+    style WP6 fill:#1a1a2e,stroke:#8b5cf6,stroke-width:2px,color:#ffffff
+    style wave0 fill:#0f3460,stroke:#c9a84c,stroke-width:1px,color:#c9a84c
+    style wave1 fill:#16213e,stroke:#555,stroke-width:1px,color:#aaa
+    style wave2 fill:#16213e,stroke:#555,stroke-width:1px,color:#aaa
+    style wave3 fill:#16213e,stroke:#555,stroke-width:1px,color:#aaa
+    style wave4 fill:#16213e,stroke:#555,stroke-width:1px,color:#aaa
+
+    linkStyle 0,1,3,5,6 stroke:#c9a84c,stroke-width:2px
+    linkStyle 2,4 stroke:#666,stroke-width:1px,stroke-dasharray:5

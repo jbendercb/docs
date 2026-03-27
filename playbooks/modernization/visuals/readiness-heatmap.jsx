@@ -1,0 +1,410 @@
+import { useState } from "react";
+
+const COMPONENTS = [
+  "OrderService",
+  "InventoryService",
+  "PaymentService",
+  "UserService",
+  "ReportingService",
+  "BatchReconciliation",
+  "WebUI",
+  "APIGateway",
+];
+
+const DOMAINS = [
+  { key: "coupling", label: "Coupling" },
+  { key: "testability", label: "Testability" },
+  { key: "techDebt", label: "Tech Debt" },
+  { key: "dataComplexity", label: "Data Complexity" },
+  { key: "security", label: "Security" },
+  { key: "operational", label: "Operational" },
+];
+
+const STRATEGIES = {
+  "Re-architect": "#8b5cf6",
+  Refactor: "#3b82f6",
+  Replatform: "#06b6d4",
+  Retain: "#6b7280",
+  Retire: "#ef4444",
+};
+
+// Sample assessment data — practitioners would replace with their actual scores
+const SAMPLE_DATA = {
+  OrderService: {
+    coupling: 2, testability: 3, techDebt: 2, dataComplexity: 1,
+    security: 3, operational: 3, overall: 2, strategy: "Re-architect",
+    effort: "Very High",
+    blockers: "Shared DB with 4 services, circular dependency with PaymentService",
+  },
+  InventoryService: {
+    coupling: 3, testability: 4, techDebt: 3, dataComplexity: 3,
+    security: 4, operational: 3, overall: 3, strategy: "Refactor",
+    effort: "Medium",
+    blockers: "Shared product_catalog table with OrderService",
+  },
+  PaymentService: {
+    coupling: 2, testability: 2, techDebt: 3, dataComplexity: 2,
+    security: 2, operational: 2, overall: 2, strategy: "Re-architect",
+    effort: "High",
+    blockers: "PCI-DSS compliance constraints, no test coverage for edge cases",
+  },
+  UserService: {
+    coupling: 4, testability: 4, techDebt: 4, dataComplexity: 4,
+    security: 3, operational: 4, overall: 4, strategy: "Refactor",
+    effort: "Low",
+    blockers: "Minor: SAML integration needs update",
+  },
+  ReportingService: {
+    coupling: 5, testability: 3, techDebt: 3, dataComplexity: 5,
+    security: 4, operational: 3, overall: 4, strategy: "Replatform",
+    effort: "Low",
+    blockers: "None — read-only, uses DB replica",
+  },
+  BatchReconciliation: {
+    coupling: 3, testability: 1, techDebt: 2, dataComplexity: 3,
+    security: 3, operational: 1, overall: 2, strategy: "Re-architect",
+    effort: "High",
+    blockers: "Zero test coverage, undocumented JCL logic, runs as cron job",
+  },
+  WebUI: {
+    coupling: 4, testability: 3, techDebt: 3, dataComplexity: 5,
+    security: 3, operational: 4, overall: 4, strategy: "Refactor",
+    effort: "Medium",
+    blockers: "Tightly coupled to API Gateway routing conventions",
+  },
+  APIGateway: {
+    coupling: 2, testability: 3, techDebt: 4, dataComplexity: 5,
+    security: 3, operational: 3, overall: 3, strategy: "Retain",
+    effort: "N/A",
+    blockers: "Will become the Strangler Fig façade — retain and evolve in place",
+  },
+};
+
+function scoreColor(score) {
+  const colors = {
+    1: { bg: "#7f1d1d", text: "#fca5a5", border: "#ef4444" },
+    2: { bg: "#78350f", text: "#fcd34d", border: "#f59e0b" },
+    3: { bg: "#3f3f00", text: "#fef08a", border: "#eab308" },
+    4: { bg: "#14532d", text: "#86efac", border: "#22c55e" },
+    5: { bg: "#052e16", text: "#4ade80", border: "#16a34a" },
+  };
+  return colors[score] || colors[3];
+}
+
+function ScoreCell({ score, isSelected, onClick }) {
+  const c = scoreColor(score);
+  return (
+    <td
+      onClick={onClick}
+      style={{
+        backgroundColor: c.bg,
+        color: c.text,
+        border: isSelected ? `2px solid ${c.border}` : "1px solid #333",
+        padding: "8px 12px",
+        textAlign: "center",
+        cursor: "pointer",
+        fontWeight: 600,
+        fontSize: "14px",
+        transition: "all 0.15s ease",
+        minWidth: "44px",
+      }}
+    >
+      {score}
+    </td>
+  );
+}
+
+function StrategyBadge({ strategy }) {
+  const color = STRATEGIES[strategy] || "#6b7280";
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "2px 10px",
+        borderRadius: "12px",
+        fontSize: "12px",
+        fontWeight: 600,
+        backgroundColor: color + "22",
+        color: color,
+        border: `1px solid ${color}55`,
+      }}
+    >
+      {strategy}
+    </span>
+  );
+}
+
+function Legend() {
+  return (
+    <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "16px" }}>
+      <div style={{ fontSize: "12px", color: "#999", fontWeight: 600, marginRight: "4px" }}>
+        Readiness:
+      </div>
+      {[
+        { score: 1, label: "Not Ready" },
+        { score: 2, label: "Significant Prep" },
+        { score: 3, label: "Moderate Prep" },
+        { score: 4, label: "Minor Prep" },
+        { score: 5, label: "Ready" },
+      ].map(({ score, label }) => {
+        const c = scoreColor(score);
+        return (
+          <div key={score} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div
+              style={{
+                width: "20px",
+                height: "20px",
+                backgroundColor: c.bg,
+                border: `1px solid ${c.border}`,
+                borderRadius: "3px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: c.text,
+                fontSize: "11px",
+                fontWeight: 700,
+              }}
+            >
+              {score}
+            </div>
+            <span style={{ fontSize: "12px", color: "#aaa" }}>{label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function StrategyDistribution() {
+  const counts = {};
+  Object.values(SAMPLE_DATA).forEach((d) => {
+    counts[d.strategy] = (counts[d.strategy] || 0) + 1;
+  });
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+  return (
+    <div style={{ marginBottom: "20px" }}>
+      <div style={{ fontSize: "12px", color: "#999", fontWeight: 600, marginBottom: "8px" }}>
+        Strategy Distribution
+      </div>
+      <div style={{ display: "flex", height: "8px", borderRadius: "4px", overflow: "hidden", marginBottom: "8px" }}>
+        {Object.entries(counts).map(([strategy, count]) => (
+          <div
+            key={strategy}
+            style={{
+              width: `${(count / total) * 100}%`,
+              backgroundColor: STRATEGIES[strategy],
+            }}
+          />
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+        {Object.entries(counts).map(([strategy, count]) => (
+          <div key={strategy} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div
+              style={{
+                width: "10px",
+                height: "10px",
+                borderRadius: "50%",
+                backgroundColor: STRATEGIES[strategy],
+              }}
+            />
+            <span style={{ fontSize: "12px", color: "#ccc" }}>
+              {strategy}: {count}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function ReadinessHeatmap() {
+  const [selected, setSelected] = useState(null);
+  const detail = selected ? SAMPLE_DATA[selected] : null;
+
+  return (
+    <div
+      style={{
+        fontFamily: "Inter, system-ui, -apple-system, sans-serif",
+        backgroundColor: "#111118",
+        color: "#e0e0e0",
+        padding: "28px",
+        borderRadius: "12px",
+        maxWidth: "960px",
+        margin: "0 auto",
+      }}
+    >
+      <div style={{ marginBottom: "4px" }}>
+        <h2 style={{ margin: 0, fontSize: "20px", color: "#ffffff", fontWeight: 700 }}>
+          Modernization Readiness Heatmap
+        </h2>
+        <p style={{ margin: "4px 0 20px", fontSize: "13px", color: "#888" }}>
+          Component-level readiness scores across assessment domains · Click any row for details
+        </p>
+      </div>
+
+      <Legend />
+      <StrategyDistribution />
+
+      <div style={{ overflowX: "auto" }}>
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            fontSize: "13px",
+          }}
+        >
+          <thead>
+            <tr>
+              <th
+                style={{
+                  textAlign: "left",
+                  padding: "10px 12px",
+                  color: "#c9a84c",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  borderBottom: "1px solid #333",
+                }}
+              >
+                Component
+              </th>
+              {DOMAINS.map((d) => (
+                <th
+                  key={d.key}
+                  style={{
+                    textAlign: "center",
+                    padding: "10px 8px",
+                    color: "#c9a84c",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    borderBottom: "1px solid #333",
+                  }}
+                >
+                  {d.label}
+                </th>
+              ))}
+              <th
+                style={{
+                  textAlign: "center",
+                  padding: "10px 8px",
+                  color: "#c9a84c",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  borderBottom: "1px solid #333",
+                }}
+              >
+                Overall
+              </th>
+              <th
+                style={{
+                  textAlign: "center",
+                  padding: "10px 12px",
+                  color: "#c9a84c",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  borderBottom: "1px solid #333",
+                }}
+              >
+                Strategy
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {COMPONENTS.map((comp) => {
+              const d = SAMPLE_DATA[comp];
+              const isSelected = selected === comp;
+              return (
+                <tr
+                  key={comp}
+                  onClick={() => setSelected(isSelected ? null : comp)}
+                  style={{
+                    cursor: "pointer",
+                    backgroundColor: isSelected ? "#1a1a2e" : "transparent",
+                    transition: "background-color 0.15s ease",
+                  }}
+                >
+                  <td
+                    style={{
+                      padding: "10px 12px",
+                      fontWeight: 600,
+                      color: isSelected ? "#ffffff" : "#ccc",
+                      borderBottom: "1px solid #222",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {comp}
+                  </td>
+                  {DOMAINS.map((domain) => (
+                    <ScoreCell
+                      key={domain.key}
+                      score={d[domain.key]}
+                      isSelected={isSelected}
+                      onClick={() => setSelected(isSelected ? null : comp)}
+                    />
+                  ))}
+                  <ScoreCell
+                    score={d.overall}
+                    isSelected={isSelected}
+                    onClick={() => setSelected(isSelected ? null : comp)}
+                  />
+                  <td
+                    style={{
+                      padding: "10px 12px",
+                      textAlign: "center",
+                      borderBottom: "1px solid #222",
+                    }}
+                  >
+                    <StrategyBadge strategy={d.strategy} />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {detail && (
+        <div
+          style={{
+            marginTop: "20px",
+            padding: "16px 20px",
+            backgroundColor: "#1a1a2e",
+            border: "1px solid #c9a84c33",
+            borderRadius: "8px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+            <h3 style={{ margin: 0, fontSize: "16px", color: "#fff" }}>{selected}</h3>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              <StrategyBadge strategy={detail.strategy} />
+              <span style={{ fontSize: "12px", color: "#888" }}>
+                Effort: <strong style={{ color: "#ccc" }}>{detail.effort}</strong>
+              </span>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: "12px", color: "#c9a84c", fontWeight: 600, marginBottom: "4px" }}>
+              KEY BLOCKERS
+            </div>
+            <div style={{ fontSize: "13px", color: "#ccc", lineHeight: 1.5 }}>
+              {detail.blockers}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginTop: "20px", fontSize: "11px", color: "#555", textAlign: "center" }}>
+        Sample data — replace with actual assessment scores from Phase 5 of the Codebase Assessment playbook
+      </div>
+    </div>
+  );
+}

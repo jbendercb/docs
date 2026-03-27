@@ -1,0 +1,173 @@
+---
+title: "Spec-Driven Test Generation"
+sidebarTitle: "Spec-Driven Test Generation"
+description: "Generate tests from behavioral specifications — not implementation details — using CoreStory's code intelligence as a specification oracle for AI coding agents."
+icon: "flask-vial"
+---
+
+
+## Overview
+
+Most AI-generated tests are implementation mirrors. An agent reads a function, infers what it does, and writes a test that confirms the code does what the code does. These tests pass on day one, break on every refactor, and verify nothing meaningful — they're circular assertions dressed up as coverage.
+
+The problem isn't that AI agents can't write tests. It's that they don't know what the system is *supposed to do*. Without access to specifications — acceptance criteria, business rules, invariants, authorization policies, state machine definitions — an agent can only test what it sees in the code. And testing what the code does is not the same as testing what the code *should* do.
+
+CoreStory changes this equation. It ingests the full codebase alongside the PRD, TechSpec, and architectural documentation, then serves as a **Specification Oracle** — an intelligence layer that can answer "what should this system do?" before the agent ever looks at implementation. This unlocks a fundamentally different approach to test generation: **specification-driven testing**, where the agent extracts behavioral specifications first, then generates tests that verify those specifications against the code.
+
+### Why Specification Before Code
+
+The principle is simple: if you know what the system should do before you look at how it does it, you produce tests that survive refactoring, catch real bugs, and document actual business intent.
+
+| Approach | What the Agent Knows | Test Quality | Refactor Survival |
+|----------|---------------------|--------------|-------------------|
+| **Code-mirroring** | Only the implementation | Tests confirm code does what code does | Breaks on rename, restructure, or any internal change |
+| **Specification-driven** | Business rules, acceptance criteria, invariants | Tests confirm code does what it *should* do | Survives any refactor that preserves behavior |
+
+A code-mirroring test asserts *how*:
+```python
+def test_order_calls_minimum_check_validator():
+    with mock.patch("OrderValidator.check_minimum") as m:
+        m.return_value = False
+        submit_order(create_order(total=4.99))
+        m.assert_called_once_with(4.99)
+```
+
+A specification-driven test asserts *what*:
+```python
+def test_order_rejected_when_below_minimum_amount():
+    result = submit_order(create_order(total=4.99))
+    assert result.status == "rejected"
+    assert "minimum order amount" in result.error
+```
+
+The first test breaks when someone renames the validator. The second test survives any refactor that preserves the business rule. CoreStory is what makes the second kind possible at scale — it tells the agent that a minimum order amount rule exists, what the threshold is, and what should happen when it's violated.
+
+### CoreStory's Role
+
+CoreStory serves as the specification oracle across the entire test generation workflow:
+
+- **Behavioral extraction** — surfaces acceptance criteria, validation rules, state transitions, authorization matrices, invariants, and implicit behaviors from the PRD, TechSpec, and codebase
+- **Convention discovery** — describes the project's existing test framework, directory structure, fixture patterns, and assertion styles so generated tests match perfectly
+- **Gap analysis** — identifies which behaviors are already tested, which are partially covered, and which have no coverage at all
+- **Validation** — reviews generated tests to confirm they're actually verifying the intended specification, not accidentally testing implementation details
+
+### How This Relates to Other Playbooks
+
+This playbook suite generates tests for existing, already-implemented behavior. It doesn't implement new features or fix bugs. If you need a different workflow:
+
+- **Implementing a new feature with tests:** Use the [Feature Implementation](/playbooks/feature-implementation) playbook — its Phase 4 includes TDD as part of the implementation cycle.
+- **Verifying behavioral equivalence during modernization:** Use the [Behavioral Verification](/playbooks/modernization/behavioral-verification) playbook — it compares legacy and modernized implementations.
+- **Extracting business rules before testing:** Use the [Business Rules Extraction](/playbooks/business-rules-extraction) playbook — its output (the BR-XXX inventory) feeds directly into the Behavioral Test Coverage sub-playbook.
+
+---
+
+## When to Use This Playbook
+
+- A codebase has significant untested business logic and you want to close coverage gaps systematically
+- You're onboarding to an unfamiliar codebase and want to build a safety net before making changes
+- Preparing for a major refactor, migration, or dependency upgrade and need comprehensive regression tests
+- A compliance or audit requirement demands documented test coverage of specific business rules
+- You've completed a [Business Rules Extraction](/playbooks/business-rules-extraction) and want to turn the inventory into executable tests
+- The team's test coverage is implementation-heavy (mocking everything, testing method signatures) and you want to shift toward behavioral tests
+- You need end-to-end tests that verify critical user journeys against acceptance criteria
+
+## When to Skip This Playbook
+
+- You're implementing a new feature (use the [Feature Implementation](/playbooks/feature-implementation) playbook)
+- The codebase is trivially small (under ~5k LOC) — write the tests directly
+- No CoreStory project exists for the codebase and you can't create one
+- You need to verify behavioral equivalence between two implementations (use the [Behavioral Verification](/playbooks/modernization/behavioral-verification) playbook)
+- The system under test has no observable behavior (pure infrastructure, configuration-only)
+
+---
+
+## Prerequisites
+
+- CoreStory account with at least one project that has completed ingestion
+- CoreStory MCP server connected to your AI coding agent (see the [CoreStory MCP Server Setup Guide](/getting-started/mcp-server-setup))
+- A code repository the agent can read and write to locally
+- An existing test framework configured in the project (these playbooks generate tests matching existing conventions — they don't set up test infrastructure from scratch)
+- (Recommended) A prior [Business Rules Extraction](/playbooks/business-rules-extraction) conversation — if one exists, the behavioral inventory phase can consume it directly
+- (Recommended) Ability to run the test suite locally to verify generated tests
+
+---
+
+## The Sub-Playbooks
+
+This playbook suite contains two workflows. Both follow the same "Specification before Code" methodology but differ in scope, tooling, and output.
+
+### Behavioral Test Coverage
+
+**The primary workflow.** Generates unit-level and integration-level behavioral tests that verify business rules, validation logic, state transitions, authorization policies, invariants, and calculations.
+
+| Aspect | Details |
+|--------|---------|
+| **Output** | Test files in the project's existing framework (pytest, Jest, JUnit, xUnit, RSpec, etc.) |
+| **Scope** | One module or domain per session, 10–30 test cases |
+| **CoreStory role** | Specification Oracle — extracts what to test before the agent looks at code |
+| **Key differentiator** | Tests assert behavioral specifications, not implementation details |
+| **Best for** | Closing coverage gaps in business-critical logic, preparing for refactors, compliance requirements |
+
+[Go to Behavioral Test Coverage →](/playbooks/test-generation/behavioral-test-coverage)
+
+### E2E Test Generation
+
+**The journey-level workflow.** Generates end-to-end tests that verify critical user journeys across the full application stack — UI interactions, API calls, data persistence, and cross-service flows.
+
+| Aspect | Details |
+|--------|---------|
+| **Output** | E2E test files in the project's E2E framework (Playwright, Cypress, Selenium, etc.) |
+| **Scope** | One user journey per session, 5–15 test scenarios |
+| **CoreStory role** | Journey Oracle — extracts user stories, acceptance criteria, and critical paths from PRD and codebase |
+| **Key differentiator** | Tests verify complete user journeys against acceptance criteria, including environment setup and flakiness management |
+| **Best for** | Verifying critical user flows, pre-release regression suites, onboarding safety nets |
+
+[Go to E2E Test Generation →](/playbooks/test-generation/e2e-test-generation)
+
+### Which Sub-Playbook Should I Use?
+
+| Situation | Recommended |
+|-----------|------------|
+| Business logic has coverage gaps (validation, auth, state machines) | Behavioral Test Coverage |
+| Critical user journeys have no automated E2E tests | E2E Test Generation |
+| Preparing for a refactor of internal logic | Behavioral Test Coverage |
+| Preparing for a UI or API overhaul | E2E Test Generation |
+| Compliance audit requires documented rule coverage | Behavioral Test Coverage |
+| Release confidence requires journey-level regression | E2E Test Generation |
+| You've completed a Business Rules Extraction | Behavioral Test Coverage (consumes the inventory directly) |
+| Both — build from the inside out | Behavioral Test Coverage first, then E2E Test Generation |
+
+---
+
+## Shared Principles
+
+Both sub-playbooks follow these principles:
+
+**Specification before Code.** Always extract what to test from CoreStory before examining source code or writing tests. This ensures tests verify intended behavior, not implementation accidents.
+
+**Match existing conventions exactly.** Generated tests should be indistinguishable from hand-written tests by the team — same framework, same directory structure, same fixture patterns, same assertion style.
+
+**Behavioral assertions, not implementation assertions.** Test *what* the system does, not *how* it does it. Assert outcomes and state changes, not method calls and internal wiring.
+
+**Treat failing assertions as discovery.** A generated test that fails on assertion (not on setup) is telling you something valuable: either the specification is wrong or the code is wrong. Both are worth knowing. Flag these for human review.
+
+**Specific queries produce specific tests.** "What should I test?" produces shallow tests. "What validation rules exist for order submission, including minimum order amounts, inventory checks, and payment method validation?" produces precise, high-value tests.
+
+---
+
+## CoreStory MCP Tools Used
+
+Both sub-playbooks use the same set of CoreStory MCP tools:
+
+| Tool | Purpose |
+|------|---------|
+| `list_projects` | Find the target project |
+| `create_conversation` | Create a persistent conversation for the generation session |
+| `send_message` | Query CoreStory for specifications, conventions, and validation |
+| `get_project_prd` | Skim PRD structure for domain vocabulary and acceptance criteria |
+| `get_project_techspec` | Skim TechSpec for data model constraints and architectural invariants |
+| `list_conversations` | Check for prior Business Rules Extraction sessions |
+| `get_conversation` | Resume or consume a prior session |
+| `rename_conversation` | Mark the conversation as resolved |
+
+**A note on the PRD and TechSpec:** These documents are typically too large for an agent's context window. Don't try to read them end-to-end. Query CoreStory about their contents via `send_message` instead — CoreStory has already ingested them and can answer targeted questions more efficiently than the agent can parse the raw documents.

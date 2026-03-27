@@ -1,0 +1,51 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a1a2e', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#c9a84c', 'lineColor': '#c9a84c', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
+
+graph LR
+    subgraph rule["BR-007: Order total must include tax calculation based on shipping destination"]
+        direction LR
+    end
+
+    subgraph legacy["Legacy Implementation"]
+        direction TB
+        L_FILE["📄 OrderService.java:245"]
+        L_INPUT["<b>Input:</b> order items, shipping address"]
+        L_CALC["<b>Logic:</b> Tax = subtotal × rate(state)<br/>Rounding: HALF_UP to 2 decimals"]
+        L_SIDE["<b>Side effect:</b> writes tax_audit_log"]
+        L_OUT["<b>Output:</b> order.taxAmount"]
+        L_FILE --> L_INPUT --> L_CALC --> L_SIDE --> L_OUT
+    end
+
+    subgraph modern["Modernized Implementation"]
+        direction TB
+        M_FILE["📄 order-service/src/tax.ts:18"]
+        M_INPUT["<b>Input:</b> order items, shipping address"]
+        M_CALC["<b>Logic:</b> Tax = subtotal × rate(state)<br/>Rounding: HALF_UP to 2 decimals"]
+        M_SIDE["<b>Side effect:</b> emits TaxCalculated event"]
+        M_OUT["<b>Output:</b> order.taxAmount"]
+        M_FILE --> M_INPUT --> M_CALC --> M_SIDE --> M_OUT
+    end
+
+    L_INPUT ---|"✅ Match"| M_INPUT
+    L_CALC ---|"✅ Match"| M_CALC
+    L_SIDE ---|"⚠️ Different mechanism,<br/>same data captured"| M_SIDE
+    L_OUT ---|"✅ Match"| M_OUT
+
+    VERDICT["<b>Status: Equivalent</b><br/>Logic matches despite structural differences.<br/>Side effect mechanism changed (DB write → event)<br/>but same audit data is captured."]
+
+    legacy ~~~ VERDICT
+    modern ~~~ VERDICT
+
+    style rule fill:#0f3460,stroke:#c9a84c,stroke-width:1px,color:#c9a84c
+    style legacy fill:#1a1a2e,stroke:#c9a84c,stroke-width:1px,color:#c9a84c
+    style modern fill:#1a1a2e,stroke:#c9a84c,stroke-width:1px,color:#c9a84c
+    style L_FILE fill:#16213e,stroke:#555,color:#ccc
+    style L_INPUT fill:#16213e,stroke:#555,color:#ccc
+    style L_CALC fill:#16213e,stroke:#555,color:#ccc
+    style L_SIDE fill:#16213e,stroke:#555,color:#ccc
+    style L_OUT fill:#16213e,stroke:#555,color:#ccc
+    style M_FILE fill:#16213e,stroke:#555,color:#ccc
+    style M_INPUT fill:#16213e,stroke:#555,color:#ccc
+    style M_CALC fill:#16213e,stroke:#555,color:#ccc
+    style M_SIDE fill:#16213e,stroke:#555,color:#ccc
+    style M_OUT fill:#16213e,stroke:#555,color:#ccc
+    style VERDICT fill:#14532d,stroke:#22c55e,stroke-width:2px,color:#86efac

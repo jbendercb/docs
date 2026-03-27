@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <style>
+      .panel-label { fill: #C9A84C; font-size: 11px; font-weight: 700; text-anchor: middle; }
+      .module { fill: #16213E; stroke: #333; stroke-width: 1; rx: 3; }
+      .module-text { fill: #ccc; font-size: 7px; text-anchor: middle; dominant-baseline: central; }
+      .monolith { fill: #1A1A2E; stroke: #C9A84C; stroke-width: 1.5; rx: 6; }
+      .facade { fill: #C9A84C; rx: 3; }
+      .facade-text { fill: #1A1A2E; font-size: 8px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
+      .db { fill: #1A1A2E; stroke: #666; stroke-width: 1; }
+      .db-text { fill: #999; font-size: 6.5px; text-anchor: middle; }
+      .arrow { stroke: #C9A84C; stroke-width: 1; fill: none; marker-end: url(#arrowhead); }
+      .arrow-thin { stroke: #666; stroke-width: 0.8; fill: none; marker-end: url(#arrowGray); }
+      .dashed { stroke-dasharray: 3,2; }
+      .removed { fill: #2a1a1a; stroke: #EF4444; stroke-width: 0.8; stroke-dasharray: 2,2; rx: 3; }
+      .extracted { fill: #1A1A2E; stroke: #C9A84C; stroke-width: 1.2; rx: 4; }
+      .extracted-text { fill: #fff; font-size: 7px; text-anchor: middle; dominant-baseline: central; }
+      .time-arrow { stroke: #C9A84C; stroke-width: 1.5; fill: none; marker-end: url(#arrowGold); }
+      .time-text { fill: #C9A84C; font-size: 9px; font-weight: 600; }
+      .annotation { fill: #888; font-size: 7.5px; font-style: italic; text-anchor: middle; }
+    </style>
+    <marker id="arrowhead" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto">
+      <polygon points="0 0, 6 2, 0 4" fill="#C9A84C"/>
+    </marker>
+    <marker id="arrowGray" markerWidth="5" markerHeight="3" refX="4" refY="1.5" orient="auto">
+      <polygon points="0 0, 5 1.5, 0 3" fill="#666"/>
+    </marker>
+    <marker id="arrowGold" markerWidth="8" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0, 8 2.5, 0 5" fill="#C9A84C"/>
+    </marker>
+  </defs>
+
+  <!-- Panel 1: Introduce Façade -->
+  <text x="112" y="16" class="panel-label">1. Introduce Façade</text>
+  <!-- Façade bar -->
+  <rect x="30" y="26" width="165" height="18" class="facade"/>
+  <text x="112" y="35" class="facade-text">Façade / API Gateway</text>
+  <!-- Arrow from facade to monolith -->
+  <line x1="112" y1="44" x2="112" y2="56" class="arrow"/>
+  <!-- Monolith -->
+  <rect x="30" y="58" width="165" height="140" class="monolith"/>
+  <text x="112" y="72" fill="#fff" font-size="9" font-weight="700" text-anchor="middle">Monolith</text>
+  <!-- Modules inside -->
+  <rect x="40" y="80" width="70" height="22" class="module"/><text x="75" y="91" class="module-text">OrderService</text>
+  <rect x="116" y="80" width="70" height="22" class="module"/><text x="151" y="91" class="module-text">InventoryService</text>
+  <rect x="40" y="108" width="70" height="22" class="module"/><text x="75" y="119" class="module-text">PaymentService</text>
+  <rect x="116" y="108" width="70" height="22" class="module"/><text x="151" y="119" class="module-text">UserService</text>
+  <rect x="40" y="136" width="70" height="22" class="module"/><text x="75" y="147" class="module-text">ReportingService</text>
+  <rect x="116" y="136" width="70" height="22" class="module"/><text x="151" y="147" class="module-text">BatchJobs</text>
+  <!-- Shared DB -->
+  <ellipse cx="112" cy="212" rx="30" ry="8" class="db"/>
+  <rect x="82" y="212" width="60" height="20" class="db" stroke-width="0"/>
+  <line x1="82" y1="212" x2="82" y2="232" stroke="#666" stroke-width="1"/>
+  <line x1="142" y1="212" x2="142" y2="232" stroke="#666" stroke-width="1"/>
+  <ellipse cx="112" cy="232" rx="30" ry="8" class="db"/>
+  <text x="112" y="226" class="db-text">Shared DB</text>
+  <line x1="112" y1="198" x2="112" y2="204" class="arrow-thin"/>
+
+  <!-- Panel 2: Extract First Service -->
+  <text x="337" y="16" class="panel-label">2. Extract First Service</text>
+  <!-- Façade bar -->
+  <rect x="252" y="26" width="170" height="18" class="facade"/>
+  <text x="337" y="35" class="facade-text">Façade / API Gateway</text>
+  <!-- Arrow from facade to monolith -->
+  <line x1="320" y1="44" x2="320" y2="56" class="arrow"/>
+  <!-- Arrow from facade to extracted service -->
+  <line x1="380" y1="44" x2="400" y2="56" class="arrow"/>
+  <!-- Smaller Monolith -->
+  <rect x="252" y="58" width="140" height="120" class="monolith"/>
+  <text x="322" y="72" fill="#fff" font-size="9" font-weight="700" text-anchor="middle">Monolith</text>
+  <rect x="262" y="80" width="55" height="20" class="module"/><text x="289" y="90" class="module-text">OrderService</text>
+  <rect x="323" y="80" width="60" height="20" class="module"/><text x="353" y="90" class="module-text">InventoryService</text>
+  <rect x="262" y="106" width="55" height="20" class="module"/><text x="289" y="116" class="module-text">PaymentService</text>
+  <rect x="323" y="106" width="60" height="20" class="module"/><text x="353" y="116" class="module-text">UserService</text>
+  <rect x="262" y="132" width="55" height="20" class="removed"/><text x="289" y="142" fill="#EF4444" font-size="6" text-anchor="middle" dominant-baseline="central" opacity="0.6">Reporting ✕</text>
+  <rect x="323" y="132" width="60" height="20" class="module"/><text x="353" y="142" class="module-text">BatchJobs</text>
+  <!-- Extracted Service -->
+  <rect x="398" y="58" width="24" height="50" class="extracted" rx="4"/>
+  <text x="410" y="76" fill="#fff" font-size="5.5" text-anchor="middle" dominant-baseline="central" transform="rotate(-90, 410, 83)">ReportingService</text>
+  <!-- Monolith DB (slightly smaller) -->
+  <ellipse cx="310" cy="195" rx="24" ry="7" class="db"/>
+  <rect x="286" y="195" width="48" height="16" class="db" stroke-width="0"/>
+  <line x1="286" y1="195" x2="286" y2="211" stroke="#666" stroke-width="1"/>
+  <line x1="334" y1="195" x2="334" y2="211" stroke="#666" stroke-width="1"/>
+  <ellipse cx="310" cy="211" rx="24" ry="7" class="db"/>
+  <text x="310" y="206" class="db-text">Main DB</text>
+  <line x1="310" y1="178" x2="310" y2="188" class="arrow-thin"/>
+  <!-- Extracted service DB -->
+  <ellipse cx="410" cy="125" rx="16" ry="5" class="db"/>
+  <rect x="394" y="125" width="32" height="12" class="db" stroke-width="0"/>
+  <line x1="394" y1="125" x2="394" y2="137" stroke="#666" stroke-width="1"/>
+  <line x1="426" y1="125" x2="426" y2="137" stroke="#666" stroke-width="1"/>
+  <ellipse cx="410" cy="137" rx="16" ry="5" class="db"/>
+  <text x="410" y="133" fill="#999" font-size="5" text-anchor="middle">Own DB</text>
+  <!-- Data sync dashed line -->
+  <line x1="334" y1="200" x2="394" y2="135" stroke="#C9A84C" stroke-width="0.6" stroke-dasharray="3,2" opacity="0.5"/>
+  <text x="374" y="172" fill="#C9A84C" font-size="5" text-anchor="middle" opacity="0.7">data sync</text>
+
+  <!-- Panel 3: Continue Extraction -->
+  <text x="562" y="16" class="panel-label">3. Continue Extraction</text>
+  <!-- Façade bar -->
+  <rect x="477" y="26" width="170" height="18" class="facade"/>
+  <text x="562" y="35" class="facade-text">Façade / API Gateway</text>
+  <!-- Arrows -->
+  <line x1="530" y1="44" x2="530" y2="56" class="arrow"/>
+  <line x1="590" y1="44" x2="610" y2="56" class="arrow"/>
+  <line x1="615" y1="44" x2="638" y2="56" class="arrow"/>
+  <!-- Smaller Monolith -->
+  <rect x="477" y="58" width="118" height="100" class="monolith"/>
+  <text x="536" y="72" fill="#fff" font-size="9" font-weight="700" text-anchor="middle">Monolith</text>
+  <rect x="487" y="80" width="50" height="20" class="module"/><text x="512" y="90" class="module-text">OrderService</text>
+  <rect x="543" y="80" width="44" height="20" class="module"/><text x="565" y="90" class="module-text">Inventory</text>
+  <rect x="487" y="106" width="50" height="20" class="module"/><text x="512" y="116" class="module-text">PaymentService</text>
+  <rect x="543" y="106" width="44" height="20" class="module"/><text x="565" y="116" class="module-text">BatchJobs</text>
+  <!-- Extracted services -->
+  <rect x="602" y="58" width="24" height="40" class="extracted"/><text x="614" y="72" fill="#fff" font-size="5" text-anchor="middle" dominant-baseline="central" transform="rotate(-90, 614, 78)">ReportingSvc</text>
+  <rect x="632" y="58" width="24" height="40" class="extracted"/><text x="644" y="72" fill="#fff" font-size="5" text-anchor="middle" dominant-baseline="central" transform="rotate(-90, 644, 78)">UserService</text>
+  <!-- DBs -->
+  <ellipse cx="525" cy="175" rx="20" ry="6" class="db"/>
+  <rect x="505" y="175" width="40" height="12" class="db" stroke-width="0"/>
+  <line x1="505" y1="175" x2="505" y2="187" stroke="#666" stroke-width="1"/>
+  <line x1="545" y1="175" x2="545" y2="187" stroke="#666" stroke-width="1"/>
+  <ellipse cx="525" cy="187" rx="20" ry="6" class="db"/>
+  <text x="525" y="184" class="db-text">DB</text>
+  <line x1="525" y1="158" x2="525" y2="169" class="arrow-thin"/>
+  <!-- Small DBs for extracted -->
+  <ellipse cx="614" cy="112" rx="12" ry="4" class="db"/>
+  <rect x="602" y="112" width="24" height="8" class="db" stroke-width="0"/>
+  <line x1="602" y1="112" x2="602" y2="120" stroke="#666" stroke-width="1"/>
+  <line x1="626" y1="112" x2="626" y2="120" stroke="#666" stroke-width="1"/>
+  <ellipse cx="614" cy="120" rx="12" ry="4" class="db"/>
+  <ellipse cx="644" cy="112" rx="12" ry="4" class="db"/>
+  <rect x="632" y="112" width="24" height="8" class="db" stroke-width="0"/>
+  <line x1="632" y1="112" x2="632" y2="120" stroke="#666" stroke-width="1"/>
+  <line x1="656" y1="112" x2="656" y2="120" stroke="#666" stroke-width="1"/>
+  <ellipse cx="644" cy="120" rx="12" ry="4" class="db"/>
+
+  <!-- Panel 4: Migration Complete -->
+  <text x="787" y="16" class="panel-label">4. Migration Complete</text>
+  <!-- Façade bar (renamed) -->
+  <rect x="702" y="26" width="170" height="18" class="facade"/>
+  <text x="787" y="35" class="facade-text">API Gateway / Service Mesh</text>
+  <!-- Individual services -->
+  <rect x="704" y="56" width="44" height="36" class="extracted"/><text x="726" y="69" fill="#fff" font-size="5.5" text-anchor="middle">Order</text><text x="726" y="79" fill="#fff" font-size="5.5" text-anchor="middle">Service</text>
+  <rect x="752" y="56" width="44" height="36" class="extracted"/><text x="774" y="69" fill="#fff" font-size="5.5" text-anchor="middle">Inventory</text><text x="774" y="79" fill="#fff" font-size="5.5" text-anchor="middle">Service</text>
+  <rect x="800" y="56" width="44" height="36" class="extracted"/><text x="822" y="69" fill="#fff" font-size="5.5" text-anchor="middle">Payment</text><text x="822" y="79" fill="#fff" font-size="5.5" text-anchor="middle">Service</text>
+  <rect x="704" y="98" width="44" height="36" class="extracted"/><text x="726" y="111" fill="#fff" font-size="5.5" text-anchor="middle">User</text><text x="726" y="121" fill="#fff" font-size="5.5" text-anchor="middle">Service</text>
+  <rect x="752" y="98" width="44" height="36" class="extracted"/><text x="774" y="111" fill="#fff" font-size="5.5" text-anchor="middle">Reporting</text><text x="774" y="121" fill="#fff" font-size="5.5" text-anchor="middle">Service</text>
+  <rect x="800" y="98" width="44" height="36" class="extracted"/><text x="822" y="111" fill="#fff" font-size="5.5" text-anchor="middle">Batch</text><text x="822" y="121" fill="#fff" font-size="5.5" text-anchor="middle">Jobs</text>
+  <!-- Arrows from gateway to services -->
+  <line x1="726" y1="44" x2="726" y2="54" class="arrow"/>
+  <line x1="774" y1="44" x2="774" y2="54" class="arrow"/>
+  <line x1="822" y1="44" x2="822" y2="54" class="arrow"/>
+  <!-- Individual DBs -->
+  <g transform="translate(726,148)"><ellipse cx="0" cy="0" rx="14" ry="4" class="db"/><rect x="-14" y="0" width="28" height="10" class="db" stroke-width="0"/><line x1="-14" y1="0" x2="-14" y2="10" stroke="#666" stroke-width="0.8"/><line x1="14" y1="0" x2="14" y2="10" stroke="#666" stroke-width="0.8"/><ellipse cx="0" cy="10" rx="14" ry="4" class="db"/></g>
+  <g transform="translate(774,148)"><ellipse cx="0" cy="0" rx="14" ry="4" class="db"/><rect x="-14" y="0" width="28" height="10" class="db" stroke-width="0"/><line x1="-14" y1="0" x2="-14" y2="10" stroke="#666" stroke-width="0.8"/><line x1="14" y1="0" x2="14" y2="10" stroke="#666" stroke-width="0.8"/><ellipse cx="0" cy="10" rx="14" ry="4" class="db"/></g>
+  <g transform="translate(822,148)"><ellipse cx="0" cy="0" rx="14" ry="4" class="db"/><rect x="-14" y="0" width="28" height="10" class="db" stroke-width="0"/><line x1="-14" y1="0" x2="-14" y2="10" stroke="#666" stroke-width="0.8"/><line x1="14" y1="0" x2="14" y2="10" stroke="#666" stroke-width="0.8"/><ellipse cx="0" cy="10" rx="14" ry="4" class="db"/></g>
+
+  <!-- Panel dividers (subtle) -->
+  <line x1="225" y1="5" x2="225" y2="260" stroke="#333" stroke-width="0.5" stroke-dasharray="2,4"/>
+  <line x1="450" y1="5" x2="450" y2="260" stroke="#333" stroke-width="0.5" stroke-dasharray="2,4"/>
+  <line x1="675" y1="5" x2="675" y2="260" stroke="#333" stroke-width="0.5" stroke-dasharray="2,4"/>
+
+  <!-- Time arrow at bottom -->
+  <line x1="50" y1="290" x2="850" y2="290" class="time-arrow"/>
+  <text x="870" y="294" class="time-text">Time →</text>
+  <text x="250" y="308" class="annotation">Safe rollback at every step</text>
+  <text x="650" y="308" class="annotation">No big-bang cutover</text>
+
+  <!-- Bottom border accent -->
+  <line x1="30" y1="330" x2="870" y2="330" stroke="#C9A84C" stroke-width="0.5" opacity="0.3"/>
+</svg>

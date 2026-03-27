@@ -1,0 +1,627 @@
+---
+title: "E2E Test Generation"
+sidebarTitle: "E2E Tests"
+description: "Generate end-to-end tests that verify critical user journeys against CoreStory's acceptance criteria and user story intelligence — from journey extraction through flakiness management."
+icon: "route"
+---
+
+
+## Overview
+
+End-to-end tests are the most expensive tests to write, the most fragile to maintain, and the most valuable when they work. They verify what users actually experience — complete journeys through the application stack, from UI interaction to database persistence and back. But most E2E suites are written reactively: a critical bug ships, someone writes a test to prevent regression, and over time the suite becomes a patchwork of incident responses with no systematic coverage of the journeys that matter most.
+
+This playbook teaches you how to use CoreStory to systematically identify, prioritize, and generate E2E tests for your application's critical user journeys. CoreStory acts as a **Journey Oracle** — it knows the user stories, acceptance criteria, and critical paths from the PRD, and it knows the application's routing, API endpoints, and data flow from the codebase. The agent extracts journey specifications from CoreStory, discovers E2E test conventions from the local project, and generates tests that verify complete user flows against acceptance criteria.
+
+The primary deliverable is **executable E2E test code** that matches the project's existing E2E framework — Playwright, Cypress, Selenium, or whatever the team uses. Each test traces back to a user story or acceptance criterion, making coverage auditable and gaps visible.
+
+**How this relates to the Behavioral Test Coverage playbook:** The [Behavioral Test Coverage](/playbooks/test-generation/behavioral-test-coverage) playbook generates unit-level and integration-level tests for individual business rules, validation logic, and state transitions. This playbook generates journey-level tests that verify complete user flows across the full stack. They're complementary — behavioral tests catch logic bugs in specific rules; E2E tests catch integration failures, UI regressions, and broken flows that span multiple components.
+
+### When to Use This Playbook
+
+- Critical user journeys (signup, checkout, onboarding) have no automated E2E coverage
+- You're preparing for a major release and need confidence that key flows work end-to-end
+- A UI or API overhaul requires regression tests for existing user journeys
+- You're onboarding to an unfamiliar application and want to understand and verify its primary flows
+- The existing E2E suite is a patchwork of incident-driven tests with no systematic coverage
+
+### When to Skip This Playbook
+
+- You need to test individual business rules or validation logic (use the [Behavioral Test Coverage](/playbooks/test-generation/behavioral-test-coverage) playbook)
+- The application has no UI or user-facing API — there are no journeys to test
+- No E2E test framework is configured in the project and you don't want to set one up (this playbook generates tests for an existing framework, it doesn't bootstrap one)
+- The application is a CLI tool, library, or SDK — behavioral tests are more appropriate
+
+## Prerequisites
+
+- Everything listed in the [parent playbook prerequisites](/playbooks/spec-driven-test-generation#prerequisites)
+- An E2E test framework configured in the project (Playwright, Cypress, Selenium, etc.)
+- A running or deployable test environment that E2E tests can execute against
+- (Recommended) Seed data or fixture strategy for the test environment
+- (Recommended) CI/CD pipeline that can run E2E tests
+
+---
+
+## How It Works
+
+### The Workflow Phases
+
+| Phase | Name | Purpose | CoreStory Role |
+|-------|------|---------|----------------|
+| 1 | Setup & Scoping | Select project, create conversation, define journey scope | Setup |
+| 2 | Journey Extraction | Extract critical user journeys, acceptance criteria, and happy/unhappy paths | Journey Oracle |
+| 3 | E2E Convention Discovery | Understand the project's E2E framework, selectors, fixtures, and patterns | Oracle + Navigator |
+| 4 | Journey Prioritization | Rank journeys by business criticality and existing coverage | Navigator |
+| 5 | Test Generation & Stabilization | Generate E2E tests, run them, address flakiness | — (local code + CoreStory validation) |
+| 6 | Completion & Capture | Review coverage, commit tests, rename conversation | Knowledge capture |
+
+### HITL Gate
+
+> **After Phase 4 (Journey Prioritization):** Before generating E2E tests, a human should review the journey list and prioritization. E2E tests are expensive to maintain — generating tests for low-value journeys wastes ongoing maintenance effort. The human validates that the selected journeys are worth the investment.
+
+---
+
+## Step-by-Step Walkthrough
+
+### Phase 1 — Setup & Scoping
+
+**Goal:** Establish the E2E test generation session and define the scope.
+
+**Step 1.1: Find the project.**
+
+```
+Tool: list_projects
+```
+
+**Step 1.2: Check for prior work.**
+
+```
+Tool: list_conversations
+Parameters: project_id = <your project>
+```
+
+Look for prior Test Generation or Business Rules Extraction conversations. A behavioral test generation session for the same module provides useful context about the application's rules and state transitions — E2E tests exercise these at the journey level.
+
+**Step 1.3: Create a conversation.**
+
+```
+Tool: create_conversation
+Parameters:
+  project_id = <your project>
+  title = "E2E Test Generation — <scope description>"
+```
+
+Examples:
+- "E2E Test Generation — User Onboarding Journey"
+- "E2E Test Generation — Checkout & Payment Flows"
+- "E2E Test Generation — Core User Journeys (Full Suite)"
+
+**Step 1.4: Define scope.**
+
+| Scope | When to Use | Expected Output |
+|-------|------------|-----------------|
+| Single journey | One critical flow (e.g., checkout) | 3–8 test scenarios |
+| Journey cluster | Related flows (e.g., all auth journeys) | 8–15 test scenarios |
+| Core journeys | All business-critical user flows | 15–30 test scenarios, across multiple sessions |
+
+Start with a single high-value journey. E2E tests require more stabilization work than behavioral tests, so smaller batches are more practical.
+
+---
+
+### Phase 2 — Journey Extraction (Journey Oracle)
+
+**Goal:** Extract the critical user journeys, their acceptance criteria, and the happy and unhappy paths for each.
+
+**Step 2.1: Query for user stories and journeys.**
+
+```
+Tool: send_message
+Query: "What are the primary user journeys for [feature area/application]?
+For each journey: who is the user, what is the goal, what are the steps
+from start to completion, and what acceptance criteria define success?"
+```
+
+CoreStory extracts these from the PRD's user stories and maps them to the application's routes, API endpoints, and UI components.
+
+**Step 2.2: Query for happy path details.**
+
+```
+Tool: send_message
+Query: "For the [specific journey, e.g., user registration] journey,
+walk me through the exact happy path: what does the user see at each
+step, what data do they enter, what API calls are made, what state
+changes occur, and what is the final confirmation the user sees?"
+```
+
+This produces the step-by-step flow that becomes the core E2E test.
+
+**Step 2.3: Query for unhappy paths and error states.**
+
+```
+Tool: send_message
+Query: "For the [specific journey], what are the failure scenarios?
+What happens when validation fails at each step? What error messages
+does the user see? What happens on network failure, timeout, or
+server error? Are there any partial completion states?"
+```
+
+Unhappy paths often reveal the most critical E2E test cases — they're where users get stuck and where the application is most likely to break.
+
+**Step 2.4: Query for cross-journey dependencies.**
+
+```
+Tool: send_message
+Query: "What preconditions must be met before [journey] can start?
+Does the user need to be authenticated? Does specific data need
+to exist? Are there feature flags or configuration that affects
+the flow? What other journeys feed into or follow from this one?"
+```
+
+This surfaces the test setup requirements — what state the application needs to be in before the E2E test can run.
+
+**Step 2.5: Query for data requirements.**
+
+```
+Tool: send_message
+Query: "What test data does [journey] require? What users, entities,
+or configuration must exist? Are there specific data states that
+trigger different paths (e.g., a user with vs. without a payment
+method, an order above vs. below a threshold)?"
+```
+
+Data requirements drive the fixture and seed strategy for E2E tests.
+
+**Expected output from Phase 2:**
+A journey inventory organized by user flow:
+- Journey name, user persona, and goal
+- Happy path steps with expected UI state at each step
+- Unhappy paths with error states and recovery flows
+- Preconditions and data requirements
+- Acceptance criteria for each journey
+
+---
+
+### Phase 3 — E2E Convention Discovery (Oracle + Navigator)
+
+**Goal:** Understand the project's E2E test patterns so generated tests match existing conventions.
+
+**Step 3.1: Query for E2E framework and structure.**
+
+```
+Tool: send_message
+Query: "What E2E testing framework does this project use? How are
+E2E tests organized — directory structure, file naming, test grouping?
+Is there a separate E2E test directory? What configuration files
+exist for the E2E runner?"
+```
+
+The agent needs: framework (Playwright, Cypress, Selenium, Puppeteer, etc.), directory layout, configuration, and any custom runner setup.
+
+**Step 3.2: Query for page objects, selectors, and abstractions.**
+
+```
+Tool: send_message
+Query: "Does this project use page objects, component abstractions,
+or selector patterns for E2E tests? How are selectors defined —
+data-testid attributes, CSS selectors, XPath, accessibility roles?
+Are there shared helpers for common interactions (login, navigation,
+form filling)?"
+```
+
+Selector strategy is critical for E2E test stability. Generated tests must follow the existing approach.
+
+**Step 3.3: Query for fixture and environment patterns.**
+
+```
+Tool: send_message
+Query: "How does this project handle test data for E2E tests?
+Is there a seed script, factory pattern, API-based setup, or
+database snapshot approach? How is the test environment configured
+— local server, staging, Docker Compose? How are E2E tests
+authenticated (test users, tokens, cookies)?"
+```
+
+**Step 3.4: Verify conventions against local code.**
+
+Navigate to the E2E test directories and read 2–3 representative test files. Confirm CoreStory's description matches reality. Pay attention to:
+
+- How tests launch and configure the browser/runner
+- How authentication is handled in tests
+- How test data is created and cleaned up
+- How assertions verify page state (text content, element visibility, URL changes)
+- How tests handle waits, timeouts, and async operations
+- Whether tests run in parallel or serial
+
+**Expected output from Phase 3:**
+- E2E framework and runner configuration
+- Selector strategy (data-testid, roles, CSS, etc.)
+- Page object or abstraction patterns
+- Fixture/seed data approach
+- Authentication strategy for tests
+- 2–3 reference E2E test files to use as templates
+
+---
+
+### Phase 4 — Journey Prioritization (Navigator)
+
+**Goal:** Rank extracted journeys by value and identify existing coverage.
+
+**Step 4.1: Query for existing E2E coverage.**
+
+```
+Tool: send_message
+Query: "What E2E tests currently exist? What user journeys or flows
+do they cover? Are there any test files that correspond to the
+journeys identified in Phase 2?"
+```
+
+**Step 4.2: Inspect existing E2E tests locally.**
+
+Read the existing E2E test files to understand which journeys are already covered and how thoroughly.
+
+**Step 4.3: Prioritize journeys.**
+
+Rank uncovered or partially covered journeys by:
+
+1. **Revenue impact** — Journeys that directly affect conversion, payment, or retention (checkout, signup, subscription management)
+2. **User frequency** — Journeys that every user performs regularly (login, core workflow, search)
+3. **Failure severity** — Journeys where failure means data loss, security exposure, or user lock-out
+4. **Complexity** — Journeys with many steps, conditional paths, or cross-service interactions (higher value because they're harder to test manually)
+
+**Expected output from Phase 4:**
+A prioritized list of journeys with their coverage status and recommended test scenarios.
+
+> **HITL Gate:** Present the prioritized journey list to the human. E2E tests carry ongoing maintenance cost — confirm the selected journeys are worth the investment.
+
+---
+
+### Phase 5 — Test Generation & Stabilization
+
+**Goal:** Generate E2E tests for each prioritized journey, run them, and stabilize against flakiness.
+
+**Step 5.1: Generate the happy path test.**
+
+For each journey, start with the happy path. Using the journey specification from Phase 2, the E2E conventions from Phase 3, and the reference test files as templates, write the test. Each test should:
+
+- Follow the project's E2E file naming and organization conventions
+- Use the project's selector strategy (data-testid, roles, etc.)
+- Use the project's page object or abstraction patterns if they exist
+- Include a descriptive test name that references the journey and acceptance criteria
+- Set up required test data using the project's fixture approach
+- Clean up test data after execution (or use isolation patterns)
+
+**Step 5.2: Run the test and stabilize.**
+
+E2E tests fail for different reasons than behavioral tests. Common failure categories:
+
+| Failure Type | Meaning | Action |
+|--------------|---------|--------|
+| Selector not found | Element locator is wrong or page structure has changed | Fix the selector — use the project's selector strategy |
+| Timeout | Page load, API call, or animation took longer than expected | Add appropriate waits — prefer waiting for specific conditions over fixed delays |
+| State mismatch | Test data wasn't set up correctly or prior test left dirty state | Fix the fixture/setup — ensure test isolation |
+| Assertion failure | The journey doesn't behave as the specification describes | Investigate: is the spec wrong or is the application wrong? Flag for human review |
+| Flaky pass/fail | Test passes sometimes and fails other times | See the flakiness management section below |
+
+**Step 5.3: Generate unhappy path tests.**
+
+For each journey's critical unhappy paths (identified in Phase 2), generate tests that verify:
+- Validation errors display the correct messages
+- The user can recover from error states (fix input and retry)
+- Network failures are handled gracefully (error messages, retry options)
+- Partial completion states are handled (back button, refresh, timeout)
+
+Focus on the unhappy paths that users actually encounter — not every theoretical error combination.
+
+**Step 5.4: Validate tests are meaningful.**
+
+For high-priority journeys, validate with CoreStory:
+
+```
+Tool: send_message
+Query: "I've written this E2E test for the [journey] happy path:
+
+[paste test code]
+
+Does this test verify the acceptance criteria for this journey?
+Are there critical steps or assertions I'm missing? Would this
+test catch a real regression in this flow?"
+```
+
+**Step 5.5: Run the full E2E suite.**
+
+After generating a batch of tests, run the full E2E suite. Verify:
+- All new tests pass consistently (run at least 3 times to check for flakiness)
+- No existing tests broke
+- Suite execution time is acceptable
+
+---
+
+### Flakiness Management
+
+E2E tests are inherently more prone to flakiness than unit or integration tests. Address flakiness proactively:
+
+**Prefer condition-based waits over fixed delays.** Wait for a specific element to appear, an API call to complete, or a URL to change — not for a fixed number of milliseconds.
+
+**Isolate test data.** Each test should create its own data and not depend on state from other tests. If the framework supports parallel execution, tests must be fully independent.
+
+**Handle animations and transitions.** If the application uses animations, either disable them in the test environment or wait for animation completion before asserting.
+
+**Retry on infrastructure flakiness, not on application bugs.** Most E2E frameworks support test retries. Use retries to handle transient infrastructure issues (network blips, slow CI runners) — but if a test consistently fails on the same assertion, that's a real bug, not flakiness.
+
+**Test against a stable environment.** E2E tests should run against a dedicated test environment with controlled data, not against a staging environment that other teams are actively deploying to.
+
+---
+
+### Phase 6 — Completion & Capture
+
+**Goal:** Finalize generated tests, capture the session, and report coverage.
+
+**Step 6.1: Review coverage against the journey inventory.**
+
+```
+Journeys inventoried: [count]
+Happy path tests generated: [count]
+Unhappy path tests generated: [count]
+Remaining uncovered: [count] (with reasons)
+```
+
+**Step 6.2: Organize test files.**
+
+Ensure generated E2E tests are in the correct directory, follow the project's naming conventions, and are configured to run in the CI/CD pipeline.
+
+**Step 6.3: Commit the tests.**
+
+```
+Test: Add E2E test coverage for [journey/flow]
+
+Coverage:
+- [X] happy path for [journey name]
+- [X] validation error handling for [journey name]
+- [X] [specific unhappy path scenarios]
+
+User journeys from CoreStory conversation [conversation-id].
+Total new E2E tests: [count]
+All existing tests still pass — no regressions.
+Flakiness check: all new tests passed [X] consecutive runs.
+```
+
+**Step 6.4: Rename the conversation.**
+
+```
+Tool: rename_conversation
+Parameters:
+  project_id = <your project>
+  conversation_id = <your conversation>
+  title = "RESOLVED — E2E Test Generation — <scope description>"
+```
+
+---
+
+## Tips & Best Practices
+
+**Start with the highest-value, simplest journey.** The first E2E test you generate should be the most business-critical flow with the fewest steps. This gives you maximum value with minimum stabilization effort, and establishes conventions for subsequent tests.
+
+**Generate fewer, more comprehensive E2E tests.** Unlike behavioral tests where you want broad coverage of individual rules, E2E tests should focus on complete journeys. Ten well-structured journey tests are more valuable than fifty shallow click-through tests.
+
+**Use the pyramid principle.** E2E tests sit at the top of the testing pyramid. They should verify journey-level behavior, not re-test business logic that's already covered by behavioral tests. If you've run the [Behavioral Test Coverage](/playbooks/test-generation/behavioral-test-coverage) playbook, the E2E tests can focus on flow and integration rather than rule verification.
+
+**Name tests after journeys, not pages.** `test_new_user_can_complete_signup_and_reach_dashboard` is more meaningful than `test_signup_page`. Journey-oriented names make coverage gaps visible at a glance.
+
+**Keep test data minimal.** Create only the data each test needs, and create it as close to the test as possible. Shared seed data across tests creates hidden dependencies and ordering requirements.
+
+**When to involve a domain expert:**
+
+- After Phase 2 (journey extraction) — to validate that the extracted journeys match real user behavior
+- After Phase 4 (prioritization) — to confirm which journeys are worth the maintenance investment
+- When E2E tests fail on assertion — to determine whether the application behavior or the specification is wrong
+
+---
+
+## Troubleshooting
+
+**CoreStory returns journeys that don't match the current application.**
+The PRD may describe planned features that aren't implemented yet, or features that were descoped. Cross-reference journey specifications against the actual application routes and UI components before generating tests.
+
+**Generated tests fail on selectors.**
+The selector strategy from Phase 3 doesn't match reality, or the application uses dynamically generated selectors. Inspect the actual DOM in a browser and update selectors to match. Prefer `data-testid` attributes or accessibility roles over CSS class selectors, which are fragile.
+
+**Tests pass locally but fail in CI.**
+Common causes: different viewport sizes, missing fonts or assets, slower execution speed on CI runners (needs longer timeouts), different environment configuration, or tests depending on local seed data that doesn't exist in CI.
+
+**Tests are too slow.**
+E2E tests are inherently slower than unit tests, but they shouldn't take minutes each. Common optimizations: parallelize independent tests, reuse authenticated sessions across tests (if the framework supports it), minimize redundant navigation, and ensure the test environment isn't resource-starved.
+
+**Too many journeys to cover.**
+This is normal for mature applications. Focus on journeys that affect revenue, security, or data integrity. Use the prioritization from Phase 4 and plan a multi-session campaign — one journey cluster per session.
+
+---
+
+## Agent Implementation Guides
+
+### Claude Code
+
+#### Skill File
+
+Save as `.claude/skills/generate-e2e-tests/SKILL.md`:
+
+````markdown
+---
+name: generate-e2e-tests
+description: >
+  Generate end-to-end tests for critical user journeys using CoreStory's
+  code intelligence. Use when asked to generate E2E tests, add E2E coverage,
+  create journey tests, or improve end-to-end test coverage. Do NOT use for
+  unit or behavioral tests — use the generate-tests skill instead.
+---
+
+# CoreStory E2E Test Generation
+
+Generate E2E tests from CoreStory's user journey and acceptance criteria
+intelligence, matching the project's existing E2E framework conventions.
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
+## Prerequisites Check
+
+Before starting, verify:
+1. CoreStory MCP server is connected (`list_projects` returns results)
+2. Target project has completed ingestion
+3. An E2E test framework is configured in the project
+4. A test environment is available to run tests against
+
+## Workflow
+
+Execute all six phases in order. Do not skip phases.
+
+### PHASE 1: Setup & Scoping
+
+1. Call `list_projects` to find the target project
+2. Call `list_conversations` — check for prior work
+3. Call `create_conversation` with title "E2E Test Generation — <scope>"
+4. Confirm scope with user (single journey, journey cluster, or core journeys)
+
+### PHASE 2: Journey Extraction (Journey Oracle)
+
+Query CoreStory via `send_message` for:
+1. "What are the primary user journeys for [feature/app]?"
+2. "Walk me through the happy path for [journey]"
+3. "What are the failure scenarios for [journey]?"
+4. "What preconditions and data requirements exist for [journey]?"
+
+IMPORTANT: Use specific journey/feature names in every query.
+
+### PHASE 3: E2E Convention Discovery
+
+Query CoreStory + inspect local E2E test files:
+1. E2E framework, directory structure, configuration
+2. Selector strategy (data-testid, roles, CSS)
+3. Page objects or abstraction patterns
+4. Fixture/seed data approach
+5. Authentication strategy for tests
+
+Read 2–3 existing E2E test files as templates.
+
+### PHASE 4: Journey Prioritization
+
+1. Query CoreStory for existing E2E coverage
+2. Inspect existing E2E tests locally
+3. Prioritize by: revenue impact > user frequency > failure severity > complexity
+
+**Present prioritized journey list to user for review before proceeding.**
+
+### PHASE 5: Test Generation & Stabilization
+
+For each prioritized journey:
+1. Generate happy path test first
+2. Run test — stabilize against flakiness
+3. Generate critical unhappy path tests
+4. Validate with CoreStory that tests verify acceptance criteria
+5. Run at least 3 times to check for flakiness
+6. Run full E2E suite after each batch
+
+Use condition-based waits, not fixed delays. Isolate test data.
+
+### PHASE 6: Completion
+
+1. Report coverage against journey inventory
+2. Ensure tests are in correct directories with correct naming
+3. Commit with structured message
+4. Rename conversation → "RESOLVED — E2E Test Generation — <scope>"
+
+## Key Principles
+- Specification before Code — always
+- Match existing E2E conventions exactly
+- Journey-level tests, not page-level tests
+- Address flakiness proactively
+- Fewer comprehensive tests > many shallow tests
+````
+
+### GitHub Copilot
+
+Append to `.github/copilot-instructions.md`:
+
+```markdown
+## E2E Test Generation with CoreStory
+
+When asked to generate E2E tests, end-to-end tests, or journey tests,
+follow the spec-driven methodology using CoreStory's MCP tools.
+
+### Workflow
+1. Extract user journeys from CoreStory (happy paths, unhappy paths,
+   preconditions, data requirements)
+2. Discover E2E conventions from CoreStory + local test files
+3. Prioritize journeys — present to user for approval
+4. Generate tests matching project conventions exactly
+5. Stabilize against flakiness (condition-based waits, isolated data)
+6. Report coverage, commit, rename conversation "RESOLVED"
+
+### Key Principles
+- Extract journeys from specifications, not from clicking through the app
+- Use the project's selector strategy (data-testid, roles, etc.)
+- Generate journey-level tests, not page-level tests
+- Run tests multiple times to verify stability before committing
+```
+
+### Cursor
+
+Save as `.cursor/rules/generate-e2e-tests.mdc`:
+
+````markdown
+---
+description: Generate E2E tests for user journeys using CoreStory's code intelligence. Activates for E2E test generation, journey testing, and end-to-end coverage workflows.
+globs:
+alwaysApply: true
+---
+
+# E2E Test Generation with CoreStory
+
+Generate journey-level E2E tests using CoreStory for user story and
+acceptance criteria extraction, and local code for convention matching.
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
+## Workflow
+1. Extract user journeys, acceptance criteria, happy/unhappy paths
+2. Discover E2E framework conventions, selectors, page objects, fixtures
+3. Prioritize journeys — present to user before generating
+4. Generate happy path tests first, then critical unhappy paths
+5. Stabilize: condition-based waits, isolated test data, run 3x
+6. Report coverage, commit, rename conversation "RESOLVED"
+
+## Key Principles
+- Specification before Code
+- Journey-level tests, not page-level tests
+- Match existing E2E conventions exactly
+- Address flakiness proactively
+- Fewer comprehensive tests > many shallow tests
+````
+
+### Factory.ai
+
+Save as `.factory/droids/generate-e2e-tests.md`:
+
+```yaml
+name: generate-e2e-tests
+description: Generate E2E tests for critical user journeys using CoreStory code intelligence and local E2E convention matching
+instructions: |
+  You generate E2E tests from CoreStory's user journey intelligence:
+
+  **If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
+
+  1. Set up a CoreStory conversation for the E2E test generation session
+  2. Extract user journeys: happy paths, unhappy paths, preconditions,
+     data requirements, acceptance criteria
+  3. Discover E2E conventions: framework, selectors, page objects,
+     fixtures, authentication strategy
+  4. Prioritize journeys by business value — present to user for approval
+  5. Generate journey-level tests (happy path first, then unhappy paths)
+  6. Stabilize against flakiness: condition-based waits, isolated data,
+     run multiple times before committing
+  7. Report coverage, commit, rename conversation "RESOLVED"
+
+  Key behaviors:
+  - Extract journeys from specifications, not from clicking through the app
+  - Match existing E2E conventions exactly
+  - Generate journey-level tests, not page-level click-throughs
+  - Address flakiness proactively (waits, isolation, retries)
+  - Fewer comprehensive tests > many shallow tests
+```

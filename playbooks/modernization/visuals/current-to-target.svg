@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <style>
+      .section-header { fill: #C9A84C; font-size: 13px; font-weight: 700; text-anchor: middle; }
+      .mono-box { fill: #1A1A2E; stroke: #C9A84C; stroke-width: 1.5; rx: 8; }
+      .module { rx: 4; stroke-width: 1; }
+      .module-text { fill: #ccc; font-size: 8px; text-anchor: middle; dominant-baseline: central; }
+      .service { fill: #1A1A2E; stroke: #C9A84C; stroke-width: 1.2; rx: 5; }
+      .service-text { fill: #fff; font-size: 7.5px; text-anchor: middle; dominant-baseline: central; }
+      .db { fill: #1A1A2E; stroke: #666; stroke-width: 1; }
+      .db-small { fill: #1A1A2E; stroke: #555; stroke-width: 0.8; }
+      .db-text { fill: #999; font-size: 6px; text-anchor: middle; }
+      .mapping { stroke-dasharray: 4,3; stroke-width: 1; fill: none; }
+      .map-green { stroke: #22c55e; }
+      .map-blue { stroke: #3b82f6; }
+      .map-gray { stroke: #6b7280; }
+      .map-red { stroke: #ef4444; }
+      .gateway { fill: #C9A84C; rx: 4; }
+      .gateway-text { fill: #1A1A2E; font-size: 8px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
+      .saas { fill: #0F3460; stroke: #06b6d4; stroke-width: 1.2; rx: 5; }
+      .saas-text { fill: #67e8f9; font-size: 7.5px; text-anchor: middle; dominant-baseline: central; }
+      .crossed { stroke: #EF4444; stroke-width: 1.5; }
+      .legend-text { fill: #999; font-size: 8px; }
+    </style>
+  </defs>
+
+  <!-- Left Panel: Current Architecture -->
+  <text x="190" y="20" class="section-header">Current Architecture</text>
+  <rect x="20" y="32" width="340" height="280" rx="10" fill="none" stroke="#333" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <!-- Monolith box -->
+  <rect x="50" y="48" width="280" height="195" class="mono-box"/>
+  <text x="190" y="66" fill="#fff" font-size="10" font-weight="700" text-anchor="middle">Monolith</text>
+
+  <!-- Modules inside monolith -->
+  <rect x="65" y="78" width="80" height="28" class="module" fill="#16213E" stroke="#8b5cf6"/><text x="105" y="92" class="module-text">OrderService</text>
+  <rect x="155" y="78" width="80" height="28" class="module" fill="#16213E" stroke="#3b82f6"/><text x="195" y="92" class="module-text">InventoryService</text>
+  <rect x="245" y="78" width="75" height="28" class="module" fill="#16213E" stroke="#8b5cf6"/><text x="282" y="92" class="module-text">PaymentService</text>
+  <rect x="65" y="114" width="80" height="28" class="module" fill="#16213E" stroke="#3b82f6"/><text x="105" y="128" class="module-text">UserService</text>
+  <rect x="155" y="114" width="80" height="28" class="module" fill="#16213E" stroke="#06b6d4"/><text x="195" y="128" class="module-text">ReportingService</text>
+  <rect x="245" y="114" width="75" height="28" class="module" fill="#16213E" stroke="#8b5cf6"/><text x="282" y="128" class="module-text">BatchRecon</text>
+  <!-- Retired module -->
+  <rect x="65" y="150" width="80" height="28" class="module" fill="#2a1a1a" stroke="#EF4444" stroke-dasharray="3,2"/><text x="105" y="164" fill="#EF4444" font-size="7" text-anchor="middle" dominant-baseline="central">LegacyNotifier</text>
+  <line x1="65" y1="150" x2="145" y2="178" class="crossed"/><line x1="145" y1="150" x2="65" y2="178" class="crossed"/>
+  <!-- WebUI -->
+  <rect x="155" y="150" width="80" height="28" class="module" fill="#16213E" stroke="#3b82f6"/><text x="195" y="164" class="module-text">WebUI</text>
+  <!-- API Gateway (retain) -->
+  <rect x="245" y="150" width="75" height="28" class="module" fill="#16213E" stroke="#6b7280"/><text x="282" y="164" class="module-text">APIGateway</text>
+
+  <!-- Tight coupling indicators -->
+  <text x="190" y="202" fill="#EF4444" font-size="7" text-anchor="middle" font-style="italic">Tight coupling · shared state</text>
+
+  <!-- Shared database -->
+  <ellipse cx="190" cy="260" rx="45" ry="10" class="db"/>
+  <rect x="145" y="260" width="90" height="22" fill="#1A1A2E" stroke="none"/>
+  <line x1="145" y1="260" x2="145" y2="282" stroke="#666" stroke-width="1"/>
+  <line x1="235" y1="260" x2="235" y2="282" stroke="#666" stroke-width="1"/>
+  <ellipse cx="190" cy="282" rx="45" ry="10" class="db"/>
+  <text x="190" y="275" fill="#EF4444" font-size="7.5" text-anchor="middle" font-weight="600">Shared Database</text>
+
+  <!-- Divider -->
+  <line x1="395" y1="15" x2="395" y2="385" stroke="#C9A84C" stroke-width="0.5" stroke-dasharray="6,4" opacity="0.4"/>
+  <text x="395" y="200" fill="#C9A84C" font-size="24" text-anchor="middle" opacity="0.3">→</text>
+
+  <!-- Right Panel: Target Architecture -->
+  <text x="600" y="20" class="section-header">Target Architecture</text>
+  <rect x="420" y="32" width="360" height="280" rx="10" fill="none" stroke="#333" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <!-- API Gateway -->
+  <rect x="500" y="42" width="180" height="22" class="gateway"/>
+  <text x="590" y="53" class="gateway-text">API Gateway / Service Mesh</text>
+
+  <!-- Individual services -->
+  <rect x="430" y="78" width="80" height="30" class="service"/><text x="470" y="93" class="service-text">OrderService</text>
+  <rect x="520" y="78" width="80" height="30" class="service"/><text x="560" y="93" class="service-text">InventoryService</text>
+  <rect x="610" y="78" width="80" height="30" class="service"/><text x="650" y="93" class="service-text">PaymentService</text>
+  <rect x="430" y="118" width="80" height="30" class="service"/><text x="470" y="133" class="service-text">UserService</text>
+  <rect x="520" y="118" width="80" height="30" class="service"/><text x="560" y="133" class="service-text">ReportingService</text>
+  <rect x="610" y="118" width="80" height="30" class="service"/><text x="650" y="133" class="service-text">BatchRecon</text>
+  <rect x="430" y="158" width="80" height="30" class="service"/><text x="470" y="173" class="service-text">WebUI</text>
+  <!-- SaaS replacement -->
+  <rect x="520" y="158" width="80" height="30" class="saas"/><text x="560" y="168" class="saas-text">Notification</text><text x="560" y="178" class="saas-text">SaaS</text>
+  <!-- Retained gateway -->
+  <rect x="610" y="158" width="80" height="30" rx="5" fill="#1A1A2E" stroke="#6b7280" stroke-width="1.2"/><text x="650" y="173" fill="#d1d5db" font-size="7.5" text-anchor="middle" dominant-baseline="central">API Gateway</text>
+
+  <!-- Individual databases -->
+  <g transform="translate(470,208)"><ellipse cx="0" cy="0" rx="18" ry="5" class="db-small"/><rect x="-18" y="0" width="36" height="12" fill="#1A1A2E" stroke="none"/><line x1="-18" y1="0" x2="-18" y2="12" stroke="#555" stroke-width="0.8"/><line x1="18" y1="0" x2="18" y2="12" stroke="#555" stroke-width="0.8"/><ellipse cx="0" cy="12" rx="18" ry="5" class="db-small"/></g>
+  <g transform="translate(560,208)"><ellipse cx="0" cy="0" rx="18" ry="5" class="db-small"/><rect x="-18" y="0" width="36" height="12" fill="#1A1A2E" stroke="none"/><line x1="-18" y1="0" x2="-18" y2="12" stroke="#555" stroke-width="0.8"/><line x1="18" y1="0" x2="18" y2="12" stroke="#555" stroke-width="0.8"/><ellipse cx="0" cy="12" rx="18" ry="5" class="db-small"/></g>
+  <g transform="translate(650,208)"><ellipse cx="0" cy="0" rx="18" ry="5" class="db-small"/><rect x="-18" y="0" width="36" height="12" fill="#1A1A2E" stroke="none"/><line x1="-18" y1="0" x2="-18" y2="12" stroke="#555" stroke-width="0.8"/><line x1="18" y1="0" x2="18" y2="12" stroke="#555" stroke-width="0.8"/><ellipse cx="0" cy="12" rx="18" ry="5" class="db-small"/></g>
+
+  <text x="590" y="248" fill="#22c55e" font-size="7" text-anchor="middle" font-style="italic">Clean boundaries · independent data stores</text>
+
+  <!-- Mapping arrows (current → target) -->
+  <!-- OrderService: Re-architect (purple/green) -->
+  <path d="M 145 92 Q 390 70 430 93" class="mapping map-green" opacity="0.6"/>
+  <!-- InventoryService: Refactor (blue) -->
+  <path d="M 235 92 Q 400 60 520 93" class="mapping map-blue" opacity="0.6"/>
+  <!-- PaymentService: Re-architect -->
+  <path d="M 320 92 Q 410 50 610 93" class="mapping map-green" opacity="0.6"/>
+  <!-- UserService: Refactor -->
+  <path d="M 145 128 Q 350 120 430 133" class="mapping map-blue" opacity="0.6"/>
+  <!-- ReportingService: Replatform -->
+  <path d="M 235 128 Q 400 115 520 133" class="mapping map-blue" opacity="0.6"/>
+  <!-- BatchRecon: Re-architect -->
+  <path d="M 320 128 Q 420 110 610 133" class="mapping map-green" opacity="0.6"/>
+  <!-- LegacyNotifier: Retired (no arrow, X'd out) -->
+  <!-- WebUI: Refactor -->
+  <path d="M 235 164 Q 380 165 430 173" class="mapping map-blue" opacity="0.6"/>
+  <!-- APIGateway: Retain -->
+  <path d="M 320 164 Q 420 165 610 173" class="mapping map-gray" opacity="0.6"/>
+
+  <!-- Legend -->
+  <line x1="30" y1="340" x2="60" y2="340" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="65" y="343" class="legend-text">Re-architect</text>
+  <line x1="140" y1="340" x2="170" y2="340" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="175" y="343" class="legend-text">Refactor / Replatform</text>
+  <line x1="290" y1="340" x2="320" y2="340" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="325" y="343" class="legend-text">Retain</text>
+  <line x1="375" y1="335" x2="405" y2="345" stroke="#EF4444" stroke-width="1.5"/>
+  <line x1="405" y1="335" x2="375" y2="345" stroke="#EF4444" stroke-width="1.5"/>
+  <text x="415" y="343" class="legend-text">Retire</text>
+  <rect x="460" y="333" width="14" height="14" rx="2" fill="#0F3460" stroke="#06b6d4" stroke-width="1"/>
+  <text x="480" y="343" class="legend-text">Repurchase (SaaS)</text>
+
+  <text x="400" y="378" fill="#888" font-size="8" text-anchor="middle" font-style="italic">Your architecture map will look different — this shows the structure and level of detail to aim for.</text>
+</svg>

@@ -1,0 +1,35 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a1a2e', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#c9a84c', 'lineColor': '#c9a84c', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
+
+graph TD
+    START["Shared table identified"]
+    Q1{"Who writes<br/>to this table?"}
+    Q2{"How often is this data<br/>read by other services?"}
+    Q3{"Can reads tolerate<br/>eventual consistency?"}
+    Q4{"Can write ownership<br/>be assigned to one service?"}
+
+    T1["✅ <b>API-Mediated Access</b><br/><i>Owner exposes read API;<br/>consumers call on demand</i>"]
+    T2["✅ <b>CDC / Event-Driven Sync</b><br/><i>Owner publishes changes;<br/>consumers maintain local copies</i>"]
+    T3["⚠️ <b>Shared Schema Ownership</b><br/><i>Transitional — co-locate until<br/>reads can tolerate latency</i>"]
+    T4["🔄 <b>Refactor to Single Writer</b><br/><i>Assign ownership, then<br/>re-evaluate from the top</i>"]
+    T5["⚠️ <b>Shared Schema — Keep Co-located</b><br/><i>True shared state; decompose<br/>at a higher abstraction level</i>"]
+
+    START --> Q1
+    Q1 -->|"Single writer"| Q2
+    Q1 -->|"Multiple writers"| Q4
+    Q2 -->|"Rarely"| T1
+    Q2 -->|"Frequently"| Q3
+    Q3 -->|"Yes"| T2
+    Q3 -->|"No"| T3
+    Q4 -->|"Yes"| T4
+    Q4 -->|"No"| T5
+
+    style START fill:#1a1a2e,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style Q1 fill:#c9a84c,stroke:#1a1a2e,stroke-width:2px,color:#1a1a2e
+    style Q2 fill:#c9a84c,stroke:#1a1a2e,stroke-width:2px,color:#1a1a2e
+    style Q3 fill:#c9a84c,stroke:#1a1a2e,stroke-width:2px,color:#1a1a2e
+    style Q4 fill:#c9a84c,stroke:#1a1a2e,stroke-width:2px,color:#1a1a2e
+    style T1 fill:#14532d,stroke:#22c55e,stroke-width:2px,color:#86efac
+    style T2 fill:#0c4a6e,stroke:#3b82f6,stroke-width:2px,color:#93c5fd
+    style T3 fill:#78350f,stroke:#f59e0b,stroke-width:2px,color:#fcd34d
+    style T4 fill:#0f3460,stroke:#06b6d4,stroke-width:2px,color:#67e8f9
+    style T5 fill:#78350f,stroke:#f59e0b,stroke-width:2px,color:#fcd34d

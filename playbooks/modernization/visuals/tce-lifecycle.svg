@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 380" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <style>
+      .col-header { fill: #C9A84C; font-size: 14px; font-weight: 700; text-anchor: middle; }
+      .col-body { fill: #1A1A2E; stroke: #333; stroke-width: 1.5; rx: 8; }
+      .body-text { fill: #ccc; font-size: 9px; }
+      .artifact-label { fill: #C9A84C; font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+      .artifact-text { fill: #fff; font-size: 8.5px; font-weight: 600; }
+      .sub-label { fill: #888; font-size: 8px; font-style: italic; text-anchor: middle; }
+      .hitl-box { fill: #C9A84C; fill-opacity: 0.15; stroke: #C9A84C; stroke-width: 1.5; rx: 5; }
+      .hitl-text { fill: #C9A84C; font-size: 8px; font-weight: 700; text-anchor: middle; }
+      .arrow-text { fill: #888; font-size: 7.5px; text-anchor: middle; font-style: italic; }
+      .wp-bar { fill: #0F3460; stroke: #C9A84C; stroke-width: 1; rx: 4; }
+      .wp-text { fill: #C9A84C; font-size: 10px; font-weight: 600; text-anchor: middle; }
+      .feedback-text { fill: #C9A84C; font-size: 8px; font-weight: 600; text-anchor: middle; }
+    </style>
+    <marker id="arrowR" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#C9A84C"/>
+    </marker>
+    <marker id="arrowL" markerWidth="8" markerHeight="6" refX="1" refY="3" orient="auto">
+      <polygon points="8 0, 0 3, 8 6" fill="#C9A84C"/>
+    </marker>
+  </defs>
+
+  <!-- Work Package bar -->
+  <rect x="60" y="8" width="680" height="28" class="wp-bar"/>
+  <text x="400" y="26" class="wp-text">Work Package: [ComponentName] (WP-XXX)</text>
+
+  <!-- Column 1: Transform -->
+  <text x="155" y="62" class="col-header">Transform</text>
+  <rect x="30" y="72" width="250" height="175" class="col-body"/>
+  <!-- Body items -->
+  <circle cx="50" cy="94" r="2.5" fill="#C9A84C"/>
+  <text x="60" y="97" class="body-text">Build modernized component (delta spec)</text>
+  <circle cx="50" cy="114" r="2.5" fill="#C9A84C"/>
+  <text x="60" y="117" class="body-text">Legacy remains untouched</text>
+  <circle cx="50" cy="134" r="2.5" fill="#C9A84C"/>
+  <text x="60" y="137" class="body-text">Unit + integration tests</text>
+  <!-- Artifact -->
+  <line x1="45" y1="158" x2="265" y2="158" stroke="#333" stroke-width="0.5"/>
+  <text x="45" y="175" class="artifact-label">ARTIFACT</text>
+  <text x="45" y="190" class="artifact-text">Delta spec + new service code</text>
+  <!-- Sub label -->
+  <rect x="70" y="212" width="170" height="24" rx="4" fill="#0F3460" stroke="#333" stroke-width="0.8"/>
+  <text x="155" y="228" class="sub-label">Spec-Driven Development</text>
+
+  <!-- Arrow Transform → Coexist -->
+  <line x1="286" y1="155" x2="314" y2="155" stroke="#C9A84C" stroke-width="2" marker-end="url(#arrowR)"/>
+  <text x="300" y="145" class="arrow-text">1–3</text>
+  <text x="300" y="170" class="arrow-text">sprints</text>
+
+  <!-- Column 2: Coexist -->
+  <text x="430" y="62" class="col-header">Coexist</text>
+  <rect x="320" y="72" width="220" height="175" class="col-body"/>
+  <circle cx="335" cy="94" r="2.5" fill="#C9A84C"/>
+  <text x="345" y="97" class="body-text">Run both versions simultaneously</text>
+  <circle cx="335" cy="114" r="2.5" fill="#C9A84C"/>
+  <text x="345" y="117" class="body-text">Façade routes traffic</text>
+  <circle cx="335" cy="134" r="2.5" fill="#C9A84C"/>
+  <text x="345" y="137" class="body-text">Compare behavior (shadow traffic)</text>
+  <circle cx="335" cy="154" r="2.5" fill="#C9A84C"/>
+  <text x="345" y="157" class="body-text">Monitor business metrics</text>
+  <!-- Artifact -->
+  <line x1="335" y1="172" x2="525" y2="172" stroke="#333" stroke-width="0.5"/>
+  <text x="335" y="189" class="artifact-label">ARTIFACT</text>
+  <text x="335" y="204" class="artifact-text">Behavioral Equivalence Report</text>
+  <!-- HITL Gate -->
+  <rect x="335" y="214" width="190" height="24" class="hitl-box"/>
+  <text x="430" y="230" class="hitl-text">⚑ HITL: Domain expert validates report</text>
+
+  <!-- Arrow Coexist → Eliminate -->
+  <line x1="546" y1="155" x2="574" y2="155" stroke="#C9A84C" stroke-width="2" marker-end="url(#arrowR)"/>
+  <text x="560" y="145" class="arrow-text">1–2</text>
+  <text x="560" y="170" class="arrow-text">sprints</text>
+
+  <!-- Column 3: Eliminate -->
+  <text x="685" y="62" class="col-header">Eliminate</text>
+  <rect x="580" y="72" width="190" height="175" class="col-body"/>
+  <circle cx="595" cy="94" r="2.5" fill="#C9A84C"/>
+  <text x="605" y="97" class="body-text">Retire legacy component</text>
+  <circle cx="595" cy="114" r="2.5" fill="#C9A84C"/>
+  <text x="605" y="117" class="body-text">Remove façade routing</text>
+  <circle cx="595" cy="134" r="2.5" fill="#C9A84C"/>
+  <text x="605" y="137" class="body-text">Clean up anti-corruption layers</text>
+  <circle cx="595" cy="154" r="2.5" fill="#C9A84C"/>
+  <text x="605" y="157" class="body-text">Final verification</text>
+  <!-- Artifact -->
+  <line x1="595" y1="172" x2="755" y2="172" stroke="#333" stroke-width="0.5"/>
+  <text x="595" y="189" class="artifact-label">ARTIFACT</text>
+  <text x="595" y="204" class="artifact-text">Sign-off: legacy decommissioned</text>
+  <!-- Duration label -->
+  <rect x="620" y="214" width="120" height="24" rx="4" fill="#0F3460" stroke="#333" stroke-width="0.8"/>
+  <text x="680" y="230" class="sub-label">&lt; 1 sprint</text>
+
+  <!-- Feedback loop arrow (Eliminate → Transform) -->
+  <path d="M 675 252 L 675 290 Q 675 305 660 305 L 140 305 Q 125 305 125 290 L 125 252"
+        stroke="#C9A84C" stroke-width="1.5" fill="none" stroke-dasharray="6,3" marker-end="url(#arrowL)"/>
+  <rect x="310" y="296" width="190" height="20" rx="4" fill="#111118"/>
+  <text x="405" y="310" class="feedback-text">↻ Next work package in sequence</text>
+
+  <!-- Bottom accent -->
+  <line x1="30" y1="340" x2="770" y2="340" stroke="#C9A84C" stroke-width="0.5" opacity="0.3"/>
+</svg>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Verification Status Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #111118; font-family: Inter, system-ui, -apple-system, sans-serif; color: #e0e0e0; padding: 28px; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const STATUS_COLORS = {
+  Equivalent: { bg: "#22c55e", label: "Equivalent" },
+  Improved: { bg: "#3b82f6", label: "Improved" },
+  Different: { bg: "#f59e0b", label: "Different / Needs Review" },
+  Missing: { bg: "#ef4444", label: "Missing" },
+  NotVerified: { bg: "#6b7280", label: "Not Yet Verified" },
+};
+
+const RULES = [
+  // Validation Rules
+  { id:"BR-001", desc:"Order total must be positive", area:"Validation", status:"Equivalent" },
+  { id:"BR-002", desc:"Shipping address required for physical goods", area:"Validation", status:"Equivalent" },
+  { id:"BR-003", desc:"Email format validation on registration", area:"Validation", status:"Equivalent" },
+  { id:"BR-004", desc:"SKU must exist in catalog before adding to cart", area:"Validation", status:"Equivalent" },
+  { id:"BR-005", desc:"Quantity must be ≥ 1 and ≤ 999", area:"Validation", status:"Improved", notes:"Now also validates decimal quantities are rejected" },
+  { id:"BR-006", desc:"Payment method must be active and non-expired", area:"Validation", status:"Equivalent" },
+  { id:"BR-007", desc:"Coupon code validation and single-use enforcement", area:"Validation", status:"Equivalent" },
+  { id:"BR-008", desc:"Inventory check before order confirmation", area:"Validation", status:"Different", notes:"Legacy used stale cache; new version checks real-time — behavior differs under high concurrency" },
+  { id:"BR-009", desc:"International address format validation", area:"Validation", status:"Equivalent" },
+  { id:"BR-010", desc:"Minimum order value for free shipping", area:"Validation", status:"Equivalent" },
+  // Calculation Rules
+  { id:"BR-011", desc:"Tax calculation based on shipping destination", area:"Calculation", status:"Equivalent" },
+  { id:"BR-012", desc:"Discount stacking rules (max 2 discounts)", area:"Calculation", status:"Equivalent" },
+  { id:"BR-013", desc:"Shipping cost by weight and zone", area:"Calculation", status:"Equivalent" },
+  { id:"BR-014", desc:"Loyalty points accrual (1 point per $1 spent)", area:"Calculation", status:"Improved", notes:"Now handles partial refund point deductions correctly" },
+  { id:"BR-015", desc:"Currency conversion for international orders", area:"Calculation", status:"Equivalent" },
+  { id:"BR-016", desc:"Pro-rated refund calculation", area:"Calculation", status:"Equivalent" },
+  { id:"BR-017", desc:"Volume discount tiers", area:"Calculation", status:"Equivalent" },
+  { id:"BR-018", desc:"Sales tax exemption for resellers", area:"Calculation", status:"Different", notes:"Rounding behavior changed from HALF_UP to HALF_EVEN — sub-cent difference in edge cases" },
+  { id:"BR-019", desc:"Gift card balance deduction", area:"Calculation", status:"Equivalent" },
+  { id:"BR-020", desc:"Estimated delivery date calculation", area:"Calculation", status:"Equivalent" },
+  // Authorization Rules
+  { id:"BR-021", desc:"Only admins can issue refunds > $500", area:"Authorization", status:"Equivalent" },
+  { id:"BR-022", desc:"Customer can only view own order history", area:"Authorization", status:"Equivalent" },
+  { id:"BR-023", desc:"Rate limiting on failed login attempts", area:"Authorization", status:"Improved", notes:"Improved: now uses exponential backoff instead of fixed lockout" },
+  { id:"BR-024", desc:"API key scope enforcement", area:"Authorization", status:"Equivalent" },
+  { id:"BR-025", desc:"Role-based access to reporting dashboard", area:"Authorization", status:"Equivalent" },
+  { id:"BR-026", desc:"Session timeout after 30 min inactivity", area:"Authorization", status:"Equivalent" },
+  { id:"BR-027", desc:"Cross-tenant data isolation", area:"Authorization", status:"Equivalent" },
+  { id:"BR-028", desc:"PII masking in support agent view", area:"Authorization", status:"Missing", notes:"Not yet implemented in modernized version — needs PII detection service" },
+  // Workflow Rules
+  { id:"BR-029", desc:"Order status transitions (placed→confirmed→shipped→delivered)", area:"Workflow", status:"Equivalent" },
+  { id:"BR-030", desc:"Auto-cancel unconfirmed orders after 24h", area:"Workflow", status:"Equivalent" },
+  { id:"BR-031", desc:"Fulfillment routing by warehouse proximity", area:"Workflow", status:"Equivalent" },
+  { id:"BR-032", desc:"Return window enforcement (30 days)", area:"Workflow", status:"Equivalent" },
+  { id:"BR-033", desc:"Backorder notification to customer", area:"Workflow", status:"Equivalent" },
+  { id:"BR-034", desc:"Fraud detection hold on orders > $2000", area:"Workflow", status:"Equivalent" },
+  { id:"BR-035", desc:"Supplier PO auto-generation on low stock", area:"Workflow", status:"Equivalent" },
+  { id:"BR-036", desc:"Batch reconciliation nightly run", area:"Workflow", status:"NotVerified", notes:"Awaiting batch job infrastructure setup" },
+  { id:"BR-037", desc:"Webhook notification on order status change", area:"Workflow", status:"Equivalent" },
+  { id:"BR-038", desc:"Abandoned cart email after 2h", area:"Workflow", status:"Equivalent" },
+  { id:"BR-039", desc:"Inventory sync across warehouses", area:"Workflow", status:"NotVerified", notes:"Awaiting multi-warehouse test environment" },
+  { id:"BR-040", desc:"Monthly billing cycle for subscription orders", area:"Workflow", status:"Equivalent" },
+];
+
+const AREAS = [...new Set(RULES.map(r => r.area))];
+
+function App() {
+  const [hover, setHover] = useState(null);
+
+  const counts = {};
+  Object.keys(STATUS_COLORS).forEach(s => { counts[s] = RULES.filter(r => r.status===s).length; });
+  const total = RULES.length;
+
+  const equivPct = Math.round((counts.Equivalent / total) * 100);
+  const ready = counts.Missing === 0 && counts.Different === 0 && counts.NotVerified === 0;
+  const needsReview = counts.Missing > 0 || counts.Different > 0;
+
+  return (
+    <div style={{ backgroundColor:"#111118", color:"#e0e0e0", padding:"28px", borderRadius:"12px", maxWidth:"800px", margin:"0 auto" }}>
+      <h2 style={{ margin:0, fontSize:"20px", color:"#ffffff", fontWeight:700 }}>Verification Status Dashboard</h2>
+      <p style={{ margin:"4px 0 20px", fontSize:"13px", color:"#888" }}>Business rule verification for OrderService extraction · Hover over any square for details</p>
+
+      {/* Overall recommendation */}
+      <div style={{ padding:"12px 16px", borderRadius:"8px", marginBottom:"20px",
+        backgroundColor: ready ? "#052e16" : needsReview ? "#7f1d1d" : "#78350f",
+        border: `1px solid ${ready ? "#22c55e" : needsReview ? "#ef4444" : "#f59e0b"}44` }}>
+        <span style={{ fontSize:"14px", fontWeight:700, color: ready ? "#4ade80" : needsReview ? "#fca5a5" : "#fcd34d" }}>
+          {ready ? "Ready for Eliminate" : needsReview ? "Needs Remediation" : "Needs Domain Expert Review"}
+        </span>
+        <span style={{ fontSize:"12px", color:"#999", marginLeft:"12px" }}>
+          {equivPct}% equivalent · {counts.Improved} improved · {counts.Different} different · {counts.Missing} missing · {counts.NotVerified} unverified
+        </span>
+      </div>
+
+      {/* Summary bar */}
+      <div style={{ display:"flex", height:"8px", borderRadius:"4px", overflow:"hidden", marginBottom:"8px" }}>
+        {Object.entries(STATUS_COLORS).map(([key, {bg}]) => counts[key] > 0 && (
+          <div key={key} style={{ width:`${(counts[key]/total)*100}%`, backgroundColor:bg }}/>
+        ))}
+      </div>
+      <div style={{ display:"flex", gap:"14px", flexWrap:"wrap", marginBottom:"24px" }}>
+        {Object.entries(STATUS_COLORS).map(([key, {bg, label}]) => (
+          <div key={key} style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+            <div style={{ width:"10px", height:"10px", borderRadius:"2px", backgroundColor:bg }}/>
+            <span style={{ fontSize:"11px", color:"#aaa" }}>{label}: {counts[key]}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Grid by area */}
+      {AREAS.map(area => {
+        const areaRules = RULES.filter(r => r.area === area);
+        return (
+          <div key={area} style={{ marginBottom:"20px" }}>
+            <div style={{ fontSize:"11px", color:"#c9a84c", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:"8px" }}>{area} Rules</div>
+            <div style={{ display:"flex", gap:"4px", flexWrap:"wrap" }}>
+              {areaRules.map(rule => (
+                <div key={rule.id}
+                  onMouseEnter={() => setHover(rule)}
+                  onMouseLeave={() => setHover(null)}
+                  style={{
+                    width:"28px", height:"28px", borderRadius:"4px",
+                    backgroundColor: STATUS_COLORS[rule.status].bg,
+                    opacity: hover && hover.id === rule.id ? 1 : 0.8,
+                    cursor:"pointer", transition:"all 0.1s ease",
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    fontSize:"7px", color:"#fff", fontWeight:600,
+                    border: hover && hover.id === rule.id ? "2px solid #fff" : "1px solid transparent",
+                  }}
+                >{rule.id.replace("BR-","")}</div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Hover detail */}
+      {hover && (
+        <div style={{ marginTop:"8px", padding:"12px 16px", backgroundColor:"#1a1a2e", border:"1px solid #c9a84c33", borderRadius:"8px" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"6px" }}>
+            <span style={{ fontSize:"14px", fontWeight:700, color:"#fff" }}>{hover.id}</span>
+            <span style={{ fontSize:"11px", padding:"2px 8px", borderRadius:"10px",
+              backgroundColor: STATUS_COLORS[hover.status].bg + "22",
+              color: STATUS_COLORS[hover.status].bg,
+              border: `1px solid ${STATUS_COLORS[hover.status].bg}55`, fontWeight:600 }}>
+              {STATUS_COLORS[hover.status].label}
+            </span>
+          </div>
+          <div style={{ fontSize:"13px", color:"#ccc", marginBottom: hover.notes ? "8px" : 0 }}>{hover.desc}</div>
+          {hover.notes && <div style={{ fontSize:"12px", color:"#999", fontStyle:"italic" }}>{hover.notes}</div>}
+        </div>
+      )}
+
+      {/* Summary table */}
+      <div style={{ marginTop:"24px", borderTop:"1px solid #333", paddingTop:"16px" }}>
+        <div style={{ fontSize:"11px", color:"#c9a84c", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:"8px" }}>Equivalence Summary</div>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign:"left", padding:"6px 8px", color:"#888", borderBottom:"1px solid #333" }}>Status</th>
+              <th style={{ textAlign:"center", padding:"6px 8px", color:"#888", borderBottom:"1px solid #333" }}>Count</th>
+              <th style={{ textAlign:"center", padding:"6px 8px", color:"#888", borderBottom:"1px solid #333" }}>%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(STATUS_COLORS).map(([key, {bg, label}]) => (
+              <tr key={key}>
+                <td style={{ padding:"6px 8px", color:bg, borderBottom:"1px solid #222" }}>{label}</td>
+                <td style={{ textAlign:"center", padding:"6px 8px", color:"#ccc", borderBottom:"1px solid #222" }}>{counts[key]}</td>
+                <td style={{ textAlign:"center", padding:"6px 8px", color:"#ccc", borderBottom:"1px solid #222" }}>{Math.round((counts[key]/total)*100)}%</td>
+              </tr>
+            ))}
+            <tr>
+              <td style={{ padding:"6px 8px", color:"#fff", fontWeight:700, borderTop:"1px solid #555" }}>Total</td>
+              <td style={{ textAlign:"center", padding:"6px 8px", color:"#fff", fontWeight:700, borderTop:"1px solid #555" }}>{total}</td>
+              <td style={{ textAlign:"center", padding:"6px 8px", color:"#fff", fontWeight:700, borderTop:"1px solid #555" }}>100%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style={{ marginTop:"16px", fontSize:"11px", color:"#555", textAlign:"center" }}>
+        Sample data — replace with actual verification results from Phase 6 of the Behavioral Verification playbook
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

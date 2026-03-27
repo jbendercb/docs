@@ -1,0 +1,52 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a1a2e', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#c9a84c', 'lineColor': '#c9a84c', 'secondaryColor': '#16213e', 'tertiaryColor': '#0f3460', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
+
+graph TD
+    START(["🚀 Start"])
+
+    P1["<b>Phase 1: Codebase Assessment</b><br/><i>Oracle</i> · Readiness scoring"]
+    P2["<b>Phase 2: Business Rules Extraction</b><br/><i>Oracle</i> · Behavioral inventory"]
+
+    G1{"👤 HITL<br/>Go / No-go"}
+
+    P3["<b>Phase 3: Target Architecture</b><br/><i>Oracle + Navigator</i> · Strategy selection"]
+
+    G3{"👤 HITL<br/>Architecture<br/>approval"}
+
+    P4["<b>Phase 4: Decomposition & Sequencing</b><br/><i>Navigator</i> · Work packages"]
+
+    G4{"👤 HITL<br/>Sequence<br/>approval"}
+
+    P5["<b>Phase 5: Iterative Execution</b><br/><i>Navigator</i> · Transform + Coexist"]
+
+    P6["<b>Phase 6: Behavioral Verification</b><br/><i>Verifier</i> · Equivalence proof"]
+
+    G6{"👤 HITL<br/>Verification<br/>sign-off"}
+
+    DONE(["✅ Component Modernized"])
+
+    START --> P1
+    START --> P2
+    P1 --> G1
+    P2 --> G1
+    G1 -->|Approved| P3
+    P3 --> G3
+    G3 -->|Approved| P4
+    P4 --> G4
+    G4 -->|Approved| P5
+    P5 <-->|"Iterative: each component<br/>cycles through execution<br/>and verification"| P6
+    P6 --> G6
+    G6 -->|Verified| DONE
+    G6 -->|"Needs remediation"| P5
+
+    style START fill:#0f3460,stroke:#c9a84c,stroke-width:2px,color:#c9a84c
+    style P1 fill:#1a1a2e,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style P2 fill:#1a1a2e,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style P3 fill:#1a1a2e,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style P4 fill:#1a1a2e,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style P5 fill:#1a1a2e,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style P6 fill:#1a1a2e,stroke:#c9a84c,stroke-width:2px,color:#ffffff
+    style G1 fill:#c9a84c,stroke:#1a1a2e,stroke-width:2px,color:#1a1a2e
+    style G3 fill:#c9a84c,stroke:#1a1a2e,stroke-width:2px,color:#1a1a2e
+    style G4 fill:#c9a84c,stroke:#1a1a2e,stroke-width:2px,color:#1a1a2e
+    style G6 fill:#c9a84c,stroke:#1a1a2e,stroke-width:2px,color:#1a1a2e
+    style DONE fill:#0f3460,stroke:#22c55e,stroke-width:2px,color:#22c55e
