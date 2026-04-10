@@ -47,12 +47,14 @@ The primary deliverable is a structured **Business Rules Inventory**: a document
 |-------|------|---------|----------------|
 | 1 | Setup & Scoping | Select project, create conversation, define extraction scope | Setup |
 | 2 | Architectural Survey | Map where business logic lives, identify rule categories | Oracle |
-| 3 | Deep Extraction | Systematically query each rule category, build inventory | Oracle + Navigator |
-| 4 | Code Verification | Walk local code to verify rules, find what CoreStory missed | — (local code only) |
-| 5 | Documentation & Output | Produce the structured business rules document | Oracle (gap-filling) |
+| 3 | Deep Extraction | Systematically query each rule category, build draft inventory | Oracle + Navigator |
+| 4A | Code Verification | Walk local code to verify rules, find what CoreStory missed | — (local code only) |
+| 4B | Enforcement Verification | Prove that rules claiming enforcement actually enforce at runtime | Oracle + local code |
+| 4C | Flow-Trace Discovery | Trace end-to-end user flows to find behaviors missed by domain extraction | Oracle + local code |
+| 5 | Documentation & Output | Produce the structured business rules document with confidence levels | Oracle (gap-filling) |
 | 6 | Conversation Capture | Rename conversation with RESOLVED prefix | Knowledge capture |
 
-The core principle is **Oracle before Code**: query CoreStory for architectural understanding before navigating to specific code. CoreStory surfaces rules you wouldn't find through grep alone — implicit conventions, cross-layer interactions, and undocumented invariants. Code verification then grounds those discoveries in reality.
+The core principle is **Oracle before Code**: query CoreStory for architectural understanding before navigating to specific code. CoreStory surfaces rules you wouldn't find through grep alone — implicit conventions, cross-layer interactions, and undocumented invariants. Verification then grounds those discoveries in reality — first through code inspection (4A), then by adversarially testing enforcement claims (4B), and finally by tracing user-facing flows end-to-end to catch behaviors that domain decomposition misses (4C).
 
 ### CoreStory MCP Tools Used
 
@@ -314,7 +316,7 @@ This produces a step-by-step walkthrough with validation checkpoints and failure
 - Identification of which architectural layer enforces each rule
 - Edge cases and failure conditions for each rule category
 
-### Phase 4 — Code Verification
+### Phase 4A — Code Verification
 
 **Goal:** Walk the local codebase to verify extracted rules, find rules CoreStory missed, and identify conflicts between documented intent and actual behavior.
 
@@ -380,11 +382,161 @@ Document any conflicts. Common conflict types:
 - CoreStory reports a rule that exists in dead code (no longer active)
 - Code enforces a rule that no documentation mentions (tribal knowledge)
 
-**Expected output from Phase 4:**
+**Expected output from Phase 4A:**
 - Verified or corrected version of every rule from Phase 3
 - New rules discovered through code inspection
 - Conflict log documenting intent vs. reality gaps
 - Confidence level for each rule (High = all three sources agree; Medium = two agree; Low = only found in code)
+
+### Phase 4B — Enforcement Verification
+
+**Goal:** For every rule in the draft inventory that claims enforcement, validation, or constraint behavior, prove that the enforcement actually happens at runtime.
+
+Phase 4A confirms that rules *exist* in the code. Phase 4B goes further: it tests whether rules that claim to enforce, validate, or constrain actually do so. A field labeled `requiredRoles` that is never checked at runtime is not an authorization rule — it's a dead field. A validation method that compares the wrong variable doesn't enforce the constraint it appears to. This phase catches the gap between code structure and runtime behavior.
+
+**Step 4B.1: Classify each rule by claim type.**
+
+Tag every rule in the draft inventory with one of:
+
+| Claim Type | Definition | Verification Required |
+|---|---|---|
+| **Workflow** | "When X happens, Y follows" | Trace the trigger → action path |
+| **Constraint** | "X must satisfy condition Y" | Find the code that rejects invalid X |
+| **Validation** | "Input X is checked for Y before proceeding" | Find the validation call site and confirm it throws/rejects |
+| **Default** | "X defaults to Y when not provided" | Find the assignment; low risk of inaccuracy |
+| **Calculation** | "X is computed as f(Y, Z)" | Find the formula; low risk of inaccuracy |
+| **Authorization** | "Only users with role/state X can do Y" | Find the access check that blocks non-X users |
+
+Rules tagged **Constraint**, **Validation**, and **Authorization** are highest priority for enforcement verification. **Workflow** rules need trigger-path tracing. **Default** and **Calculation** rules are lowest risk and can be spot-checked.
+
+**Step 4B.2: For each high-priority rule, answer three questions.**
+
+For every rule tagged Constraint, Validation, or Authorization:
+
+**Q1: Where is the enforcement point?**
+Not "where is the value declared?" but "where in the execution path is the check performed that would reject invalid input or block unauthorized access?" Cite the specific method and line.
+
+If there is no enforcement point — the value/field/config exists but nothing checks it at runtime — downgrade the rule to **"Declared but not enforced"** and flag it.
+
+**Q2: What happens when the constraint is violated?**
+Does the code throw an exception? Return an error? Silently ignore? Log and continue? The answer determines whether the rule is truly enforced or just aspirational.
+
+If the violation path is "nothing happens" or "the check is buggy," downgrade or correct the rule.
+
+**Q3: Is the scope of enforcement accurately described?**
+- **Enforcement scope:** Universal (always enforced), conditional (enforced when flag/config is set), or presentation-only (enforced in UI but not server-side).
+- **Enforcement level:** Code-level (throws/rejects), config-level (values defined but not validated), or convention-level (UI shows limited options but backend accepts anything).
+
+Use CoreStory to assist with tracing execution paths:
+
+```
+Tool: send_message
+Query: "For rule [BR-ID], which states [rule description], I need you to
+verify enforcement. Do NOT confirm the rule based on the existence of
+fields, configs, or method signatures. Instead: (1) identify the specific
+line of code where this rule would reject invalid input or block
+unauthorized access, (2) trace the execution path to confirm that line
+is actually reached during normal operation, and (3) describe what happens
+when the rule is violated. If you cannot find an enforcement point, say
+so explicitly."
+```
+
+This framing prevents the extraction from repeating its original error — seeing a structural element and inferring enforcement.
+
+**Step 4B.3: Produce a verification matrix.**
+
+| BR-ID | Claim Type | Enforcement Point | Violation Behavior | Scope | Level | Status |
+|---|---|---|---|---|---|---|
+| (per rule) | | | | | | |
+
+**Status values:**
+- **Confirmed** — rule is accurate as written
+- **Corrected** — rule description has been revised (show diff)
+- **Downgraded** — rule exists structurally but is not enforced; moved to "Declared but not enforced" appendix
+- **Removed** — rule does not exist in any meaningful form
+
+**Step 4B.4: Common anti-patterns to check for.**
+
+The following patterns frequently produce false-positive rules in domain-decomposed extraction. The verification step should explicitly watch for them:
+
+- **Dead fields:** Fields, properties, or config entries that are set/declared but have zero read references in any execution path. The structure suggests a rule, but nothing enforces it.
+- **Buggy validation:** Validation methods that compare the wrong variable, use identity comparison instead of value comparison, or have copy-paste errors where the same field is checked multiple times under different labels.
+- **Setter-only constraints:** Rules claiming "X is constrained to values Y" where the constraint exists only as a UI convention or documentation comment, not as server-side enforcement. A plain setter with no validation means the constraint is convention, not code.
+- **Inaction misread as enforcement:** Rules claiming "X is set to Y" where the code actually leaves X unchanged (it was already Y from initialization). Describe the actual mechanism, not the inferred intent.
+- **Scope inflation:** A behavior observed in config, UI, or a specific call site reported as a universal code-level constraint. Always specify where the boundary is enforced and whether other paths bypass it.
+
+**Expected output from Phase 4B:**
+- Verification matrix for all Constraint, Validation, and Authorization rules
+- Corrected rule descriptions where enforcement differs from the original claim
+- "Declared but not enforced" appendix entries for downgraded rules
+- Spot-check results for Default and Calculation rules
+
+### Phase 4C — Flow-Trace Discovery
+
+**Goal:** Find implemented behaviors that domain-decomposed extraction missed by tracing end-to-end user flows through the codebase.
+
+Phases 3 and 4A–4B work domain by domain: "What does the authentication module do?" "What does the order module do?" This approach misses behaviors that emerge from the *interaction* between modules — where one module accepts input and another silently overwrites it, or where a method's name suggests additive behavior but its body replaces. Phase 4C catches these by following complete user actions from entry point to final side effect.
+
+**Step 4C.1: Identify user-facing entry points.**
+
+Query CoreStory for all user-facing entry points in the system:
+
+```
+Tool: send_message
+Query: "List all user-facing entry points in this system: HTTP endpoints,
+form handlers, API controllers, CLI commands, admin operations, scheduled
+jobs, message listeners, event handlers. I need a complete list of ways
+work enters the system."
+```
+
+The goal is a complete list of "ways work enters the system." Group them by user type (end user, admin, system/automated) and by operation type (read, write, state change).
+
+**Step 4C.2: Trace each flow end-to-end.**
+
+For each entry point, trace the complete execution path from input to final side effect:
+
+```
+Tool: send_message
+Query: "Trace the complete execution path for [user action] from the
+entry point ([class.method]) through to all database writes, message
+sends, and response outputs. For each step, document: what data enters,
+what the code does to it, and what comes out. Flag any cases where:
+(a) user-provided input is ignored or overwritten, (b) a method's actual
+behavior differs from what its name suggests, or (c) an error condition
+is silently swallowed."
+```
+
+For each step in the path, document:
+- **Data transformations:** What is the input? What does the code do to it? What is the output?
+- **Side effects:** Database writes, message sends, session mutations, cookie operations, external API calls.
+- **Hardcoded values:** Any literals, magic numbers, or test/stub data injected along the path.
+- **Divergence from apparent intent:** Cases where the code does something different from what a reader would expect based on method/class/variable names.
+
+Verify CoreStory's trace against local code for critical flows.
+
+**Step 4C.3: Compare flow traces against the draft inventory.**
+
+For each behavior discovered in the flow traces:
+- If it matches an existing rule: confirm the rule and note the flow-trace evidence.
+- If it contradicts an existing rule: flag the contradiction. This is the primary mechanism for catching cases where a form accepts user input but the handler ignores or overwrites it.
+- If it's a new behavior not in the inventory: add it as a new rule with a BR-ID.
+
+**Step 4C.4: Common anti-patterns to check for.**
+
+The following patterns frequently produce missing rules in domain-decomposed extraction. The flow-trace step should explicitly watch for them:
+
+- **Input ignored:** User-provided data that is accepted by a form/API but overwritten or discarded by the handler. This is invisible to domain extraction because the domain module "works" — the problem is in the integration between input and processing.
+- **Overwrite vs. accumulate semantics:** Methods whose names suggest additive behavior (add, append, increment) but whose implementations replace or reset. The only way to catch this is to read the method body, not the signature.
+- **Duplicate logic across entry points:** The same business logic (e.g., field validation, data normalization) implemented in multiple entry points but only cataloged once. Each instance may have subtle differences.
+- **Silent failures:** Code paths where an error condition is caught and swallowed rather than surfaced, effectively changing the business rule from "X is required" to "X is optional."
+- **Stub or test data in production paths:** Hardcoded values that look like placeholders or test fixtures but exist in the actual production code path, permanently overriding dynamic data.
+
+**Expected output from Phase 4C:**
+- Complete list of user-facing entry points
+- Flow traces for all critical user actions
+- New rules discovered through flow tracing (with BR-IDs)
+- Contradictions between flow behavior and existing inventory rules
+- Flow-trace evidence appendix
 
 ### Phase 5 — Documentation & Output
 
@@ -426,7 +578,10 @@ Each extracted business rule should be documented using this template:
 - **Domain:** [e.g., Payments, User Management, Order Processing, Shipping, Tax, Product Catalog]
 - **Description:** [Plain-English description of what the rule enforces and why]
 - **Type:** [Validation | Authorization | State Transition | Calculation | Constraint | Workflow | Configuration]
+- **Claim Type:** [Workflow | Constraint | Validation | Default | Calculation | Authorization]
 - **Enforcement Layer:** [API | Service | Database | Middleware | UI | Multiple]
+- **Enforcement Point:** [Specific method/line where the rule is enforced, for Constraint/Validation/Authorization rules]
+- **Enforcement Level:** [Code-level | Config-level | Convention-level | Declared-only]
 - **Source Files:**
   - `path/to/file.ext` (lines XX–YY) — [what this file does for the rule]
 - **Rule Logic:**
@@ -435,10 +590,11 @@ Each extracted business rule should be documented using this template:
 - **Edge Cases:**
   - [Known exception or special handling]
 - **Related Rules:** [BR-XXX, BR-YYY — cross-references to other rules]
-- **Confidence:** [High | Medium | Low]
-  - High: PRD, CoreStory, and source code all agree
-  - Medium: Two of three sources agree, or rule is clearly present but incompletely documented
-  - Low: Found only in code with no supporting documentation
+- **Confidence:** [Confirmed | Corrected | New]
+  - Confirmed: Verified via enforcement verification (4B) — enforcement point identified, violation behavior documented
+  - Corrected: Original description revised after enforcement verification revealed different behavior
+  - New: Discovered via flow-trace discovery (4C) — not found during domain extraction
+- **Discovery Method:** [Domain extraction (Phase 3) | Enforcement verification (Phase 4B) | Flow-trace discovery (Phase 4C)]
 - **PRD Reference:** [User story or requirement ID, if applicable]
 ```
 
@@ -465,6 +621,13 @@ For a full-system extraction, organize the document like this:
 | Shipping | 7 | Calculation, Configuration, Validation |
 | Tax | 5 | Calculation, Configuration |
 
+## Verification Matrix
+
+| BR-ID | Claim Type | Enforcement Point | Violation Behavior | Scope | Level | Status |
+|-------|------------|-------------------|--------------------|-------|-------|--------|
+| BR-001 | Validation | `OrderService.validate():42` | Throws `ValidationException` | Universal | Code-level | Confirmed |
+| BR-003 | Constraint | — (none found) | — | — | Declared-only | Downgraded |
+
 ## Conflicts & Open Questions
 
 | Rule | Conflict | Resolution Status |
@@ -479,6 +642,28 @@ For a full-system extraction, organize the document like this:
 ## 2. User Management Rules
 ### BR-009: ...
 ...
+
+## Appendix A: Declared But Not Enforced
+
+Rules where the code has structures suggesting a behavior that is not actually wired up at
+runtime. Important for modernization: the team must decide whether each was an unfinished
+feature (implement in new system) or dead code (ignore).
+
+| BR-ID | Original Claim | What Actually Exists | Recommendation |
+|-------|---------------|---------------------|----------------|
+| BR-003 | "X is constrained to Y" | Setter accepts any value; UI shows dropdown | Stakeholder decision needed |
+
+## Appendix B: Flow-Trace Evidence
+
+For each user-facing flow, a summary of the end-to-end path with key data transformations,
+side effects, and any behaviors not captured as standalone rules.
+
+### Flow: [User Action Name]
+- **Entry point:** `ControllerClass.method()`
+- **Path:** Controller → Service → Repository → [side effects]
+- **Key transformations:** [what happens to user input along the path]
+- **Discovered behaviors:** [BR-IDs of rules discovered via this flow trace]
+- **Contradictions found:** [BR-IDs where flow behavior contradicts the domain-extracted rule]
 ```
 
 ## Agent Implementation Guides
@@ -540,7 +725,7 @@ For each domain identified in Phase 2, run these query patterns:
 IMPORTANT: Use specific entity/module names in every query. Broad
 questions produce shallow answers.
 
-## Phase 4: Code Verification
+## Phase 4A: Code Verification
 For each extracted rule, verify in local source code:
 - Search for model/entity constraint declarations (annotations, schema
   definitions, validation rules — patterns vary by stack)
@@ -549,12 +734,69 @@ For each extracted rule, verify in local source code:
 - Look for rules CoreStory missed (config files, test assertions,
   frontend-only validation, third-party integrations)
 
+## Phase 4B: Enforcement Verification
+For every rule tagged Constraint, Validation, or Authorization, answer
+three questions:
+
+1. **Where is the enforcement point?** Not where the value is declared,
+   but where the check is performed that rejects invalid input or blocks
+   unauthorized access. If no enforcement point exists, downgrade the
+   rule to "Declared but not enforced."
+
+2. **What happens when the constraint is violated?** Exception? Error
+   response? Silent ignore? If nothing happens, downgrade or correct.
+
+3. **Is the scope accurately described?** Universal vs. conditional vs.
+   presentation-only? Code-level vs. config-level vs. convention-level?
+
+Use this CoreStory query pattern for each high-priority rule:
+"For rule [BR-ID], which states [description], verify enforcement. Do
+NOT confirm based on existence of fields or method signatures. Instead:
+(1) find the line that rejects invalid input, (2) trace the execution
+path to confirm it's reached, (3) describe what happens on violation.
+If no enforcement point exists, say so explicitly."
+
+Produce a verification matrix with columns: BR-ID, Claim Type,
+Enforcement Point, Violation Behavior, Scope, Level, Status.
+
+Watch for these anti-patterns:
+- Dead fields (set but never read)
+- Buggy validation (wrong variable compared)
+- Setter-only constraints (no server-side enforcement)
+- Inaction misread as enforcement (value was already set from init)
+- Scope inflation (UI-only constraint reported as universal)
+
+## Phase 4C: Flow-Trace Discovery
+Find behaviors that domain extraction missed by tracing user flows:
+
+1. Query CoreStory for all user-facing entry points (HTTP endpoints,
+   form handlers, admin ops, scheduled jobs, message listeners).
+
+2. For each critical flow, trace end-to-end:
+   "Trace the complete execution path for [user action] from [entry
+   point] through to all database writes, message sends, and response
+   outputs. For each step: what data enters, what the code does, what
+   comes out. Flag cases where: (a) user input is ignored/overwritten,
+   (b) method behavior differs from its name, (c) errors are silently
+   swallowed."
+
+3. Compare traces against draft inventory: confirm matches, flag
+   contradictions, add new rules with BR-IDs.
+
+Watch for these anti-patterns:
+- Input ignored (form accepts data, handler discards it)
+- Overwrite vs. accumulate (add/append method actually replaces)
+- Silent failures (caught and swallowed errors)
+- Stub/test data in production paths (hardcoded overrides)
+
 ## Phase 5: Documentation
 Produce the business rules inventory using the BR-XXX template format.
-Assign confidence levels:
-- High: PRD + CoreStory + code agree
-- Medium: Two of three sources agree
-- Low: Found only in code
+Include for each rule:
+- Claim type, enforcement point, enforcement level, discovery method
+- Confidence: Confirmed (verified via 4B), Corrected (revised via 4B),
+  or New (discovered via 4C)
+Include Appendix A (Declared But Not Enforced) and Appendix B
+(Flow-Trace Evidence).
 
 ## Phase 6: Capture
 Rename conversation with "RESOLVED — Business Rules Extraction — <scope>"
@@ -617,7 +859,7 @@ For each domain identified in Phase 2, run these query patterns:
 IMPORTANT: Use specific entity/module names in every query. Broad
 questions produce shallow answers.
 
-## Phase 4: Code Verification
+## Phase 4A: Code Verification
 For each extracted rule, verify in local source code:
 - Search for model/entity constraint declarations (annotations, schema
   definitions, validation rules — patterns vary by stack)
@@ -626,12 +868,34 @@ For each extracted rule, verify in local source code:
 - Look for rules CoreStory missed (config files, test assertions,
   frontend-only validation, third-party integrations)
 
+## Phase 4B: Enforcement Verification
+For every rule tagged Constraint, Validation, or Authorization:
+1. Find the enforcement point (where invalid input is rejected)
+2. Determine violation behavior (exception, error, silent ignore)
+3. Verify scope (universal vs. conditional vs. presentation-only)
+
+Query pattern: "For rule [BR-ID], verify enforcement. Do NOT confirm
+based on field/signature existence. Find the rejection point, trace
+the execution path, describe violation behavior."
+
+Anti-patterns: dead fields, buggy validation, setter-only constraints,
+inaction misread as enforcement, scope inflation.
+
+## Phase 4C: Flow-Trace Discovery
+1. List all user-facing entry points
+2. Trace each critical flow end-to-end, flagging: ignored input,
+   name-behavior mismatch, silently swallowed errors
+3. Compare traces against inventory: confirm, flag contradictions,
+   add new rules
+
+Anti-patterns: input ignored, overwrite-vs-accumulate, silent failures,
+stub data in production paths.
+
 ## Phase 5: Documentation
-Produce the business rules inventory using the BR-XXX template format.
-Assign confidence levels:
-- High: PRD + CoreStory + code agree
-- Medium: Two of three sources agree
-- Low: Found only in code
+Produce inventory with: claim type, enforcement point, enforcement level,
+discovery method, confidence (Confirmed/Corrected/New).
+Include Appendix A (Declared But Not Enforced) and Appendix B
+(Flow-Trace Evidence).
 
 ## Phase 6: Capture
 Rename conversation with "RESOLVED — Business Rules Extraction — <scope>"
@@ -650,9 +914,14 @@ When asked to extract or document business rules:
 2. Do NOT read the full PRD or TechSpec — query CoreStory about their
    contents via `send_message` instead
 3. Use domain-specific queries, not broad questions
-4. Verify every CoreStory finding against local source code
-5. Document using the BR-XXX format with confidence levels
-6. Rename the CoreStory conversation with "RESOLVED" prefix when done
+4. Verify every CoreStory finding against local source code (Phase 4A)
+5. For Constraint/Validation/Authorization rules, verify enforcement:
+   find the rejection point, not just the declaration (Phase 4B)
+6. Trace end-to-end user flows to catch behaviors missed by domain
+   extraction (Phase 4C)
+7. Document using the BR-XXX format with confidence levels (Confirmed,
+   Corrected, New) and enforcement metadata
+8. Rename the CoreStory conversation with "RESOLVED" prefix when done
 ```
 
 ### Cursor
@@ -672,12 +941,21 @@ When extracting business rules from this codebase:
 3. Do NOT try to read the full PRD or TechSpec via `get_project_prd` /
    `get_project_techspec` — they're too large. Query CoreStory about their
    contents via `send_message` instead.
-4. Verify every CoreStory finding against local source code
-5. Document each rule with: Domain, Type, Enforcement Layer, Source Files,
-   Rule Logic, Invariants, Edge Cases, Confidence level
-6. Confidence levels: High (PRD + CoreStory + code agree), Medium (two
-   agree), Low (code only)
-7. Create a CoreStory conversation for the session and rename it with
+4. Verify every CoreStory finding against local source code (Phase 4A)
+5. For Constraint/Validation/Authorization rules, verify enforcement
+   (Phase 4B): find the line that rejects invalid input, trace the
+   execution path, describe what happens on violation. If no enforcement
+   point exists, downgrade to "Declared but not enforced."
+6. Trace end-to-end user flows (Phase 4C): list entry points, trace
+   each critical flow, flag ignored input, name-behavior mismatch,
+   silently swallowed errors. Add newly discovered behaviors as rules.
+7. Document each rule with: Domain, Type, Claim Type, Enforcement Layer,
+   Enforcement Point, Enforcement Level, Source Files, Rule Logic,
+   Invariants, Edge Cases, Confidence (Confirmed/Corrected/New),
+   Discovery Method
+8. Include Appendix A (Declared But Not Enforced) and Appendix B
+   (Flow-Trace Evidence)
+9. Create a CoreStory conversation for the session and rename it with
    "RESOLVED" prefix when done
 
 Query templates that produce the best results:
@@ -692,6 +970,18 @@ Query templates that produce the best results:
   happen at each step?"
 - "Based on the PRD, what are the explicitly documented business rules
   for [domain]?"
+
+Enforcement verification query pattern:
+- "For rule [BR-ID], which states [description], verify enforcement. Do
+  NOT confirm based on existence of fields or signatures. Find the line
+  that rejects invalid input, trace the execution path, describe what
+  happens on violation. If no enforcement point exists, say so."
+
+Flow-trace query pattern:
+- "Trace the complete execution path for [user action] from [entry point]
+  through to all DB writes, message sends, and response outputs. Flag
+  cases where user input is ignored, method behavior differs from its
+  name, or errors are silently swallowed."
 ```
 
 ### Factory.ai
@@ -713,14 +1003,25 @@ instructions: |
   4. Query CoreStory with specific, domain-scoped questions for each rule
      category (validation, authorization, state transitions, calculations,
      invariants, implicit rules)
-  5. Verify every extracted rule against local source code
-  6. Document rules using the BR-XXX template format
+  5. Verify every extracted rule against local source code (Phase 4A)
+  6. For Constraint/Validation/Authorization rules, verify enforcement
+     (Phase 4B): find the rejection point, trace the execution path,
+     describe what happens on violation. Downgrade rules with no
+     enforcement point to "Declared but not enforced."
+  7. Trace end-to-end user flows (Phase 4C): list entry points, trace
+     critical flows, flag ignored input and name-behavior mismatches,
+     add newly discovered behaviors as rules
+  8. Document rules using the BR-XXX template format with enforcement
+     metadata, confidence levels, and appendices
 
   Key behaviors:
   - Always use specific entity/module names in queries, not broad questions
   - Cross-reference PRD intent, CoreStory understanding, and code reality
-  - Assign confidence levels based on source agreement
+  - Assign confidence: Confirmed (verified enforcement), Corrected
+    (revised after verification), New (discovered via flow tracing)
   - Note conflicts between documented intent and actual implementation
+  - Watch for anti-patterns: dead fields, buggy validation, setter-only
+    constraints, ignored input, overwrite-vs-accumulate semantics
 ```
 
 ## Tips & Best Practices
@@ -743,6 +1044,8 @@ instructions: |
 - Start with the domain that has the most business-critical rules (usually order processing, payments, or authentication)
 - Extract rules one domain at a time, completing the full cycle (query -> verify -> document) before moving on
 - For a full-system extraction, allocate one focused session per domain rather than trying to do everything at once
+- Phase 4B scales with the number of Constraint/Validation/Authorization rules, not total rules — Default and Calculation rules are spot-checked
+- Phase 4C scales with the number of user-facing entry points, not the number of classes — prioritize write operations first
 
 **How to handle conflicting rules:**
 - When code says X but the PRD says Y, **code is ground truth** — document the conflict and flag it for domain expert review
@@ -764,8 +1067,9 @@ instructions: |
 
 **When to involve a domain expert:**
 - After Phase 3 (before code verification) — to validate extracted rules against business intent
+- After Phase 4B — to decide whether "declared but not enforced" rules were intentional omissions or bugs
 - When you find conflicts between PRD intent and code reality
-- For Low-confidence rules that exist only in code with no documentation
+- For rules where enforcement verification is ambiguous (e.g., conditional enforcement that may or may not be active)
 - When edge cases have ambiguous behavior that code doesn't clearly resolve
 
 ## Troubleshooting
@@ -779,11 +1083,17 @@ The CoreStory project may have been ingested from a different branch or commit. 
 **PRD or TechSpec is too large to use directly.**
 This is expected — these documents are often enormous. Don't try to read them in full. Query CoreStory about their contents via `send_message` instead: "Based on the PRD, what are the documented business rules for [domain]?" CoreStory has already ingested these documents and can answer targeted questions about them efficiently.
 
-**Phase 4 finds rules CoreStory missed entirely.**
-This is expected. CoreStory excels at well-structured, explicit business logic but may miss rules in configuration files, build configs, test assertions, or third-party integration code. Phase 4 exists specifically to catch these gaps.
+**Phase 4A finds rules CoreStory missed entirely.**
+This is expected. CoreStory excels at well-structured, explicit business logic but may miss rules in configuration files, build configs, test assertions, or third-party integration code. Phase 4A exists specifically to catch these gaps.
+
+**Phase 4B downgrades many rules.**
+A high downgrade rate usually means the domain extraction (Phase 3) inferred enforcement from structure rather than tracing execution paths. This is the most common failure mode the enforcement verification step catches. The downgraded rules belong in Appendix A — they're important for modernization decisions (implement the missing enforcement? or leave it out?), even though they're not active business rules.
+
+**Phase 4C produces too many flow traces.**
+Prioritize flows by user impact and complexity. Start with write operations (creating/updating data), then state-changing operations, then read operations. For large systems, focus on the flows that cross the most module boundaries — those are where domain-decomposed extraction is most likely to have missed behaviors.
 
 **Too many rules to document.**
 Focus on rules that are: (1) business-critical, (2) non-obvious, or (3) spread across multiple files. Skip rules that are trivially apparent from a single line of code (e.g., a simple `required: true` on an obvious field). The inventory should capture rules that a new developer *wouldn't* easily discover on their own.
 
-**Confidence levels are mostly "Low".**
-This usually means the codebase has little documentation and the PRD is sparse. Low confidence doesn't mean the rule is wrong — it means it's only evidenced in code. Flag these for domain expert validation and consider updating project documentation as a follow-up.
+**Most rules are "Confirmed" after 4B — was the enforcement verification worth it?**
+Yes. Even if most rules pass verification, the ones that don't are disproportionately important — they're the rules most likely to cause bugs in a modernization or migration. A 90% confirmation rate with 10% corrections is a successful verification run.
