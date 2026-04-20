@@ -13,6 +13,12 @@
     "href": "https://corestory.ai"
   },
   "favicon": "/favicon.ico",
+  "seo": {
+    "metatags": {
+      "canonical": "https://docs.corestory.ai",
+      "og:image": "https://docs.corestory.ai/images/og-default.png"
+    }
+  },
   "navigation": {
     "tabs": [
       {
