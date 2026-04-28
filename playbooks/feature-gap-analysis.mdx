@@ -9,7 +9,7 @@ icon: "magnifying-glass-chart"
 
 Adding a feature to an established codebase is rarely greenfield work. Most of the effort — and most of the risk — lies in understanding how the new feature interacts with what already exists: which data structures need new fields, which UI components need modification, which business rules extend or conflict, and which integration points need updating.
 
-CoreStory acts as a persistent intelligence layer across this process. As **Oracle**, it holds deep architectural knowledge of the existing system. As **Navigator**, it maps file structures and component relationships. As **Gap Analyzer**, it compares a feature specification against the current system to surface exactly what's present, what's absent, and what needs to change — down to specific files and functions.
+CoreStory acts as a persistent intelligence layer across this process. As **Expert**, it holds deep architectural knowledge of the existing system. As **Navigator**, it maps file structures and component relationships. As **Gap Analyzer**, it compares a feature specification against the current system to surface exactly what's present, what's absent, and what needs to change — down to specific files and functions.
 
 The primary deliverable is a **Feature Gap Analysis Report**: a structured, developer-ready breakdown of gaps across data models, UI, business logic, rendering, integrations, and constraints, with an implementation plan ordered by dependency.
 
@@ -45,9 +45,9 @@ The playbook follows four phases, each building on the previous:
 
 | Phase | Name | Purpose | CoreStory Role |
 |-------|------|---------|----------------|
-| 1 | Context Loading | Establish project context and architectural understanding | Oracle |
+| 1 | Context Loading | Establish project context and architectural understanding | Expert |
 | 2 | Gap Identification | Systematically compare the feature spec against the existing system across seven categories | Gap Analyzer |
-| 3 | Validation & Completeness | Verify the gap analysis is thorough, check for downstream effects and conflicts | Oracle + Navigator |
+| 3 | Validation & Completeness | Verify the gap analysis is thorough, check for downstream effects and conflicts | Expert + Navigator |
 | 4 | Implementation Planning | Produce a dependency-ordered implementation plan from the validated gaps | Navigator |
 
 ### MCP Tools Used

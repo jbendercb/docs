@@ -18,7 +18,7 @@ This guide shows you how to connect CoreStory to your AI coding agent, verify th
 
 CoreStory serves two roles in every workflow:
 
-- **Oracle** — answers questions about intended system behavior, invariants, business rules, architectural patterns, and design history. This is context synthesized from your entire codebase — not just file contents, but the *meaning* behind them.
+- **Expert** — answers questions about intended system behavior, invariants, business rules, architectural patterns, and design history. This is context synthesized from your entire codebase — not just file contents, but the *meaning* behind them.
 - **Navigator** — points to specific files, methods, extension points, and code paths relevant to a task. Instead of grep-wandering through a codebase, the agent gets directed guidance.
 
 Together, these roles let the agent operate like a senior engineer who's been on the team for years — understanding not just what the code does, but *why* it does it that way.
@@ -96,7 +96,7 @@ Most CoreStory workflows follow this pattern:
 
 1. **Select project** — `list_projects` → confirm the right project
 2. **Create conversation** — `create_conversation` with a descriptive title
-3. **Query the Oracle** — `send_message` to understand system behavior, invariants, and architecture
+3. **Query the Expert** — `send_message` to understand system behavior, invariants, and architecture
 4. **Query the Navigator** — `send_message` to find specific files, methods, and extension points
 5. **Act on the knowledge** — implement, test, or document based on what CoreStory revealed
 6. **Close the loop** — `rename_conversation` to mark the thread as resolved
@@ -119,7 +119,7 @@ CoreStory's code intelligence powers a range of development workflows. Each has 
 
 ### Additional Use Cases
 
-These workflows don't have dedicated playbooks but follow the same Oracle → Navigator pattern:
+These workflows don't have dedicated playbooks but follow the same Expert → Navigator pattern:
 
 - **Spec/Code Gap Analysis** — identify discrepancies between CoreStory specifications and actual implementation, then remediate
 - **Architecture Comprehension** — understand component boundaries, data flows, and integration points for refactoring or onboarding
@@ -358,9 +358,9 @@ The quality of CoreStory's responses depends on the specificity of your queries.
 
 **Use specific variable names and code references** when you have them — CoreStory can resolve references to actual files and methods in the codebase.
 
-### Oracle Before Navigator
+### Expert Before Navigator
 
-Always query for *understanding* before querying for *location*. The Oracle phase (how does this work? what are the invariants?) should come before the Navigator phase (which files do I need to change?). This prevents the agent from diving into code changes before understanding the system's constraints.
+Always query for *understanding* before querying for *location*. The Expert phase (how does this work? what are the invariants?) should come before the Navigator phase (which files do I need to change?). This prevents the agent from diving into code changes before understanding the system's constraints.
 
 ### Conversation Hygiene
 
@@ -427,7 +427,7 @@ Always query for *understanding* before querying for *location*. The Oracle phas
 
 1. Break large tasks into milestones — have the agent commit after each phase
 2. Use the conversation ID to resume context in a new session
-3. For agents with session limits (e.g., Devin ACU limits), prioritize the Oracle and Navigator phases first, then implement in a separate session
+3. For agents with session limits (e.g., Devin ACU limits), prioritize the Expert and Navigator phases first, then implement in a separate session
 
 ---
 
@@ -435,7 +435,7 @@ Always query for *understanding* before querying for *location*. The Oracle phas
 
 Once you've verified your CoreStory connection, pick a workflow and follow its playbook:
 
-- **First time?** Start with [Bug Resolution](/playbooks/agentic-bug-resolution) — it's the most concrete workflow and demonstrates the Oracle → Navigator → Implement pattern clearly.
+- **First time?** Start with [Bug Resolution](/playbooks/agentic-bug-resolution) — it's the most concrete workflow and demonstrates the Expert → Navigator → Implement pattern clearly.
 - **Building something new?** Use [Spec-Driven Development](/playbooks/spec-driven-development) to ground your specification in the real architecture before implementation.
 - **Working from tickets?** [Feature Implementation](/playbooks/feature-implementation) covers the full ticket-to-merge workflow with TDD and continuous architectural validation.
 

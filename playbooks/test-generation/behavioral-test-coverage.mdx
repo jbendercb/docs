@@ -10,7 +10,7 @@ icon: "flask-vial"
 
 Test suites rot from the inside. Teams write tests for the features they build, skip the ones they inherit, and never go back to fill the gaps. The result is coverage that correlates with recency, not criticality — the newest code is well-tested, the most important code is not. AI coding agents can generate tests at scale, but without knowing what the system is *supposed to do*, they produce tests that mirror implementation: tests that pass today, break on every refactor, and verify nothing meaningful.
 
-This playbook teaches you how to use the CoreStory MCP server, combined with local source code, to systematically generate tests that verify **behavioral specifications** — acceptance criteria, business rules, invariants, state transitions, and authorization policies — rather than implementation details. The approach uses CoreStory as a **Specification Oracle**: the agent queries CoreStory for what the system should do, discovers how the system actually does it, and generates tests that bridge the two.
+This playbook teaches you how to use the CoreStory MCP server, combined with local source code, to systematically generate tests that verify **behavioral specifications** — acceptance criteria, business rules, invariants, state transitions, and authorization policies — rather than implementation details. The approach uses CoreStory as a **Specification Expert**: the agent queries CoreStory for what the system should do, discovers how the system actually does it, and generates tests that bridge the two.
 
 The primary deliverable is **executable test code** that matches the project's existing test conventions — framework, directory structure, naming patterns, fixture approach, and assertion style. There is no intermediate documentation artifact. The behavioral inventory lives in the CoreStory conversation; the tests are the output.
 
@@ -49,8 +49,8 @@ The primary deliverable is **executable test code** that matches the project's e
 | Phase | Name | Purpose | CoreStory Role |
 |-------|------|---------|----------------|
 | 1 | Setup & Scoping | Select project, create conversation, define generation scope | Setup |
-| 2 | Behavioral Inventory | Extract testable specifications: acceptance criteria, invariants, business rules, state transitions | Oracle |
-| 3 | Test Convention Discovery | Understand the project's existing test patterns, framework, fixtures, and structure | Oracle + Navigator |
+| 2 | Behavioral Inventory | Extract testable specifications: acceptance criteria, invariants, business rules, state transitions | Expert |
+| 3 | Test Convention Discovery | Understand the project's existing test patterns, framework, fixtures, and structure | Expert + Navigator |
 | 4 | Coverage Gap Analysis | Map behavioral inventory against existing tests to identify what's missing | Navigator |
 | 5 | Test Generation & Validation | Generate test code, run it, verify tests are meaningful | — (local code + CoreStory validation) |
 | 6 | Completion & Capture | Review coverage, commit tests, rename conversation | Knowledge capture |
@@ -134,7 +134,7 @@ For a first run, start with a single module — preferably one with known covera
 
 ---
 
-### Phase 2 — Behavioral Inventory (Oracle)
+### Phase 2 — Behavioral Inventory (Expert)
 
 **Goal:** Extract a comprehensive list of testable behavioral specifications for the scoped area.
 
@@ -247,7 +247,7 @@ Each item should have enough specificity to translate into a test: inputs, expec
 
 ---
 
-### Phase 3 — Test Convention Discovery (Oracle + Navigator)
+### Phase 3 — Test Convention Discovery (Expert + Navigator)
 
 **Goal:** Understand how the project's existing tests are structured so generated tests match perfectly.
 
@@ -787,7 +787,7 @@ Execute all six phases in order. Do not skip phases.
 
 Report: scope, conversation ID, any prior work found.
 
-### PHASE 2: Behavioral Inventory (Oracle)
+### PHASE 2: Behavioral Inventory (Expert)
 
 If a Business Rules Extraction conversation exists, consume it via
 `get_conversation`. Otherwise, extract from scratch.

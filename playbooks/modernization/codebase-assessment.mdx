@@ -12,7 +12,7 @@ Every modernization program starts with the same question: what exactly are we d
 
 The answer is almost never what people expect. Engineering teams who've worked on a system for years consistently discover architectural connections, dead code paths, and undocumented dependencies during a formal assessment. Tribal knowledge covers the 20% of the system that changes regularly. The other 80% — the batch jobs that run once a month, the integration points nobody remembers building, the utility modules that seven services quietly depend on — hide until you look systematically.
 
-Traditional assessment approaches rely on manual code sampling and architect interviews, producing a snapshot of what people *think* the system looks like. CoreStory changes this by ingesting and semantically understanding the entire codebase, giving your assessment team an **Oracle** that can answer specific architectural questions against the full system — not a sample, not a summary, the actual code.
+Traditional assessment approaches rely on manual code sampling and architect interviews, producing a snapshot of what people *think* the system looks like. CoreStory changes this by ingesting and semantically understanding the entire codebase, giving your assessment team an **Expert** that can answer specific architectural questions against the full system — not a sample, not a summary, the actual code.
 
 This playbook provides a structured methodology for evaluating a codebase's modernization readiness across seven domains: architectural complexity, dependency chains, technical debt, security and compliance, testability, data architecture, and — critically for mainframe systems — non-code artifacts that encode business logic never captured in application code.
 
@@ -83,7 +83,7 @@ Codebase assessment with CoreStory follows a six-step pattern:
 5. **Modernization Readiness Scoring** — Score each component on modernization readiness. Recommend a modernization strategy (from the 7 Rs) per component, not one strategy for the whole system.
 6. **Report Generation** — Synthesize findings into the Modernization Readiness Report. This is the deliverable that feeds Phase 3 (Target Architecture) of the broader modernization workflow.
 
-### Oracle Before Navigator
+### Expert Before Navigator
 
 Before searching for specific issues or code paths, first use CoreStory to understand how the system is *designed* to work — its intended architecture, data flow patterns, and integration model. This architectural baseline makes it far easier to spot deviations, shortcuts, coupling hotspots, and technical debt. Ask "what is this system?" before asking "what's wrong with this system?"
 
@@ -91,7 +91,7 @@ Before searching for specific issues or code paths, first use CoreStory to under
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a1a2e', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#c9a84c', 'lineColor': '#c9a84c', 'secondaryColor': '#16213e', 'tertiaryColor': '#0f3460', 'fontFamily': 'Inter, system-ui, sans-serif'}}}%%
 
 graph TD
-    subgraph foundation["🧭 Oracle Before Navigator — Understand architecture from specs before searching for issues"]
+    subgraph foundation["🧭 Expert Before Navigator — Understand architecture from specs before searching for issues"]
         direction LR
         F1[" "]
     end
@@ -1060,7 +1060,7 @@ Apply when user requests: codebase assessment, modernization readiness, architec
 - Rename conversation with "RESOLVED" prefix
 
 ## Key Principles
-- Oracle before Navigator: understand architecture from specs first
+- Expert before Navigator: understand architecture from specs first
 - Evidence-based: every finding needs a file path
 - Non-code artifacts matter: a significant share of mainframe business logic lives outside application code
 - Retain is legitimate: not every component needs modernization
@@ -1160,7 +1160,7 @@ Step 5: Readiness Scoring → Per-component 1-5 score, 7 Rs recommendation, sequ
 Step 6: Report → Modernization Readiness Report → rename conversation "RESOLVED"
 
 ## Key Principles
-- Oracle before Navigator: understand architecture from specs first
+- Expert before Navigator: understand architecture from specs first
 - Evidence-based: every finding needs a file path
 - Non-code artifacts matter: JCL, copybooks, CICS, VSAM encode business logic
 - Retain is legitimate: not every component needs modernization

@@ -10,7 +10,7 @@ icon: "route"
 
 End-to-end tests are the most expensive tests to write, the most fragile to maintain, and the most valuable when they work. They verify what users actually experience — complete journeys through the application stack, from UI interaction to database persistence and back. But most E2E suites are written reactively: a critical bug ships, someone writes a test to prevent regression, and over time the suite becomes a patchwork of incident responses with no systematic coverage of the journeys that matter most.
 
-This playbook teaches you how to use CoreStory to systematically identify, prioritize, and generate E2E tests for your application's critical user journeys. CoreStory acts as a **Journey Oracle** — it knows the user stories, acceptance criteria, and critical paths from the PRD, and it knows the application's routing, API endpoints, and data flow from the codebase. The agent extracts journey specifications from CoreStory, discovers E2E test conventions from the local project, and generates tests that verify complete user flows against acceptance criteria.
+This playbook teaches you how to use CoreStory to systematically identify, prioritize, and generate E2E tests for your application's critical user journeys. CoreStory acts as a **Journey Expert** — it knows the user stories, acceptance criteria, and critical paths from the PRD, and it knows the application's routing, API endpoints, and data flow from the codebase. The agent extracts journey specifications from CoreStory, discovers E2E test conventions from the local project, and generates tests that verify complete user flows against acceptance criteria.
 
 The primary deliverable is **executable E2E test code** that matches the project's existing E2E framework — Playwright, Cypress, Selenium, or whatever the team uses. Each test traces back to a user story or acceptance criterion, making coverage auditable and gaps visible.
 
@@ -48,8 +48,8 @@ The primary deliverable is **executable E2E test code** that matches the project
 | Phase | Name | Purpose | CoreStory Role |
 |-------|------|---------|----------------|
 | 1 | Setup & Scoping | Select project, create conversation, define journey scope | Setup |
-| 2 | Journey Extraction | Extract critical user journeys, acceptance criteria, and happy/unhappy paths | Journey Oracle |
-| 3 | E2E Convention Discovery | Understand the project's E2E framework, selectors, fixtures, and patterns | Oracle + Navigator |
+| 2 | Journey Extraction | Extract critical user journeys, acceptance criteria, and happy/unhappy paths | Journey Expert |
+| 3 | E2E Convention Discovery | Understand the project's E2E framework, selectors, fixtures, and patterns | Expert + Navigator |
 | 4 | Journey Prioritization | Rank journeys by business criticality and existing coverage | Navigator |
 | 5 | Test Generation & Stabilization | Generate E2E tests, run them, address flakiness | — (local code + CoreStory validation) |
 | 6 | Completion & Capture | Review coverage, commit tests, rename conversation | Knowledge capture |
@@ -107,7 +107,7 @@ Start with a single high-value journey. E2E tests require more stabilization wor
 
 ---
 
-### Phase 2 — Journey Extraction (Journey Oracle)
+### Phase 2 — Journey Extraction (Journey Expert)
 
 **Goal:** Extract the critical user journeys, their acceptance criteria, and the happy and unhappy paths for each.
 
@@ -180,7 +180,7 @@ A journey inventory organized by user flow:
 
 ---
 
-### Phase 3 — E2E Convention Discovery (Oracle + Navigator)
+### Phase 3 — E2E Convention Discovery (Expert + Navigator)
 
 **Goal:** Understand the project's E2E test patterns so generated tests match existing conventions.
 
@@ -479,7 +479,7 @@ Execute all six phases in order. Do not skip phases.
 3. Call `create_conversation` with title "E2E Test Generation — <scope>"
 4. Confirm scope with user (single journey, journey cluster, or core journeys)
 
-### PHASE 2: Journey Extraction (Journey Oracle)
+### PHASE 2: Journey Extraction (Journey Expert)
 
 Query CoreStory via `send_message` for:
 1. "What are the primary user journeys for [feature/app]?"

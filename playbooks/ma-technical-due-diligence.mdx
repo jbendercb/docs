@@ -10,7 +10,7 @@ icon: "magnifying-glass-chart"
 
 Technical due diligence on acquisition targets traditionally relies on CTO interviews, manual code sampling, and documentation review — covering less than 10% of the actual codebase. Critical risks hide in the 90% nobody reads: hardcoded secrets in utility modules, GPL dependencies buried three layers deep, PII flowing unencrypted through forgotten microservices.
 
-CoreStory changes this equation. By ingesting and semantically understanding the target's entire codebase, it gives your diligence team an AI-powered analyst that can answer specific risk questions against the full codebase — not a sample. The agent operates as an **Oracle** (explaining system behavior, architectural patterns, and data flows) and a **Navigator** (pointing to specific files, methods, and code paths where risks live).
+CoreStory changes this equation. By ingesting and semantically understanding the target's entire codebase, it gives your diligence team an AI-powered analyst that can answer specific risk questions against the full codebase — not a sample. The agent operates as an **Expert** (explaining system behavior, architectural patterns, and data flows) and a **Navigator** (pointing to specific files, methods, and code paths where risks live).
 
 **Who this is for:** M&A professionals, PE portfolio teams, technical diligence consultants, and acquiring engineering teams evaluating technology-heavy acquisitions.
 
@@ -52,9 +52,9 @@ M&A technical diligence with CoreStory follows a four-phase pattern:
 3. **Cross-reference** — Validate critical findings against the actual source code. CoreStory provides the file paths and context; the agent (or your team) confirms.
 4. **Synthesize** — Compile findings into structured reports. Conversation history provides the audit trail.
 
-### Oracle Before Navigator
+### Expert Before Navigator
 
-The "Oracle before Navigator" principle is especially important in diligence. Before searching for specific vulnerabilities or code paths, first use CoreStory to understand how the system is *designed* to work — its intended architecture, data flow patterns, and security model. This baseline makes it far easier to spot deviations, shortcuts, and risks.
+The "Expert before Navigator" principle is especially important in diligence. Before searching for specific vulnerabilities or code paths, first use CoreStory to understand how the system is *designed* to work — its intended architecture, data flow patterns, and security model. This baseline makes it far easier to spot deviations, shortcuts, and risks.
 
 ---
 
@@ -733,7 +733,7 @@ Always request file paths and line context for every finding.
 3. Rename CoreStory conversation with "RESOLVED" prefix (`CoreStory:rename_conversation`)
 
 ## Key Principles
-- **Oracle before Navigator**: understand architecture from specs before deep-diving into risk queries
+- **Expert before Navigator**: understand architecture from specs before deep-diving into risk queries
 - **Evidence-based findings**: every finding needs a file path and concrete evidence
 - **Separate threads per workstream**: don't mix security audit with integration planning
 - **Cross-reference critical findings**: validate against source for anything affecting deal terms
@@ -853,7 +853,7 @@ Always request file paths and evidence.
 - Rename conversation with "RESOLVED" prefix (`CoreStory:rename_conversation`)
 
 ## Key Principles
-- Oracle before Navigator: understand architecture from specs first
+- Expert before Navigator: understand architecture from specs first
 - Evidence-based: every finding needs a file path
 - Separate threads per workstream
 - Cross-reference critical findings against source
@@ -968,7 +968,7 @@ Verify critical findings against source code. Assess severity. Flag deal-affecti
 Compile report → Executive Summary, Critical Risks, Technical Debt, Architecture, Integration Assessment, Recommendations → rename conversation "RESOLVED".
 
 ## Key Principles
-- Oracle before Navigator: understand architecture from specs first
+- Expert before Navigator: understand architecture from specs first
 - Evidence-based: every finding needs a file path
 - Separate threads per workstream
 - Cross-reference critical findings against source

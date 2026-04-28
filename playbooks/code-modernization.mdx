@@ -16,7 +16,7 @@ The industry has responded with AI-assisted code reading and translation tools. 
 
 CoreStory provides persistent architectural intelligence across the entire modernization lifecycle — not just during discovery, but through decomposition, execution, and verification. It serves three roles:
 
-- **Oracle** — explains system behavior, architectural patterns, dependency chains, and data flows across the full codebase
+- **Expert** — explains system behavior, architectural patterns, dependency chains, and data flows across the full codebase
 - **Navigator** — points to specific files, methods, and code paths where business logic, coupling, and risk live
 - **Verifier** — compares legacy and modernized implementations to confirm behavioral equivalence
 
@@ -79,11 +79,11 @@ Modernization is a multi-month, multi-phase engineering program — not a code t
 
 | Phase | Name | Purpose | CoreStory Role | Sub-Playbook |
 |-------|------|---------|----------------|--------------|
-| 1 | Codebase Assessment | Evaluate modernization readiness: architecture, dependencies, tech debt, coupling, risk — including non-code artifacts (JCL, configuration, data stores) | Oracle | [Codebase Assessment](/playbooks/modernization/codebase-assessment) |
-| 2 | Business Rules Inventory | Extract, catalog, and validate all business rules the modernized system must preserve | Oracle + Navigator | [Business Rules Extraction](/playbooks/business-rules-extraction) *(existing playbook)* |
-| 3 | Target Architecture & Strategy | Select modernization pattern (7 Rs), define target architecture, human approval gate | Oracle | [Target Architecture](/playbooks/modernization/target-architecture) |
+| 1 | Codebase Assessment | Evaluate modernization readiness: architecture, dependencies, tech debt, coupling, risk — including non-code artifacts (JCL, configuration, data stores) | Expert | [Codebase Assessment](/playbooks/modernization/codebase-assessment) |
+| 2 | Business Rules Inventory | Extract, catalog, and validate all business rules the modernized system must preserve | Expert + Navigator | [Business Rules Extraction](/playbooks/business-rules-extraction) *(existing playbook)* |
+| 3 | Target Architecture & Strategy | Select modernization pattern (7 Rs), define target architecture, human approval gate | Expert | [Target Architecture](/playbooks/modernization/target-architecture) |
 | 4 | Decomposition & Sequencing | Identify service boundaries, map dependencies, produce ordered migration plan, push to Jira/Linear | Navigator | [Decomposition & Sequencing](/playbooks/modernization/decomposition-sequencing) |
-| 5 | Iterative Execution | Transform → Coexist → Eliminate per component, using Strangler Fig / Branch by Abstraction | Oracle + Navigator | [Spec-Driven Development](/playbooks/spec-driven-development) *(existing playbook)* + architecture-to-architecture variants |
+| 5 | Iterative Execution | Transform → Coexist → Eliminate per component, using Strangler Fig / Branch by Abstraction | Expert + Navigator | [Spec-Driven Development](/playbooks/spec-driven-development) *(existing playbook)* + architecture-to-architecture variants |
 | 6 | Behavioral Verification | Prove modernized components preserve business rules from Phase 2 | Verifier | [Behavioral Verification](/playbooks/modernization/behavioral-verification) |
 
 ### How the Phases Connect
@@ -102,12 +102,12 @@ The phases form a dependency chain with an iterative loop at the end:
 graph TD
     START(["🚀 Start"])
 
-    P1["<b>Phase 1: Codebase Assessment</b><br/><i>Oracle</i> · Readiness scoring"]
-    P2["<b>Phase 2: Business Rules Extraction</b><br/><i>Oracle</i> · Behavioral inventory"]
+    P1["<b>Phase 1: Codebase Assessment</b><br/><i>Expert</i> · Readiness scoring"]
+    P2["<b>Phase 2: Business Rules Extraction</b><br/><i>Expert</i> · Behavioral inventory"]
 
     G1{"👤 HITL<br/>Go / No-go"}
 
-    P3["<b>Phase 3: Target Architecture</b><br/><i>Oracle + Navigator</i> · Strategy selection"]
+    P3["<b>Phase 3: Target Architecture</b><br/><i>Expert + Navigator</i> · Strategy selection"]
 
     G3{"👤 HITL<br/>Architecture<br/>approval"}
 
@@ -670,7 +670,7 @@ Dedicated skill: `monolith-to-microservices` (or relevant architecture variant).
 Dedicated skill: `behavioral-verification` — Produces Behavioral Equivalence Report.
 ⛔ GATE: Domain expert must validate before retiring legacy component.
 
-Key principle: Oracle before Navigator — understand architecture from
+Key principle: Expert before Navigator — understand architecture from
 CoreStory before navigating to specific code.
 ```
 
@@ -747,7 +747,7 @@ Dedicated rule: `behavioral-verification` — Produces Behavioral Equivalence Re
 ⛔ GATE: Domain expert must validate before retiring legacy component.
 
 ## Key Principles
-- Oracle before Navigator: understand architecture from specs first
+- Expert before Navigator: understand architecture from specs first
 - Business rules define "correct" — extract them before changing anything
 - Humans make architectural decisions; AI informs them
 - Incremental execution — never big-bang rewrite
@@ -813,7 +813,7 @@ Phase 5: Execution → delegate to `monolith-to-microservices` droid (or variant
 Phase 6: Verification → delegate to `behavioral-verification` droid → ⛔ HITL equivalence sign-off
 
 ## Key Principles
-- Oracle before Navigator: understand architecture from specs first
+- Expert before Navigator: understand architecture from specs first
 - Business rules define "correct" — extract before changing anything
 - Humans make architectural decisions; AI informs them
 - Incremental execution using Strangler Fig (default), Branch by Abstraction, or Parallel Run
