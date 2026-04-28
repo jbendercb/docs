@@ -14,7 +14,7 @@ Phase 4 of the modernization workflow is where strategy becomes execution planni
 
 The sequencing problem is harder than it looks. You can't just pick the easiest component and start — if that component shares a database with three others, you'll immediately hit data decomposition challenges. You can't just follow the dependency graph blindly either — sometimes the highest-risk component should go first (to retire risk early) and sometimes it should go last (to learn from easier migrations first). The right sequence balances dependency constraints, risk appetite, business value delivery, and team capability.
 
-CoreStory serves as a **Navigator** throughout this phase — mapping the specific dependencies, shared data stores, and integration points that determine what can be separated and what must move together. It also operates as an **Oracle** for understanding the implications of each sequencing choice: "If we modernize this component first, what temporary integration work is needed for everything that still depends on it?"
+CoreStory serves as a **Navigator** throughout this phase — mapping the specific dependencies, shared data stores, and integration points that determine what can be separated and what must move together. It also operates as an **Expert** for understanding the implications of each sequencing choice: "If we modernize this component first, what temporary integration work is needed for everything that still depends on it?"
 
 **Who this is for:** Engineering leads, project managers, and modernization teams responsible for planning and tracking the migration. Also useful for technical program managers coordinating cross-team modernization efforts.
 

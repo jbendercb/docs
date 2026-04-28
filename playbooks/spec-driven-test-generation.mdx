@@ -1,7 +1,7 @@
 ---
 title: "Spec-Driven Test Generation"
 sidebarTitle: "Spec-Driven Test Generation"
-description: "Generate tests from behavioral specifications — not implementation details — using CoreStory's code intelligence as a specification oracle for AI coding agents."
+description: "Generate tests from behavioral specifications — not implementation details — using CoreStory's code intelligence as a specification expert for AI coding agents."
 icon: "flask-vial"
 ---
 
@@ -12,7 +12,7 @@ Most AI-generated tests are implementation mirrors. An agent reads a function, i
 
 The problem isn't that AI agents can't write tests. It's that they don't know what the system is *supposed to do*. Without access to specifications — acceptance criteria, business rules, invariants, authorization policies, state machine definitions — an agent can only test what it sees in the code. And testing what the code does is not the same as testing what the code *should* do.
 
-CoreStory changes this equation. It ingests the full codebase alongside the PRD, TechSpec, and architectural documentation, then serves as a **Specification Oracle** — an intelligence layer that can answer "what should this system do?" before the agent ever looks at implementation. This unlocks a fundamentally different approach to test generation: **specification-driven testing**, where the agent extracts behavioral specifications first, then generates tests that verify those specifications against the code.
+CoreStory changes this equation. It ingests the full codebase alongside the PRD, TechSpec, and architectural documentation, then serves as a **Specification Expert** — an intelligence layer that can answer "what should this system do?" before the agent ever looks at implementation. This unlocks a fundamentally different approach to test generation: **specification-driven testing**, where the agent extracts behavioral specifications first, then generates tests that verify those specifications against the code.
 
 ### Why Specification Before Code
 
@@ -44,7 +44,7 @@ The first test breaks when someone renames the validator. The second test surviv
 
 ### CoreStory's Role
 
-CoreStory serves as the specification oracle across the entire test generation workflow:
+CoreStory serves as the specification expert across the entire test generation workflow:
 
 - **Behavioral extraction** — surfaces acceptance criteria, validation rules, state transitions, authorization matrices, invariants, and implicit behaviors from the PRD, TechSpec, and codebase
 - **Convention discovery** — describes the project's existing test framework, directory structure, fixture patterns, and assertion styles so generated tests match perfectly
@@ -104,7 +104,7 @@ This playbook suite contains two workflows. Both follow the same "Specification 
 |--------|---------|
 | **Output** | Test files in the project's existing framework (pytest, Jest, JUnit, xUnit, RSpec, etc.) |
 | **Scope** | One module or domain per session, 10–30 test cases |
-| **CoreStory role** | Specification Oracle — extracts what to test before the agent looks at code |
+| **CoreStory role** | Specification Expert — extracts what to test before the agent looks at code |
 | **Key differentiator** | Tests assert behavioral specifications, not implementation details |
 | **Best for** | Closing coverage gaps in business-critical logic, preparing for refactors, compliance requirements |
 
@@ -118,7 +118,7 @@ This playbook suite contains two workflows. Both follow the same "Specification 
 |--------|---------|
 | **Output** | E2E test files in the project's E2E framework (Playwright, Cypress, Selenium, etc.) |
 | **Scope** | One user journey per session, 5–15 test scenarios |
-| **CoreStory role** | Journey Oracle — extracts user stories, acceptance criteria, and critical paths from PRD and codebase |
+| **CoreStory role** | Journey Expert — extracts user stories, acceptance criteria, and critical paths from PRD and codebase |
 | **Key differentiator** | Tests verify complete user journeys against acceptance criteria, including environment setup and flakiness management |
 | **Best for** | Verifying critical user flows, pre-release regression suites, onboarding safety nets |
 

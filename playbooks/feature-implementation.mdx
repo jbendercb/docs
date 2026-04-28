@@ -12,7 +12,7 @@ Feature Implementation is a workflow for building new features, enhancements, an
 
 CoreStory serves two roles in this workflow:
 
-- **Oracle** — answers questions about system architecture, design patterns, naming conventions, and invariants. The agent queries CoreStory to understand _how the system works_ and _what patterns to follow_ before coding.
+- **Expert** — answers questions about system architecture, design patterns, naming conventions, and invariants. The agent queries CoreStory to understand _how the system works_ and _what patterns to follow_ before coding.
 - **Navigator** — points to specific files, extension points, base classes, and data structures. The agent queries CoreStory to understand _where to implement_ and _what to reuse_.
 
 This playbook shares its six-phase structure with the Bug Resolution playbook. The difference is the starting point: Bug Resolution starts from something broken, Feature Implementation starts from something that needs building. The questions asked in each phase shift accordingly.
@@ -30,12 +30,12 @@ This playbook shares its six-phase structure with the Bug Resolution playbook. T
 
 ## How It Works
 
-The workflow has six phases. Each phase builds on the previous one. Skipping phases — especially the oracle and navigator phases — increases the risk of architectural misalignment, missed patterns, and avoidable rework.
+The workflow has six phases. Each phase builds on the previous one. Skipping phases — especially the expert and navigator phases — increases the risk of architectural misalignment, missed patterns, and avoidable rework.
 
 | Phase | Name | Purpose | CoreStory Role |
 |-------|------|---------|----------------|
 | 1 | Ticket Intake | Gather requirements, select project, create conversation | Setup |
-| 2 | Oracle | Understand architecture, patterns, conventions, invariants | Oracle |
+| 2 | Expert | Understand architecture, patterns, conventions, invariants | Expert |
 | 3 | Navigator | Map requirements to files, data structures, extension points | Navigator |
 | 4 | TDD Implementation | Write failing tests from acceptance criteria, then implement | Validation |
 | 5 | Feature Completion | Edge cases, regression check, performance/security validation | Validation |
@@ -88,7 +88,7 @@ This conversation persists across the session and captures the full chain of que
 
 ---
 
-### Phase 2: Understanding System Architecture (Oracle Phase)
+### Phase 2: Understanding System Architecture (Expert Phase)
 
 **Objective:** Understand how the system works and where new code should integrate, _before_ writing anything.
 
@@ -407,7 +407,7 @@ Execute all six phases in order. Do not skip phases.
 
 Report to user: ticket summary, acceptance criteria, conversation ID.
 
-### PHASE 2: Oracle Phase (Architecture Understanding)
+### PHASE 2: Expert Phase (Architecture Understanding)
 
 Send these queries to CoreStory via `send_message`. After each, summarize
 key findings to user.
@@ -564,7 +564,7 @@ Apply this workflow when user requests feature implementation, ticket resolution
 4. Create implementation conversation (`CoreStory:create_conversation`)
 5. Report: feature summary, acceptance criteria, CoreStory conversation ID
 
-### Phase 2: Oracle Phase — Understand Architecture
+### Phase 2: Expert Phase — Understand Architecture
 **Do this BEFORE writing any code.**
 
 Send three CoreStory queries (`CoreStory:send_message`):
@@ -607,7 +607,7 @@ Report: files to create, files to modify, data structures, pattern to follow.
 4. Report: summary, tests added, quality metrics
 
 ## Key Principles
-- **Oracle before Navigator**: understand architecture before planning implementation
+- **Expert before Navigator**: understand architecture before planning implementation
 - **Test-first always**: failing tests → implement → verify passes
 - **Validate with CoreStory**: check tests and implementation against architecture
 - **Follow existing patterns**: match the codebase's conventions, don't invent new ones
@@ -707,7 +707,7 @@ Apply when user requests: feature implementation, ticket work, enhancements, sto
 - Select CoreStory project (`CoreStory:list_projects`)
 - Create implementation conversation (`CoreStory:create_conversation`)
 
-## Phase 2: Oracle Phase
+## Phase 2: Expert Phase
 **Understand architecture BEFORE writing any code.**
 
 Query CoreStory (`CoreStory:send_message`) for:
@@ -744,7 +744,7 @@ Query CoreStory for:
 4. Report results
 
 ## Key Principles
-- Oracle before Navigator
+- Expert before Navigator
 - Test-first always
 - Validate with CoreStory at each transition
 - Follow existing patterns
@@ -839,7 +839,7 @@ When instructions say "Query CoreStory", use `CoreStory:send_message`.
 3. Select CoreStory project (`CoreStory:list_projects`, verify "completed")
 4. Create conversation: "Ticket Implementation: #[ID] - [description]"
 
-## Phase 2: Oracle Phase — Before Code
+## Phase 2: Expert Phase — Before Code
 Query CoreStory for: architecture, design patterns, conventions, invariants.
 
 ## Phase 3: Navigator Phase
@@ -855,7 +855,7 @@ Edge case tests → full suite → performance/security tests if needed.
 Update ticket → structured commit ("Feat: ...") → rename conversation "COMPLETED" → report.
 
 ## Key Principles
-- Oracle before Navigator
+- Expert before Navigator
 - Test-first always
 - Validate with CoreStory before acting
 - Follow existing codebase patterns
@@ -865,7 +865,7 @@ Update ticket → structured commit ("Feat: ...") → rename conversation "COMPL
 
 ## Tips & Best Practices
 
-**Start with the oracle, not the editor.** The most common mistake is jumping straight to implementation. Even experienced developers benefit from the oracle phase — CoreStory often surfaces patterns, utilities, and conventions that aren't obvious from reading code.
+**Start with the expert, not the editor.** The most common mistake is jumping straight to implementation. Even experienced developers benefit from the expert phase — CoreStory often surfaces patterns, utilities, and conventions that aren't obvious from reading code.
 
 **One conversation per ticket.** Don't reuse CoreStory conversations across unrelated tickets. Each conversation builds a coherent context thread. Mixing topics dilutes the quality of responses.
 

@@ -16,7 +16,7 @@ This playbook is CoreStory's answer to the grounding problem. It's a six-phase w
 
 CoreStory serves two roles in this workflow:
 
-- **Oracle** — answers questions about architectural patterns, naming conventions, business rules, invariants, and design decisions. This is context synthesized from PRDs, tech specs, user stories, and code history. It's the institutional knowledge that normally lives only in the heads of long-tenured engineers.
+- **Expert** — answers questions about architectural patterns, naming conventions, business rules, invariants, and design decisions. This is context synthesized from PRDs, tech specs, user stories, and code history. It's the institutional knowledge that normally lives only in the heads of long-tenured engineers.
 - **Navigator** — points to specific files, services, base classes, extension points, and data structures. Instead of guessing where new code should go or what already exists, the agent gets directed guidance grounded in the actual codebase.
 
 **When to use this:** Any feature that touches multiple components, needs to follow established patterns, or involves integration with existing services. Especially valuable for cross-cutting features, complex domain logic, unfamiliar codebases, and onboarding new team members who need to build things that fit the existing system.
@@ -45,9 +45,9 @@ The workflow has six phases. The first four produce and validate the specificati
 
 | Phase | Name | Purpose | CoreStory Role |
 |-------|------|---------|----------------|
-| 1 | Ground | Establish architectural truth before writing any spec | Oracle |
-| 2 | Specify | Write requirements constrained by what exists | Oracle + Navigator |
-| 3 | Validate | Architectural pre-mortem — submit spec for conflict detection | Oracle |
+| 1 | Ground | Establish architectural truth before writing any spec | Expert |
+| 2 | Specify | Write requirements constrained by what exists | Expert + Navigator |
+| 3 | Validate | Architectural pre-mortem — submit spec for conflict detection | Expert |
 | 4 | Plan | Map validated spec to files, patterns, and extension points | Navigator |
 | 5 | Implement | TDD with continuous architectural validation | Validation |
 | 6 | Verify & Capture | Confirm implementation matches spec AND preserves invariants | Knowledge capture |

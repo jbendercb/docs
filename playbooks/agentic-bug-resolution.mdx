@@ -12,7 +12,7 @@ This playbook teaches you to resolve bugs systematically using an AI coding agen
 
 CoreStory serves two roles in this workflow:
 
-- **Oracle** — answers questions about intended system behavior, invariants, business rules, and design history. This is context you can't get from code search alone; it synthesizes PRDs, technical specs, user stories, and code history into coherent answers.
+- **Expert** — answers questions about intended system behavior, invariants, business rules, and design history. This is context you can't get from code search alone; it synthesizes PRDs, technical specs, user stories, and code history into coherent answers.
 - **Navigator** — points to specific files, methods, and code paths relevant to a bug. Instead of blind searching, the agent gets directed guidance on where to look.
 
 **When to use this:** Any bug that benefits from architectural understanding — which is most of them. Especially valuable for unfamiliar codebases, cross-component issues, bugs in complex state management, and onboarding new team members who need to fix things in code they've never seen.
@@ -46,7 +46,7 @@ The workflow has six phases. The first three gather context; the last three act 
 
 **Phase 1 — Bug Intake.** The agent pulls the bug ticket (or accepts a description), selects the relevant CoreStory project, and creates a dedicated investigation conversation. This conversation persists as institutional knowledge.
 
-**Phase 2 — Oracle Phase.** The agent queries CoreStory to understand how the system is *supposed* to work: which files implement the affected feature, what data structures and invariants are involved, and what design history exists. This happens *before* looking at code.
+**Phase 2 — Expert Phase.** The agent queries CoreStory to understand how the system is *supposed* to work: which files implement the affected feature, what data structures and invariants are involved, and what design history exists. This happens *before* looking at code.
 
 **Phase 3 — Navigator Phase.** The agent asks CoreStory to map the bug's symptoms to specific code paths, generate ranked root cause hypotheses, and identify exact files and methods to investigate.
 
@@ -118,7 +118,7 @@ The agent stores the `conversation_id` and uses it for all subsequent queries. T
 
 ---
 
-### Phase 2: Understanding System Behavior (Oracle Phase)
+### Phase 2: Understanding System Behavior (Expert Phase)
 
 **Goal:** Establish ground truth about how the system *should* work before investigating what's wrong.
 
@@ -587,7 +587,7 @@ Expected: [correct behavior]
 CoreStory conversation: [conversation-id]
 ```
 
-## Phase 2: Understanding System Behavior (Oracle Phase)
+## Phase 2: Understanding System Behavior (Expert Phase)
 
 Send three CoreStory queries in sequence:
 
@@ -681,7 +681,7 @@ Usage:
 
 Executes the complete six-phase workflow:
 1. Bug Intake — fetches ticket, creates CoreStory investigation conversation
-2. Oracle Phase — queries CoreStory for architecture, invariants, history
+2. Expert Phase — queries CoreStory for architecture, invariants, history
 3. Navigator Phase — maps symptoms to code paths, generates hypotheses
 4. TDD Investigation — writes failing test FIRST, then identifies root cause
 5. Solution Development — implements fix, validates, adds edge case tests
@@ -773,7 +773,7 @@ Apply this workflow when user requests bug fixes, investigations, or ticket reso
 3. Create investigation conversation (`CoreStory:create_conversation`)
 4. Report: bug summary, symptoms, CoreStory conversation ID
 
-### Phase 2: Oracle Phase — Understand Intended Behavior
+### Phase 2: Expert Phase — Understand Intended Behavior
 **Do this BEFORE investigating code.**
 
 Send three CoreStory queries (`CoreStory:send_message`):
@@ -815,7 +815,7 @@ Report: most likely root cause with location, alternatives, investigation path.
 4. Report: summary, tests added, quality metrics
 
 ## Key Principles
-- **Oracle before Navigator**: understand intended behavior before investigating code
+- **Expert before Navigator**: understand intended behavior before investigating code
 - **Test-first always**: failing test → verify fails → fix → verify passes
 - **Validate hypotheses**: always verify with CoreStory before acting
 - **Minimal fixes**: smallest change that restores the invariant
@@ -914,7 +914,7 @@ Apply when user requests: bug fix, investigation, ticket resolution, or any phra
 - Select CoreStory project (`CoreStory:list_projects`)
 - Create investigation conversation (`CoreStory:create_conversation`)
 
-## Phase 2: Oracle Phase
+## Phase 2: Expert Phase
 **Understand intended behavior BEFORE investigating code.**
 
 Query CoreStory (`CoreStory:send_message`) for:
@@ -951,7 +951,7 @@ Query CoreStory for:
 4. Report results
 
 ## Key Principles
-- Oracle before Navigator
+- Expert before Navigator
 - Test-first always
 - Validate hypotheses with CoreStory
 - Minimal fixes that restore invariants
@@ -1045,7 +1045,7 @@ When instructions say "Query CoreStory", use `CoreStory:send_message`.
 2. Select CoreStory project (`CoreStory:list_projects`, verify "completed")
 3. Create conversation: "Bug Investigation: #[ID] - [description]"
 
-## Phase 2: Oracle Phase — Before Code
+## Phase 2: Expert Phase — Before Code
 Query CoreStory for: architecture, invariants, historical context.
 
 ## Phase 3: Navigator Phase
@@ -1061,7 +1061,7 @@ Implement fix → verify test passes → validate with CoreStory → edge case t
 Update ticket → structured commit → rename conversation "RESOLVED" → report.
 
 ## Key Principles
-- Oracle before Navigator
+- Expert before Navigator
 - Test-first always
 - Validate with CoreStory before acting
 - Minimal fixes that restore invariants
@@ -1082,7 +1082,7 @@ Update ticket → structured commit → rename conversation "RESOLVED" → repor
 
 **Name conversations descriptively.** "Bug Investigation: #6992 - reset_index coord_names cleanup" is searchable and useful six months later. "Bug fix" is not.
 
-**Don't fight the phases.** If you're tempted to jump from Phase 1 to Phase 5, you're optimizing for speed on this bug at the cost of quality. The Oracle Phase in particular catches architectural constraints that would otherwise become failed code reviews or production regressions.
+**Don't fight the phases.** If you're tempted to jump from Phase 1 to Phase 5, you're optimizing for speed on this bug at the cost of quality. The Expert Phase in particular catches architectural constraints that would otherwise become failed code reviews or production regressions.
 
 **Let the agent complete the workflow.** Interrupting mid-workflow loses accumulated context. If you need to redirect, explain why rather than just changing the subject.
 

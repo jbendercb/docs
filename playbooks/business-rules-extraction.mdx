@@ -10,7 +10,7 @@ icon: "sitemap"
 
 Business rules are the most critical and most poorly documented aspect of most codebases. They're scattered across service layers, embedded in conditionals, hidden in database constraints, encoded in configuration files, and rarely written down comprehensively. When a developer asks "what happens when a customer places an order?" the answer lives in dozens of files across multiple architectural layers — and no single person holds the complete picture.
 
-This playbook teaches you how to use the CoreStory MCP server, combined with local source code, to systematically extract, document, and maintain a comprehensive inventory of business rules. The approach uses CoreStory as an **architectural oracle** — querying it first to understand what rules *should* exist and where they live — then verifying and deepening that understanding through direct code inspection.
+This playbook teaches you how to use the CoreStory MCP server, combined with local source code, to systematically extract, document, and maintain a comprehensive inventory of business rules. The approach uses CoreStory as an **architectural expert** — querying it first to understand what rules *should* exist and where they live — then verifying and deepening that understanding through direct code inspection.
 
 The primary deliverable is a structured **Business Rules Inventory**: a document that maps every significant business rule to its domain, enforcement layer, source files, invariants, and edge cases. This inventory is useful for onboarding, compliance audits, refactoring planning, migration scoping, and providing AI coding agents with accurate system context.
 
@@ -46,15 +46,15 @@ The primary deliverable is a structured **Business Rules Inventory**: a document
 | Phase | Name | Purpose | CoreStory Role |
 |-------|------|---------|----------------|
 | 1 | Setup & Scoping | Select project, create conversation, define extraction scope | Setup |
-| 2 | Architectural Survey | Map where business logic lives, identify rule categories | Oracle |
-| 3 | Deep Extraction | Systematically query each rule category, build draft inventory | Oracle + Navigator |
+| 2 | Architectural Survey | Map where business logic lives, identify rule categories | Expert |
+| 3 | Deep Extraction | Systematically query each rule category, build draft inventory | Expert + Navigator |
 | 4A | Code Verification | Walk local code to verify rules, find what CoreStory missed | — (local code only) |
-| 4B | Enforcement Verification | Prove that rules claiming enforcement actually enforce at runtime | Oracle + local code |
-| 4C | Flow-Trace Discovery | Trace end-to-end user flows to find behaviors missed by domain extraction | Oracle + local code |
-| 5 | Documentation & Output | Produce the structured business rules document with confidence levels | Oracle (gap-filling) |
+| 4B | Enforcement Verification | Prove that rules claiming enforcement actually enforce at runtime | Expert + local code |
+| 4C | Flow-Trace Discovery | Trace end-to-end user flows to find behaviors missed by domain extraction | Expert + local code |
+| 5 | Documentation & Output | Produce the structured business rules document with confidence levels | Expert (gap-filling) |
 | 6 | Conversation Capture | Rename conversation with RESOLVED prefix | Knowledge capture |
 
-The core principle is **Oracle before Code**: query CoreStory for architectural understanding before navigating to specific code. CoreStory surfaces rules you wouldn't find through grep alone — implicit conventions, cross-layer interactions, and undocumented invariants. Verification then grounds those discoveries in reality — first through code inspection (4A), then by adversarially testing enforcement claims (4B), and finally by tracing user-facing flows end-to-end to catch behaviors that domain decomposition misses (4C).
+The core principle is **Expert before Code**: query CoreStory for architectural understanding before navigating to specific code. CoreStory surfaces rules you wouldn't find through grep alone — implicit conventions, cross-layer interactions, and undocumented invariants. Verification then grounds those discoveries in reality — first through code inspection (4A), then by adversarially testing enforcement claims (4B), and finally by tracing user-facing flows end-to-end to catch behaviors that domain decomposition misses (4C).
 
 ### CoreStory MCP Tools Used
 
@@ -120,7 +120,7 @@ Decide the extraction scope before querying:
 
 For a first extraction, start with a single module. You can always expand scope later. Full-system extractions are best done one domain at a time across multiple sessions.
 
-### Phase 2 — Architectural Survey (Oracle)
+### Phase 2 — Architectural Survey (Expert)
 
 **Goal:** Understand where business logic lives in this codebase and identify the major rule categories.
 
@@ -203,7 +203,7 @@ This gives you a category map to work through systematically in Phase 3. It's in
 - A list of data constraints from the TechSpec (via CoreStory query)
 - A categorized inventory of rule types to explore in Phase 3
 
-### Phase 3 — Deep Extraction (Oracle + Navigator)
+### Phase 3 — Deep Extraction (Expert + Navigator)
 
 **Goal:** Systematically query each rule category identified in Phase 2. Build the detailed inventory.
 
@@ -910,7 +910,7 @@ module, entity, or workflow you're asking about.
 ## Business Rules Extraction
 
 When asked to extract or document business rules:
-1. ALWAYS query CoreStory before searching code (Oracle before Code)
+1. ALWAYS query CoreStory before searching code (Expert before Code)
 2. Do NOT read the full PRD or TechSpec — query CoreStory about their
    contents via `send_message` instead
 3. Use domain-specific queries, not broad questions
@@ -935,7 +935,7 @@ When extracting business rules from this codebase:
 
 **If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that this repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
 
-1. ALWAYS query CoreStory before searching code (Oracle before Code)
+1. ALWAYS query CoreStory before searching code (Expert before Code)
 2. Use domain-specific queries: "What validation rules exist for [entity]?"
    not "What are the business rules?"
 3. Do NOT try to read the full PRD or TechSpec via `get_project_prd` /
