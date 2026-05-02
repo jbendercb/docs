@@ -136,17 +136,25 @@ This is the **reuse-first** query. Before designing anything new, find out what 
 
 **1.5 — Query invariants and constraints.**
 
+If a Business Rules Inventory exists for this codebase, start by pulling the `Invariants` field from BR-IDs adjacent to the change scope — those are already categorized and code-cited, and using them avoids re-extracting what's already been extracted. Then issue the architectural query below to fill any gaps.
+
 ```
 Send CoreStory message: "What invariants and constraints must be maintained
-in the notification/eventing area? I need to know:
-1. Authentication/authorization requirements for outbound requests
-2. Rate limiting or throttling patterns
-3. Data privacy constraints (what fields must NOT be included in payloads?)
-4. Ordering guarantees for event delivery
-5. Idempotency requirements"
+in the notification/eventing area? Categorize each as data-integrity,
+state-machine, referential, security, or temporal:
+1. Authentication/authorization requirements for outbound requests (security)
+2. Rate limiting or throttling patterns (security / temporal)
+3. Data privacy constraints — what fields must NOT be included in payloads?
+   (security)
+4. Ordering guarantees for event delivery (temporal)
+5. Idempotency requirements (data-integrity)
+6. State-machine constraints — any subscription/delivery lifecycle that
+   must transition in a fixed direction?
+7. Referential integrity — any cross-entity relationships the new feature
+   must preserve?"
 ```
 
-This is the **invariant-first** query. Before specifying what to build, establish what must NOT break. These invariants become the guardrails that constrain the spec in Phase 2 and the validation criteria in Phase 3.
+This is the **invariant-first** query. Before specifying what to build, establish what must NOT break. These invariants become the guardrails that constrain the spec in Phase 2, the assertion source for the test suite in Phase 5, and the validation criteria in Phase 3 and 6.
 
 **1.6 — Query design history.**
 
@@ -256,6 +264,13 @@ Write testable acceptance criteria that reference the architecture:
 ```
 
 Notice what's different about this spec: every requirement references specific existing components. The agent implementing this spec knows exactly what to reuse, what to extend, and what to create. There's no ambiguity about whether to build a new HTTP client or use the existing one.
+
+> **Sourcing ACs in a modernization context.** When SDD is being used as Phase 5 of the [Code Modernization](/playbooks/code-modernization) workflow, ACs come from three sources, in priority order:
+> 1. The Phase 4 work-package's behavioral equivalence requirements
+> 2. The `Acceptance Criteria` field on each in-scope BR-ID from the [Business Rules Inventory](/playbooks/business-rules-extraction) (Phase 2 of modernization)
+> 3. Net-new ACs only for behaviors tagged `[NEW]` or `[CHANGE]` per the work package's behavior tags
+>
+> Do not invent ACs for `[PRESERVE]` behaviors — pull them verbatim from the BR Inventory so the legacy contract is preserved as written. New ACs for `[CHANGE]` behaviors should explicitly state both the legacy behavior being replaced and the new desired behavior.
 
 ---
 
@@ -370,13 +385,29 @@ CoreStory provides dependency ordering based on actual import relationships, not
 
 This phase follows the same test-first methodology as the Feature Implementation playbook. The spec from Phases 1–4 gives the agent precise implementation guidance; this phase executes it.
 
-**5.1 — Write failing tests** from the acceptance criteria in Phase 2, following patterns identified in Phase 1:
+**5.1 — Write failing tests** from BOTH the acceptance criteria AND the invariants in Phase 2, following patterns identified in Phase 1.
+
+ACs and invariants generate two complementary kinds of test:
+- **AC tests** assert outcomes for specific inputs. Format: "given X, when Y, then Z."
+- **Invariant tests** assert post-conditions that must hold after *any* operation that could plausibly violate them. Format: "after any [operation], [invariant] still holds." Often written as property-based tests, or as a teardown assertion that runs after every test in a suite.
 
 ```
-"Write failing tests for the webhook system based on the acceptance criteria.
-Follow the existing test patterns CoreStory identified — use the same fixtures,
-assertion styles, and test organization."
+"Write failing tests for the webhook system from BOTH the acceptance
+criteria and the invariants in the spec.
+
+For each acceptance criterion, write an outcome-based test (assert on
+state changes and observable behavior, not on method calls).
+
+For each invariant, write a post-condition test that runs after any
+operation that could violate it. For example, the 'idempotent delivery'
+invariant should be asserted after every delivery test by checking that
+a duplicate request did not produce duplicate side effects.
+
+Follow the existing test patterns CoreStory identified — use the same
+fixtures, assertion styles, and test organization."
 ```
+
+Skipping the invariant tests is the most common reason post-refactor regressions slip past a passing AC suite. The AC suite catches "what should happen for input X"; the invariant suite catches "what must never happen, regardless of input."
 
 **5.2 — Implement** following the plan from Phase 4, in dependency order:
 
@@ -404,25 +435,44 @@ For detailed implementation guidance, see the [Feature Implementation](/playbook
 
 **Objective:** Confirm the implementation matches the spec AND preserves the invariants from Phase 1.
 
-**6.1 — Verify spec compliance.**
+**6.1 — Verify acceptance criteria compliance.** Walk the AC list from Phase 2 explicitly — one verification per AC. The numbered items below should map 1:1 to the numbered ACs in the spec:
 
 ```
-Send CoreStory message: "The webhook system is implemented. Verify against
-the original spec:
-1. Does WebhookDeliveryService use HttpClient (not a new HTTP implementation)?
-2. Are PII fields excluded per DataPrivacyConfig?
-3. Does delivery retry follow the existing RetryPolicy?
-4. Are all deliveries logged in AuditLogger?
-5. Are existing notification channels unaffected?"
+Send CoreStory message: "The webhook system is implemented. Verify it
+against each acceptance criterion from the spec, in order. For each AC,
+cite the test that asserts it and the implementation file/line that
+satisfies it. Flag any AC that has no corresponding test, or whose
+test asserts implementation details rather than the AC's outcome:
+
+AC1: Admin users can register webhook URLs via the management API
+AC2: Subscribed events deliver a signed payload within 30 seconds
+AC3: Failed deliveries retry with exponential backoff (max 5 / 24h)
+AC4: All deliveries logged in AuditLogger with status, latency, code
+AC5: PII fields are stripped per DataPrivacyConfig
+AC6: Existing notification channels are unaffected"
 ```
 
-**6.2 — Verify invariant preservation.** Go back to the invariants from Phase 1 and confirm each one:
+**6.2 — Verify invariant preservation.** Walk the invariant list from Phase 2 explicitly — one verification per invariant. Categorize the verification approach by invariant category (data-integrity invariants verify against persisted state, security invariants verify access scoping, temporal invariants verify ordering, etc.):
 
 ```
 Send CoreStory message: "Confirm that the webhook implementation preserves
-all invariants from Phase 1: PII exclusion, idempotent delivery, event
-ordering, HttpClient usage, and no disruption to existing notifiers."
+each invariant from the spec, walked individually. For each invariant,
+cite the test that asserts it (or the test teardown / property check
+that asserts it after every other test) and confirm the implementation
+honors it:
+
+INV1 (security): All outbound payloads exclude PII fields per
+     DataPrivacyConfig
+INV2 (data-integrity): Webhook delivery is idempotent — duplicate
+     delivery does not cause duplicate side effects
+INV3 (temporal): Event ordering within a single subscription is
+     preserved
+INV4 (security): All outbound HTTP goes through HttpClient
+INV5 (data-integrity): Existing notifiers (EmailNotifier, PushNotifier)
+     continue to function without modification"
 ```
+
+If 6.1 and 6.2 both walk their lists exhaustively, the spec is functionally what the implementation guarantees — no AC or invariant is implicitly trusted.
 
 **6.3 — Commit with context.**
 
@@ -532,17 +582,28 @@ When instructions say "Query CoreStory", use `CoreStory:send_message`.
 4. Query CoreStory for:
    - Architectural patterns in the relevant area
    - Existing services and reusable components
-   - Invariants and constraints that must be preserved
+   - Invariants and constraints that must be preserved (categorize:
+     data-integrity, state-machine, referential, security, temporal)
+   - Existing acceptance criteria for the impacted area (from
+     PRD user stories) — capture as raw AC + enforcing code refs
    - Design history and past attempts
 
-**Do not proceed to Phase 2 until you have documented: patterns, existing services, invariants, and history.**
+If a Business Rules Inventory exists for this codebase, pull
+the `Invariants` and `Acceptance Criteria` fields from BR-IDs
+adjacent to the change scope BEFORE issuing the queries above —
+that's authoritative content already extracted.
+
+**Do not proceed to Phase 2 until you have documented: patterns, existing services, invariants (categorized), existing ACs, and history.**
 
 ## Phase 2: Specify — Delta Specification
 Write the spec constrained by Phase 1 findings:
-1. **Invariants first** — what must NOT change
+1. **Invariants first** — what must NOT change (categorized)
 2. **Reuse section** — existing components to use, not recreate
 3. **Delta section** — only new/modified components
-4. **Acceptance criteria** — testable, referencing specific existing components
+4. **Acceptance criteria** — testable, referencing specific existing
+   components. In modernization context, pull from work-package +
+   BR Inventory's AC fields; net-new ACs only for `[NEW]` / `[CHANGE]`
+   tagged behaviors.
 
 This is a delta spec: only what changes. Do NOT re-specify existing functionality.
 
@@ -563,14 +624,18 @@ Query CoreStory for:
 4. Test file locations
 
 ## Phase 5: Implement — TDD with Validation
-1. Write failing tests from acceptance criteria
+1. Write failing tests from BOTH acceptance criteria AND invariants
+   (AC tests assert outcomes; invariant tests assert post-conditions
+   that must hold after any operation)
 2. Implement in dependency order from Phase 4
 3. Validate each component with CoreStory
 4. Run full test suite — no regressions
 
 ## Phase 6: Verify & Capture
-1. Verify spec compliance with CoreStory
-2. Verify invariant preservation from Phase 1
+1. Walk the AC list one-by-one — each AC must have a corresponding
+   outcome-based test and a confirmed implementation site
+2. Walk the invariant list one-by-one — each invariant must have an
+   asserted post-condition test
 3. Commit with architectural context
 4. Rename conversation → "COMPLETED"
 5. Update ticket
@@ -646,13 +711,13 @@ When instructions say "Query CoreStory", use `CoreStory:send_message`.
 1. Gather requirements (from ticket or user)
 2. Select CoreStory project (`CoreStory:list_projects`, verify "completed")
 3. Create conversation: "Spec: #[ID] — [description]"
-4. Query CoreStory for: architectural patterns, existing services, invariants, design history
+4. Query CoreStory for: architectural patterns, existing services, invariants (categorized: data-integrity / state-machine / referential / security / temporal), existing acceptance criteria for the impacted area, design history. If a Business Rules Inventory exists, pull `Invariants` and `Acceptance Criteria` fields from adjacent BR-IDs first.
 
 ### Phase 2: Specify — Delta Specification
-1. Invariants first — what must NOT change
+1. Invariants first — what must NOT change (categorized)
 2. Reuse section — existing components to use
 3. Delta section — only new/modified components
-4. Acceptance criteria referencing existing components
+4. Acceptance criteria referencing existing components. In modernization context, source ACs from work-package + BR Inventory's AC fields; net-new ACs only for `[NEW]` / `[CHANGE]` tagged behaviors
 
 ### Phase 3: Validate — Architectural Pre-Mortem
 Submit spec to CoreStory: check conflicts, missing dependencies, failure modes. Revise.
@@ -661,10 +726,10 @@ Submit spec to CoreStory: check conflicts, missing dependencies, failure modes. 
 Query CoreStory for: file paths, extension points, implementation order, test locations.
 
 ### Phase 5: Implement — TDD
-Write failing tests → implement in dependency order → validate with CoreStory → full suite.
+Write failing tests from AC AND invariants (outcome-based + post-condition) → implement in dependency order → validate with CoreStory → full suite.
 
 ### Phase 6: Verify & Capture
-Verify spec compliance → verify invariants → commit → rename conversation "COMPLETED" → update ticket.
+Walk AC list (each AC → test + impl site) → walk invariant list (each invariant → post-condition test) → commit → rename conversation "COMPLETED" → update ticket.
 
 ### Key Principles
 - Ground before Specify
@@ -749,13 +814,13 @@ When instructions say "Query CoreStory", use `CoreStory:send_message`.
    - Invariants and constraints
    - Design history and past attempts
 
-**Do not proceed to Phase 2 until patterns, services, invariants, and history are documented.**
+**Do not proceed to Phase 2 until patterns, services, invariants (categorized), existing ACs, and history are documented.**
 
 ## Phase 2: Specify — Delta Specification
-1. Invariants first — what must NOT change
+1. Invariants first — what must NOT change (categorized)
 2. Reuse section — existing components to use
 3. Delta section — only new/modified components
-4. Acceptance criteria referencing specific existing components
+4. Acceptance criteria referencing specific existing components. In modernization context, source ACs from work-package + BR Inventory's AC fields; net-new ACs only for `[NEW]` / `[CHANGE]` tagged behaviors
 
 ## Phase 3: Validate — Architectural Pre-Mortem
 Submit spec to CoreStory:
@@ -770,10 +835,10 @@ Submit spec to CoreStory:
 Query CoreStory for: file paths, extension points, base classes, implementation order, test locations.
 
 ## Phase 5: Implement — TDD
-Write failing tests → implement in dependency order → validate with CoreStory → full suite.
+Write failing tests from AC AND invariants (outcome-based + post-condition) → implement in dependency order → validate with CoreStory → full suite.
 
 ## Phase 6: Verify & Capture
-Verify spec compliance → verify invariants → commit → rename conversation "COMPLETED" → update ticket.
+Walk AC list (each AC → test + impl site) → walk invariant list (each invariant → post-condition test) → commit → rename conversation "COMPLETED" → update ticket.
 
 ## Key Principles
 - Ground before Specify — always
@@ -869,10 +934,10 @@ When instructions say "Query CoreStory", use `CoreStory:send_message`.
 1. Gather requirements (from ticket or user)
 2. Select CoreStory project (`CoreStory:list_projects`, verify "completed")
 3. Create conversation: "Spec: #[ID] — [description]"
-4. Query CoreStory for: patterns, existing services, invariants, design history
+4. Query CoreStory for: patterns, existing services, invariants (categorized: data-integrity / state-machine / referential / security / temporal), existing acceptance criteria for the impacted area, design history. If a Business Rules Inventory exists, pull `Invariants` and `Acceptance Criteria` fields from adjacent BR-IDs first.
 
 ## Phase 2: Specify — Delta Specification
-Invariants first → reuse section → delta (new/modified) → acceptance criteria.
+Invariants first (categorized) → reuse section → delta (new/modified) → acceptance criteria (in modernization context: from work-package + BR Inventory; net-new only for `[NEW]` / `[CHANGE]` tags).
 
 ## Phase 3: Validate — Architectural Pre-Mortem
 Submit spec to CoreStory: conflicts, missing dependencies, failure modes. Revise.
@@ -881,10 +946,10 @@ Submit spec to CoreStory: conflicts, missing dependencies, failure modes. Revise
 Query CoreStory for: file paths, extension points, implementation order, test locations.
 
 ## Phase 5: Implement — TDD
-Write failing tests → implement → validate with CoreStory → full suite.
+Write failing tests from AC AND invariants (outcome-based + post-condition) → implement → validate with CoreStory → full suite.
 
 ## Phase 6: Verify & Capture
-Verify spec compliance → verify invariants → commit → rename conversation "COMPLETED" → update ticket.
+Walk AC list (each AC → test + impl site) → walk invariant list (each invariant → post-condition test) → commit → rename conversation "COMPLETED" → update ticket.
 
 ## Key Principles
 - Ground before Specify — always
