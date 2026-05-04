@@ -542,7 +542,7 @@ Once you know the target phase, read and follow its dedicated skill completely.
 
 **Purpose:** Evaluate the legacy system's architecture, dependencies, tech debt, and modernization readiness.
 
-**Dedicated skill:** `codebase-assessment` — read `.claude/skills/codebase-assessment/SKILL.md` and follow its full workflow.
+**Dedicated skill:** Use the `codebase-assessment` skill and follow its full workflow.
 
 **Deliverable:** Modernization Readiness Report
 
@@ -554,7 +554,7 @@ Once you know the target phase, read and follow its dedicated skill completely.
 
 **Purpose:** Extract, catalog, and verify all business rules embedded in the legacy system.
 
-**Dedicated skill:** This phase uses the **Business Rules Extraction** skill. Read the Business Rules Extraction skill file (`.claude/skills/business-rules-extraction/SKILL.md`) and follow its full workflow. If this skill is not installed, refer to the [Business Rules Extraction playbook](https://docs.corestory.ai/playbooks/business-rules-extraction) for setup instructions.
+**Dedicated skill:** Use the `business-rules-extraction` skill and follow its full workflow. If the skill is not installed, refer to the [Business Rules Extraction playbook](https://docs.corestory.ai/playbooks/business-rules-extraction) for setup instructions.
 
 **Deliverable:** Business Rules Inventory (BR-XXX format)
 
@@ -566,7 +566,7 @@ Once you know the target phase, read and follow its dedicated skill completely.
 
 **Purpose:** Evaluate modernization strategies (the 7 Rs), define the target architecture, and document the decision.
 
-**Dedicated skill:** `target-architecture` — read `.claude/skills/target-architecture/SKILL.md` and follow its full workflow.
+**Dedicated skill:** Use the `target-architecture` skill and follow its full workflow.
 
 **Deliverable:** Architectural Decision Record (ADR)
 
@@ -578,7 +578,7 @@ Once you know the target phase, read and follow its dedicated skill completely.
 
 **Purpose:** Break the modernization into discrete, sequenced work packages with dependency mapping and acceptance criteria.
 
-**Dedicated skill:** `decomposition-sequencing` — read `.claude/skills/decomposition-sequencing/SKILL.md` and follow its full workflow.
+**Dedicated skill:** Use the `decomposition-sequencing` skill and follow its full workflow.
 
 **Deliverable:** Sequenced work packages (optionally pushed to Jira/Linear)
 
@@ -590,9 +590,10 @@ Once you know the target phase, read and follow its dedicated skill completely.
 
 **Purpose:** Execute the modernization for each component following the Transform → Coexist → Eliminate pattern.
 
-**Dedicated skill:** Use the variant that matches the target architecture:
-- Monolith to microservices → `monolith-to-microservices` — read `.claude/skills/monolith-to-microservices/SKILL.md`
-- Other patterns → Follow Spec-Driven Development for the delta spec
+**Dedicated skill:** Use the `spec-driven-dev` skill — it's the foundation for all forward engineering with CoreStory, and it generates the per-component delta specs this phase requires.
+
+For architecture-to-architecture variants, also load the matching skill:
+- Monolith to microservices → `monolith-to-microservices`
 
 **Deliverable:** Modernized component with coexistence infrastructure
 
@@ -604,7 +605,7 @@ Once you know the target phase, read and follow its dedicated skill completely.
 
 **Purpose:** Verify that the modernized component preserves every business rule from the Phase 2 inventory.
 
-**Dedicated skill:** `behavioral-verification` — read `.claude/skills/behavioral-verification/SKILL.md` and follow its full workflow.
+**Dedicated skill:** Use the `behavioral-verification` skill and follow its full workflow.
 
 **Deliverable:** Behavioral Equivalence Report
 
