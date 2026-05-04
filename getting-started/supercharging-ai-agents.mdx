@@ -5,6 +5,7 @@ description: "How CoreStory's persistent code intelligence makes AI coding agent
 icon: "bolt"
 ---
 
+import AgentInstallConventions from "/snippets/agent-install-conventions.mdx";
 
 ## Overview
 
@@ -168,7 +169,9 @@ Add to `~/.claude.json` (user scope) or `.mcp.json` (project scope):
 
 **Verify:** Run `claude mcp list` to confirm the server appears, then ask "List my CoreStory projects."
 
-**Agent-specific configuration files:** Claude Code uses skills stored in `.claude/skills/`. Each workflow playbook includes a ready-to-use skill file that encodes the full workflow for that use case.
+**Skill files for workflows:** Each workflow playbook includes a ready-to-use SKILL.md that encodes the full workflow as plain markdown. Install location depends on your harness — Claude Code auto-loads skills from `.claude/skills/<name>/SKILL.md`; other harnesses use different conventions:
+
+<AgentInstallConventions />
 
 ---
 

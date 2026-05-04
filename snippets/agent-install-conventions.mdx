@@ -1,0 +1,17 @@
+The skill file shown below is plain markdown. The workflow it encodes works in any agentic harness — only the install location differs. Common conventions:
+
+| Harness | Install location |
+| --- | --- |
+| **Claude Code** | `.claude/skills/<skill-name>/SKILL.md` — Claude loads the body when the YAML `description` matches the task |
+| **GitHub Copilot** | Append to `.github/copilot-instructions.md` for repo-wide instructions, or save as `.github/instructions/<name>.instructions.md` with an `applyTo` glob for path-scoped use |
+| **Cursor** | `.cursor/rules/<skill-name>.mdc` with a `description` field for auto-attach (use `globs` for path-scoped or `alwaysApply: true` for every session) |
+| **Factory.ai** | `.factory/droids/<skill-name>.md` (project) or `~/.factory/droids/<skill-name>.md` (personal); Factory loads it as a custom Droid |
+| **Aider** | `CONVENTIONS.md` at repo root, loaded with `aider --read CONVENTIONS.md` — or add it to the `read:` list in `.aider.conf.yml` for automatic loading |
+| **Codex / `AGENTS.md` harnesses** | Append the content to `AGENTS.md` at your repository root |
+| **Custom runtime** | Load the markdown into your agent's system prompt, rules file, or wherever it consumes workflow context |
+
+<Tip>
+Want a single install that works across the most harnesses? Append the content to `AGENTS.md` at your repository root. The [`AGENTS.md` spec](https://agents.md/) is read by Codex, Aider, Cursor, Factory, Jules, Gemini CLI, Windsurf, GitHub Copilot's coding agent, JetBrains Junie, Warp, and others — so a single file covers most users without harness-specific setup.
+</Tip>
+
+If your harness isn't listed, the SKILL.md content itself is portable — install it wherever your harness loads workflow context and adapt the activation step (auto-trigger, slash command, explicit invocation) to your harness's conventions.
