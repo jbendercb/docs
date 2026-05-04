@@ -5,6 +5,7 @@ description: "Companion guide for integrating GitHub's Spec Kit framework with C
 icon: "puzzle-piece"
 ---
 
+import AgentInstallConventions from "/snippets/agent-install-conventions.mdx";
 
 ## Overview
 
@@ -206,7 +207,9 @@ Follow the main playbook's Phase 6 in full: verify spec compliance with CoreStor
 
 ## Agent Configuration
 
-The main playbook's Agent Implementation Guides include full configuration files for Claude Code, GitHub Copilot, Cursor, and Factory.ai. To add Spec Kit awareness to those configurations, append the following to the relevant config file.
+The main playbook's Agent Implementation Guides cover the major agentic harnesses end-to-end. To add Spec Kit awareness, append the matching content below to your harness's existing CoreStory configuration. The four most common harnesses are shown — if you're on a different harness, append the relevant Markdown content to wherever your harness loads workflow context (see the install conventions in the main playbook).
+
+<AgentInstallConventions />
 
 ### Claude Code — Skill File Addition
 

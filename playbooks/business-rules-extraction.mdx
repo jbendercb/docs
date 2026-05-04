@@ -5,6 +5,7 @@ description: "Extract, catalog, and validate business rules embedded in your cod
 icon: "sitemap"
 ---
 
+import AgentInstallConventions from "/snippets/agent-install-conventions.mdx";
 
 ## Overview
 
@@ -710,9 +711,13 @@ side effects, and any behaviors not captured as standalone rules.
 
 ## Agent Implementation Guides
 
+The skill content below is plain markdown and works in any agentic harness — only the install location varies. The sections that follow show end-to-end setup for the four most common harnesses; for any other harness, install the skill file per the conventions below.
+
+<AgentInstallConventions />
+
 ### Claude Code
 
-Create a skill file at `.claude/skills/business-rules-extraction/SKILL.md`:
+Save the skill content below at `.claude/skills/business-rules-extraction/SKILL.md`:
 
 ```yaml
 ---

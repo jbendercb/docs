@@ -1,0 +1,13 @@
+The skill file shown below is plain markdown. The workflow it encodes works in any agentic harness — only the install location differs. Common conventions:
+
+| Harness | Install location |
+| --- | --- |
+| **Claude Code** | `.claude/skills/<skill-name>/SKILL.md` — auto-loads when the description matches |
+| **GitHub Copilot** | Append the content to `.github/copilot-instructions.md`, or use a scoped instructions file |
+| **Cursor** | Save as `.cursor/rules/<skill-name>.mdc` with a `description` field so the rule auto-attaches |
+| **Factory.ai** | Add the workflow as a Droid in your Factory workspace |
+| **Aider** | Add the file to your conventions and load it with `--read <path>` |
+| **Codex / `AGENTS.md` harnesses** | Append the content to `AGENTS.md` at your repository root |
+| **Custom runtime** | Load the markdown into your agent's system prompt, rules file, or wherever it consumes workflow context |
+
+If your harness isn't listed, the SKILL.md content itself is portable — install it wherever your harness loads workflow context and adapt the activation step (auto-trigger, slash command, explicit invocation) to your harness's conventions.

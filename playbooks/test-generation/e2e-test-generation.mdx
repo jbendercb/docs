@@ -5,6 +5,7 @@ description: "Generate end-to-end tests that verify critical user journeys again
 icon: "route"
 ---
 
+import AgentInstallConventions from "/snippets/agent-install-conventions.mdx";
 
 ## Overview
 
@@ -437,11 +438,15 @@ This is normal for mature applications. Focus on journeys that affect revenue, s
 
 ## Agent Implementation Guides
 
+The skill content below is plain markdown and works in any agentic harness — only the install location varies. The sections that follow show the four most common harnesses; for any other harness, install the skill file per the conventions below.
+
+<AgentInstallConventions />
+
 ### Claude Code
 
 #### Skill File
 
-Save as `.claude/skills/generate-e2e-tests/SKILL.md`:
+Save the SKILL.md content below at `.claude/skills/generate-e2e-tests/SKILL.md`:
 
 ````markdown
 ---

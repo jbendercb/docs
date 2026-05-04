@@ -5,6 +5,8 @@ description: "Systematically identify what exists, what's missing, and what need
 icon: "magnifying-glass-chart"
 ---
 
+import AgentInstallConventions from "/snippets/agent-install-conventions.mdx";
+
 ## Overview
 
 Adding a feature to an established codebase is rarely greenfield work. Most of the effort — and most of the risk — lies in understanding how the new feature interacts with what already exists: which data structures need new fields, which UI components need modification, which business rules extend or conflict, and which integration points need updating.
@@ -370,11 +372,13 @@ The gap analysis should produce a structured report. Use this template:
 
 ## Agent Implementation Guides
 
-The following sections provide ready-to-use skill files for popular AI coding agents. Each skill file encodes this playbook's workflow so your agent can execute it with minimal manual prompting.
+The skill content below is plain markdown and works in any agentic harness — only the install location varies. The sections that follow show end-to-end setup for the four most common harnesses; for any other harness, install the skill file per the conventions below.
+
+<AgentInstallConventions />
 
 ### Claude Code
 
-Create the file `.claude/skills/feature-gap-analysis/SKILL.md` in your repository:
+Save the SKILL.md content below at `.claude/skills/feature-gap-analysis/SKILL.md`:
 
 ````markdown
 ---
