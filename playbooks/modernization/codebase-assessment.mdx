@@ -6,6 +6,7 @@ icon: "clipboard-check"
 ---
 
 import AgentInstallConventions from "/snippets/agent-install-conventions.mdx";
+import ReadinessHeatmap from "/snippets/readiness-heatmap.jsx";
 
 ## Overview
 
@@ -471,7 +472,7 @@ send_message: "Describe the operational characteristics of this system:
 
 With the architectural map, dependency graph, and risk inventory complete, score each component's readiness for modernization and recommend a strategy. The interactive heatmap below shows what the output looks like — click any row for component details:
 
-<iframe src="/playbooks/modernization/visuals/readiness-heatmap.html" width="100%" height="600" style={{ border: 'none', borderRadius: '12px', marginBottom: '16px' }} title="Modernization Readiness Heatmap — interactive component-level readiness scores across assessment domains" />
+<ReadinessHeatmap />
 
 > *Sample data shown above — replace with actual assessment scores from your Step 5 analysis.*
 
