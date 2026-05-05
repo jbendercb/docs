@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 
 const COMPONENTS = [
   "OrderService",
@@ -91,7 +91,7 @@ function scoreColor(score) {
   return colors[score] || colors[3];
 }
 
-function ScoreCell({ score, isSelected, onClick }) {
+function scoreCell({ score, isSelected, onClick }) {
   const c = scoreColor(score);
   return (
     <td
@@ -114,7 +114,7 @@ function ScoreCell({ score, isSelected, onClick }) {
   );
 }
 
-function StrategyBadge({ strategy }) {
+function strategyBadge({ strategy }) {
   const color = STRATEGIES[strategy] || "#6b7280";
   return (
     <span
@@ -134,7 +134,7 @@ function StrategyBadge({ strategy }) {
   );
 }
 
-function Legend() {
+function legendBlock() {
   return (
     <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "16px" }}>
       <div style={{ fontSize: "12px", color: "#999", fontWeight: 600, marginRight: "4px" }}>
@@ -175,7 +175,7 @@ function Legend() {
   );
 }
 
-function StrategyDistribution() {
+function strategyDistribution() {
   const counts = {};
   Object.values(SAMPLE_DATA).forEach((d) => {
     counts[d.strategy] = (counts[d.strategy] || 0) + 1;
@@ -244,8 +244,8 @@ export default function ReadinessHeatmap() {
         </p>
       </div>
 
-      <Legend />
-      <StrategyDistribution />
+      {legendBlock()}
+      {strategyDistribution()}
 
       <div style={{ overflowX: "auto" }}>
         <table
@@ -344,18 +344,19 @@ export default function ReadinessHeatmap() {
                     {comp}
                   </td>
                   {DOMAINS.map((domain) => (
-                    <ScoreCell
-                      key={domain.key}
-                      score={d[domain.key]}
-                      isSelected={isSelected}
-                      onClick={() => setSelected(isSelected ? null : comp)}
-                    />
+                    <Fragment key={domain.key}>
+                      {scoreCell({
+                        score: d[domain.key],
+                        isSelected,
+                        onClick: () => setSelected(isSelected ? null : comp),
+                      })}
+                    </Fragment>
                   ))}
-                  <ScoreCell
-                    score={d.overall}
-                    isSelected={isSelected}
-                    onClick={() => setSelected(isSelected ? null : comp)}
-                  />
+                  {scoreCell({
+                    score: d.overall,
+                    isSelected,
+                    onClick: () => setSelected(isSelected ? null : comp),
+                  })}
                   <td
                     style={{
                       padding: "10px 12px",
@@ -363,7 +364,7 @@ export default function ReadinessHeatmap() {
                       borderBottom: "1px solid #222",
                     }}
                   >
-                    <StrategyBadge strategy={d.strategy} />
+                    {strategyBadge({ strategy: d.strategy })}
                   </td>
                 </tr>
               );
@@ -385,7 +386,7 @@ export default function ReadinessHeatmap() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
             <h3 style={{ margin: 0, fontSize: "16px", color: "#fff" }}>{selected}</h3>
             <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-              <StrategyBadge strategy={detail.strategy} />
+              {strategyBadge({ strategy: detail.strategy })}
               <span style={{ fontSize: "12px", color: "#888" }}>
                 Effort: <strong style={{ color: "#ccc" }}>{detail.effort}</strong>
               </span>
