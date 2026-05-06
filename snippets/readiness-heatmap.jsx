@@ -1,6 +1,4 @@
-import { useState } from "react";
-
-export default function ReadinessHeatmap() {
+export const ReadinessHeatmap = () => {
   const [selected, setSelected] = useState(null);
 
   const COMPONENTS = [
@@ -423,4 +421,4 @@ export default function ReadinessHeatmap() {
       </div>
     </div>
   );
-}
+};
