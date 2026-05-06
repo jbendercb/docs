@@ -1,6 +1,4 @@
-import { useState } from "react";
-
-export default function VerificationDashboard() {
+export const VerificationDashboard = () => {
   const STATUS_COLORS = {
     Equivalent: { bg: "#22c55e", label: "Equivalent" },
     Improved: { bg: "#3b82f6", label: "Improved" },
@@ -283,4 +281,4 @@ export default function VerificationDashboard() {
       </div>
     </div>
   );
-}
+};
