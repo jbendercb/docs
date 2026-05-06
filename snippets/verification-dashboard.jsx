@@ -1,64 +1,64 @@
 import { useState } from "react";
 
-const STATUS_COLORS = {
-  Equivalent: { bg: "#22c55e", label: "Equivalent" },
-  Improved: { bg: "#3b82f6", label: "Improved" },
-  Different: { bg: "#f59e0b", label: "Different / Needs Review" },
-  Missing: { bg: "#ef4444", label: "Missing" },
-  NotVerified: { bg: "#6b7280", label: "Not Yet Verified" },
-};
-
-// Sample verification data — practitioners would replace with their actual results
-const RULES = [
-  // Validation Rules
-  { id: "BR-001", desc: "Order total must be positive", area: "Validation", status: "Equivalent" },
-  { id: "BR-002", desc: "Shipping address required for physical goods", area: "Validation", status: "Equivalent" },
-  { id: "BR-003", desc: "Email format validation on registration", area: "Validation", status: "Equivalent" },
-  { id: "BR-004", desc: "SKU must exist in catalog before adding to cart", area: "Validation", status: "Equivalent" },
-  { id: "BR-005", desc: "Quantity must be ≥ 1 and ≤ 999", area: "Validation", status: "Improved", notes: "Now also validates decimal quantities are rejected" },
-  { id: "BR-006", desc: "Payment method must be active and non-expired", area: "Validation", status: "Equivalent" },
-  { id: "BR-007", desc: "Coupon code validation and single-use enforcement", area: "Validation", status: "Equivalent" },
-  { id: "BR-008", desc: "Inventory check before order confirmation", area: "Validation", status: "Different", notes: "Legacy used stale cache; new version checks real-time — behavior differs under high concurrency" },
-  { id: "BR-009", desc: "International address format validation", area: "Validation", status: "Equivalent" },
-  { id: "BR-010", desc: "Minimum order value for free shipping", area: "Validation", status: "Equivalent" },
-  // Calculation Rules
-  { id: "BR-011", desc: "Tax calculation based on shipping destination", area: "Calculation", status: "Equivalent" },
-  { id: "BR-012", desc: "Discount stacking rules (max 2 discounts)", area: "Calculation", status: "Equivalent" },
-  { id: "BR-013", desc: "Shipping cost by weight and zone", area: "Calculation", status: "Equivalent" },
-  { id: "BR-014", desc: "Loyalty points accrual (1 point per $1 spent)", area: "Calculation", status: "Improved", notes: "Now handles partial refund point deductions correctly" },
-  { id: "BR-015", desc: "Currency conversion for international orders", area: "Calculation", status: "Equivalent" },
-  { id: "BR-016", desc: "Pro-rated refund calculation", area: "Calculation", status: "Equivalent" },
-  { id: "BR-017", desc: "Volume discount tiers", area: "Calculation", status: "Equivalent" },
-  { id: "BR-018", desc: "Sales tax exemption for resellers", area: "Calculation", status: "Different", notes: "Rounding behavior changed from HALF_UP to HALF_EVEN — sub-cent difference in edge cases" },
-  { id: "BR-019", desc: "Gift card balance deduction", area: "Calculation", status: "Equivalent" },
-  { id: "BR-020", desc: "Estimated delivery date calculation", area: "Calculation", status: "Equivalent" },
-  // Authorization Rules
-  { id: "BR-021", desc: "Only admins can issue refunds > $500", area: "Authorization", status: "Equivalent" },
-  { id: "BR-022", desc: "Customer can only view own order history", area: "Authorization", status: "Equivalent" },
-  { id: "BR-023", desc: "Rate limiting on failed login attempts", area: "Authorization", status: "Improved", notes: "Improved: now uses exponential backoff instead of fixed lockout" },
-  { id: "BR-024", desc: "API key scope enforcement", area: "Authorization", status: "Equivalent" },
-  { id: "BR-025", desc: "Role-based access to reporting dashboard", area: "Authorization", status: "Equivalent" },
-  { id: "BR-026", desc: "Session timeout after 30 min inactivity", area: "Authorization", status: "Equivalent" },
-  { id: "BR-027", desc: "Cross-tenant data isolation", area: "Authorization", status: "Equivalent" },
-  { id: "BR-028", desc: "PII masking in support agent view", area: "Authorization", status: "Missing", notes: "Not yet implemented in modernized version — needs PII detection service" },
-  // Workflow Rules
-  { id: "BR-029", desc: "Order status transitions (placed→confirmed→shipped→delivered)", area: "Workflow", status: "Equivalent" },
-  { id: "BR-030", desc: "Auto-cancel unconfirmed orders after 24h", area: "Workflow", status: "Equivalent" },
-  { id: "BR-031", desc: "Fulfillment routing by warehouse proximity", area: "Workflow", status: "Equivalent" },
-  { id: "BR-032", desc: "Return window enforcement (30 days)", area: "Workflow", status: "Equivalent" },
-  { id: "BR-033", desc: "Backorder notification to customer", area: "Workflow", status: "Equivalent" },
-  { id: "BR-034", desc: "Fraud detection hold on orders > $2000", area: "Workflow", status: "Equivalent" },
-  { id: "BR-035", desc: "Supplier PO auto-generation on low stock", area: "Workflow", status: "Equivalent" },
-  { id: "BR-036", desc: "Batch reconciliation nightly run", area: "Workflow", status: "NotVerified", notes: "Awaiting batch job infrastructure setup" },
-  { id: "BR-037", desc: "Webhook notification on order status change", area: "Workflow", status: "Equivalent" },
-  { id: "BR-038", desc: "Abandoned cart email after 2h", area: "Workflow", status: "Equivalent" },
-  { id: "BR-039", desc: "Inventory sync across warehouses", area: "Workflow", status: "NotVerified", notes: "Awaiting multi-warehouse test environment" },
-  { id: "BR-040", desc: "Monthly billing cycle for subscription orders", area: "Workflow", status: "Equivalent" },
-];
-
-const AREAS = [...new Set(RULES.map((r) => r.area))];
-
 export default function VerificationDashboard() {
+  const STATUS_COLORS = {
+    Equivalent: { bg: "#22c55e", label: "Equivalent" },
+    Improved: { bg: "#3b82f6", label: "Improved" },
+    Different: { bg: "#f59e0b", label: "Different / Needs Review" },
+    Missing: { bg: "#ef4444", label: "Missing" },
+    NotVerified: { bg: "#6b7280", label: "Not Yet Verified" },
+  };
+
+  // Sample verification data — practitioners would replace with their actual results
+  const RULES = [
+    // Validation Rules
+    { id: "BR-001", desc: "Order total must be positive", area: "Validation", status: "Equivalent" },
+    { id: "BR-002", desc: "Shipping address required for physical goods", area: "Validation", status: "Equivalent" },
+    { id: "BR-003", desc: "Email format validation on registration", area: "Validation", status: "Equivalent" },
+    { id: "BR-004", desc: "SKU must exist in catalog before adding to cart", area: "Validation", status: "Equivalent" },
+    { id: "BR-005", desc: "Quantity must be ≥ 1 and ≤ 999", area: "Validation", status: "Improved", notes: "Now also validates decimal quantities are rejected" },
+    { id: "BR-006", desc: "Payment method must be active and non-expired", area: "Validation", status: "Equivalent" },
+    { id: "BR-007", desc: "Coupon code validation and single-use enforcement", area: "Validation", status: "Equivalent" },
+    { id: "BR-008", desc: "Inventory check before order confirmation", area: "Validation", status: "Different", notes: "Legacy used stale cache; new version checks real-time — behavior differs under high concurrency" },
+    { id: "BR-009", desc: "International address format validation", area: "Validation", status: "Equivalent" },
+    { id: "BR-010", desc: "Minimum order value for free shipping", area: "Validation", status: "Equivalent" },
+    // Calculation Rules
+    { id: "BR-011", desc: "Tax calculation based on shipping destination", area: "Calculation", status: "Equivalent" },
+    { id: "BR-012", desc: "Discount stacking rules (max 2 discounts)", area: "Calculation", status: "Equivalent" },
+    { id: "BR-013", desc: "Shipping cost by weight and zone", area: "Calculation", status: "Equivalent" },
+    { id: "BR-014", desc: "Loyalty points accrual (1 point per $1 spent)", area: "Calculation", status: "Improved", notes: "Now handles partial refund point deductions correctly" },
+    { id: "BR-015", desc: "Currency conversion for international orders", area: "Calculation", status: "Equivalent" },
+    { id: "BR-016", desc: "Pro-rated refund calculation", area: "Calculation", status: "Equivalent" },
+    { id: "BR-017", desc: "Volume discount tiers", area: "Calculation", status: "Equivalent" },
+    { id: "BR-018", desc: "Sales tax exemption for resellers", area: "Calculation", status: "Different", notes: "Rounding behavior changed from HALF_UP to HALF_EVEN — sub-cent difference in edge cases" },
+    { id: "BR-019", desc: "Gift card balance deduction", area: "Calculation", status: "Equivalent" },
+    { id: "BR-020", desc: "Estimated delivery date calculation", area: "Calculation", status: "Equivalent" },
+    // Authorization Rules
+    { id: "BR-021", desc: "Only admins can issue refunds > $500", area: "Authorization", status: "Equivalent" },
+    { id: "BR-022", desc: "Customer can only view own order history", area: "Authorization", status: "Equivalent" },
+    { id: "BR-023", desc: "Rate limiting on failed login attempts", area: "Authorization", status: "Improved", notes: "Improved: now uses exponential backoff instead of fixed lockout" },
+    { id: "BR-024", desc: "API key scope enforcement", area: "Authorization", status: "Equivalent" },
+    { id: "BR-025", desc: "Role-based access to reporting dashboard", area: "Authorization", status: "Equivalent" },
+    { id: "BR-026", desc: "Session timeout after 30 min inactivity", area: "Authorization", status: "Equivalent" },
+    { id: "BR-027", desc: "Cross-tenant data isolation", area: "Authorization", status: "Equivalent" },
+    { id: "BR-028", desc: "PII masking in support agent view", area: "Authorization", status: "Missing", notes: "Not yet implemented in modernized version — needs PII detection service" },
+    // Workflow Rules
+    { id: "BR-029", desc: "Order status transitions (placed→confirmed→shipped→delivered)", area: "Workflow", status: "Equivalent" },
+    { id: "BR-030", desc: "Auto-cancel unconfirmed orders after 24h", area: "Workflow", status: "Equivalent" },
+    { id: "BR-031", desc: "Fulfillment routing by warehouse proximity", area: "Workflow", status: "Equivalent" },
+    { id: "BR-032", desc: "Return window enforcement (30 days)", area: "Workflow", status: "Equivalent" },
+    { id: "BR-033", desc: "Backorder notification to customer", area: "Workflow", status: "Equivalent" },
+    { id: "BR-034", desc: "Fraud detection hold on orders > $2000", area: "Workflow", status: "Equivalent" },
+    { id: "BR-035", desc: "Supplier PO auto-generation on low stock", area: "Workflow", status: "Equivalent" },
+    { id: "BR-036", desc: "Batch reconciliation nightly run", area: "Workflow", status: "NotVerified", notes: "Awaiting batch job infrastructure setup" },
+    { id: "BR-037", desc: "Webhook notification on order status change", area: "Workflow", status: "Equivalent" },
+    { id: "BR-038", desc: "Abandoned cart email after 2h", area: "Workflow", status: "Equivalent" },
+    { id: "BR-039", desc: "Inventory sync across warehouses", area: "Workflow", status: "NotVerified", notes: "Awaiting multi-warehouse test environment" },
+    { id: "BR-040", desc: "Monthly billing cycle for subscription orders", area: "Workflow", status: "Equivalent" },
+  ];
+
+  const AREAS = [...new Set(RULES.map((r) => r.area))];
+
   const [hover, setHover] = useState(null);
 
   const counts = {};
