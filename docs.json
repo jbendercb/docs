@@ -27,6 +27,7 @@
           {
             "group": "About CoreStory",
             "pages": [
+              "index",
               "about/what-is-corestory",
               "about/how-does-corestory-work",
               "about/who-is-corestory-for"
