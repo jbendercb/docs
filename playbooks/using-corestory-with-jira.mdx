@@ -309,8 +309,7 @@ estimated complexity (S/M/L/XL), key risk, and recommended sprint allocation.
 **1. Connect CoreStory MCP server:**
 
 ```bash
-claude mcp add --transport http corestory https://c2s.corestory.ai/mcp \
-  --header "Authorization: Bearer mcp_YOUR_TOKEN_HERE"
+claude mcp add --transport http corestory https://app.corestory.ai/mcp/your-org-slug-123456789
 ```
 
 **2. Connect Jira — Option A (Rovo, recommended for Jira Cloud):**
@@ -362,10 +361,7 @@ VS Code supports remote MCP servers. Add the Rovo endpoint:
 {
   "mcp.servers": {
     "corestory": {
-      "url": "https://c2s.corestory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
-      }
+      "url": "https://app.corestory.ai/mcp/your-org-slug-123456789"
     },
     "atlassian": {
       "url": "https://mcp.atlassian.com/v1/sse",
@@ -381,10 +377,7 @@ VS Code supports remote MCP servers. Add the Rovo endpoint:
 {
   "mcp.servers": {
     "corestory": {
-      "url": "https://c2s.corestory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
-      }
+      "url": "https://app.corestory.ai/mcp/your-org-slug-123456789"
     },
     "jira": {
       "command": "python",
@@ -457,7 +450,7 @@ Requires `pip install mcp-atlassian` first.
 
 **1. Navigate to** Settings → MCP Marketplace → "Add Your Own"
 
-**2. Add CoreStory MCP server** with Transport Type `HTTP` and Server URL `https://c2s.corestory.ai/mcp`. Add your CoreStory token as a secret and configure the `Authorization: Bearer $API_TOKEN` header.
+**2. Add CoreStory MCP server** with Transport Type `HTTP` and your MCP URL from **Settings → IDE Integrations** as the Server URL. If Devin can complete the OAuth browser sign-in, no header is needed. If it cannot, add a [legacy token](/getting-started/mcp-server-setup#legacy-mcp-tokens-deprecated) as a secret and configure the `Authorization: Bearer $API_TOKEN` header.
 
 **3. Add Jira — Option A (Rovo):** Add the Rovo endpoint as a remote MCP server: `https://mcp.atlassian.com/v1/sse`. Devin supports remote HTTP/SSE transport natively.
 
