@@ -36,23 +36,23 @@ Together, these roles let the agent operate like a senior engineer who's been on
 
 ## Quick Start
 
-### Step 1: Get Your MCP Token
+### Step 1: Copy Your MCP URL
 
 1. Go to **Settings** in the [CoreStory Dashboard](https://app.corestory.ai/settings)
-2. Scroll to **IDE Integrations** and click **Configure** under "MCP Connection"
-3. Enter a token name (e.g., "MacBook Pro", "Work Desktop") and click **Generate MCP Token**
-4. **Copy the token immediately** — it won't be shown again
+2. Under **Organization Related**, open **IDE Integrations**
+3. Click **Copy** next to **Your MCP URL**
+
+The URL is scoped to one organization and looks like this:
+
+```
+https://app.corestory.ai/mcp/{your-org-slug}-{org-id}
+```
 
 ### Step 2: Configure Your Agent
 
-Add the CoreStory MCP server to your agent's configuration. The connection uses a single HTTPS endpoint:
+Add that URL to your agent as an HTTP (streamable) remote MCP server, with **no authorization header**. The first time the agent connects, it opens your browser to sign in to CoreStory — there is no token to copy or store.
 
-```
-URL: https://c2s.corestory.ai/mcp
-Authorization: Bearer mcp_YOUR_TOKEN_HERE
-```
-
-See the Supported Agents section below for agent-specific configuration instructions.
+For per-client instructions, see the [MCP Server Setup guide](/getting-started/mcp-server-setup). The Supported Agents section below covers what is specific to *agentic* workflows.
 
 ### Step 3: Verify the Connection
 
@@ -82,14 +82,20 @@ Once connected, these tools are available to your AI assistant:
 
 | Tool | Description |
 |------|-------------|
-| `list_projects` | List all projects in your organization |
-| `get_project_prd` | Retrieve Product Requirements Document |
-| `get_project_techspec` | Retrieve Technical Specification |
-| `list_conversations` | List project conversations |
-| `get_conversation` | Get conversation details and history |
-| `create_conversation` | Create new conversation |
-| `rename_conversation` | Rename existing conversation |
-| `send_message` | Send message to conversation (streaming response) |
+| `list_projects` | List all projects in your organization with their ingestion status |
+| `get_project_prd` | Retrieve a project's Product Requirements Document |
+| `get_project_techspec` | Retrieve a project's Technical Specification |
+| `list_conversations` | List all conversations for a project |
+| `get_conversation` | Get a conversation's details and message history |
+| `create_conversation` | Create a new conversation in a project |
+| `rename_conversation` | Rename an existing conversation |
+| `send_message` | Send a message to a conversation and get an AI response |
+| `refine_document_definition` | Build and validate a custom document definition |
+| `generate_document` | Start generation of a custom document |
+| `get_document_generation_result` | Poll a document generation run for results |
+| `semantic_search` | Semantic-search a project's code index and return ranked chunks |
+| `describe_index` | List the file paths and filterable metadata keys in a project's index |
+| `filter_chunks` | Fetch index chunks by metadata filter alone, with no semantic ranking |
 
 ### The Core Interaction Pattern
 
@@ -133,215 +139,28 @@ These workflows don't have dedicated playbooks but follow the same Expert → Na
 
 ## Supported Agents & Configuration
 
-CoreStory works with any MCP-capable AI coding agent. Below are configuration instructions for the most common agents.
+CoreStory works with any MCP-capable AI coding agent. The connection itself is the same everywhere — point the agent at your MCP URL with no authorization header and complete the browser sign-in.
 
-### Claude Code
+<Note>
+Per-client connection steps live in the [MCP Server Setup guide](/getting-started/mcp-server-setup) so there is one place to keep current. This section covers the part that differs per agent: **where each one expects workflow files to live.**
+</Note>
 
-Claude Code connects to MCP servers via CLI or configuration file.
-
-**Option A: CLI (recommended)**
-
-```bash
-claude mcp add corestory --transport http --scope user \
-  --header "Authorization: Bearer mcp_YOUR_TOKEN_HERE" \
-  -- https://c2s.corestory.ai/mcp
-```
-
-Scope options: `user` (available in all projects), `local` (current project only), or `project` (shared via `.mcp.json`).
-
-**Option B: Configuration file**
-
-Add to `~/.claude.json` (user scope) or `.mcp.json` (project scope):
-
-```json
-{
-  "mcpServers": {
-    "corestory": {
-      "type": "http",
-      "url": "https://c2s.corestory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
-      }
-    }
-  }
-}
-```
-
-**Verify:** Run `claude mcp list` to confirm the server appears, then ask "List my CoreStory projects."
-
-**Skill files for workflows:** Each workflow playbook includes a ready-to-use SKILL.md that encodes the full workflow as plain markdown. Install location depends on your harness — Claude Code auto-loads skills from `.claude/skills/<name>/SKILL.md`; other harnesses use different conventions:
+Each workflow playbook ships a ready-to-use SKILL.md. Install it where your harness looks for it:
 
 <AgentInstallConventions />
 
----
+### Verifying the Connection
 
-### GitHub Copilot (VS Code)
+| Agent | How to verify |
+|-------|---------------|
+| **Claude Code** | Run `/mcp` to confirm `corestory` is connected and authenticated |
+| **GitHub Copilot (VS Code)** | Open Copilot Chat → **Agent** mode → tools icon → confirm CoreStory tools appear |
+| **Cursor** | Open the AI pane → **Agent** mode → confirm CoreStory tools appear in the tools list |
+| **Factory.ai / Devin / Windsurf** | Ask the agent: "List my CoreStory projects" |
 
-VS Code supports MCP servers through the `.vscode/mcp.json` file or user settings.
-
-**Option A: Workspace configuration (shared with team)**
-
-Create `.vscode/mcp.json` in your project root:
-
-```json
-{
-  "servers": {
-    "corestory": {
-      "type": "http",
-      "url": "https://c2s.corestory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer ${input:corestoryToken}"
-      }
-    }
-  },
-  "inputs": [
-    {
-      "id": "corestoryToken",
-      "type": "promptString",
-      "description": "CoreStory MCP Token",
-      "password": true
-    }
-  ]
-}
-```
-
-Using input variables keeps tokens out of source control. Each team member enters their own token when the server starts.
-
-**Option B: User settings (personal)**
-
-Open VS Code Settings JSON (`Cmd/Ctrl + ,` → "Open Settings (JSON)") and add:
-
-```json
-{
-  "mcp": {
-    "servers": {
-      "corestory": {
-        "type": "http",
-        "url": "https://c2s.corestory.ai/mcp",
-        "headers": {
-          "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
-        }
-      }
-    }
-  }
-}
-```
-
-**Verify:** Open Copilot Chat, switch to **Agent** mode, click the tools icon, and confirm CoreStory tools appear.
-
-**Agent-specific configuration files:** Copilot uses custom instructions (`.github/copilot-instructions.md`) and prompt files (`.github/prompts/`). Each workflow playbook includes ready-to-use instruction and prompt files.
-
----
-
-### Cursor
-
-Cursor supports MCP servers through `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global).
-
-**Option A: Project configuration**
-
-Create `.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "corestory": {
-      "url": "https://c2s.corestory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
-      }
-    }
-  }
-}
-```
-
-**Option B: Via Cursor settings UI**
-
-1. Open Settings (`Cmd/Ctrl + Shift + P` → search "MCP")
-2. Click **Tools & Integrations** → **New MCP Server** under MCP Tools
-3. Add the configuration above
-
-**Verify:** Open the AI pane, switch to **Agent** mode, and confirm CoreStory tools appear in the tools list.
-
-**Agent-specific configuration files:** Cursor uses project rules stored in `.cursor/rules/`. Each workflow playbook includes a ready-to-use rule file.
-
----
-
-### Factory.ai
-
-Factory.ai connects to MCP servers through droid configuration.
-
-**Configuration:**
-
-Add CoreStory to your droid's MCP servers in the Factory.ai dashboard or `.factory/config.json`:
-
-```json
-{
-  "mcpServers": {
-    "corestory": {
-      "url": "https://c2s.corestory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
-      }
-    }
-  }
-}
-```
-
-**Verify:** Ask the droid to "List my CoreStory projects."
-
-**Agent-specific configuration files:** Factory.ai uses custom droid definitions in `.factory/droids/`. Each workflow playbook includes a ready-to-use droid file.
-
----
-
-### Devin
-
-Devin supports MCP servers through its MCP Marketplace.
-
-**Configuration:**
-
-1. Open the Devin MCP Marketplace
-2. Search for CoreStory or add a custom MCP server
-3. Enter the URL: `https://c2s.corestory.ai/mcp`
-4. Add the Authorization header with your token
-
-**Verify:** Ask Devin to "List my CoreStory projects."
-
----
-
-### Windsurf
-
-Windsurf supports MCP servers through its configuration file.
-
-**Configuration:**
-
-Add to your Windsurf MCP configuration (typically `~/.windsurf/mcp.json` or through the settings UI):
-
-```json
-{
-  "mcpServers": {
-    "corestory": {
-      "url": "https://c2s.corestory.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer mcp_YOUR_TOKEN_HERE"
-      }
-    }
-  }
-}
-```
-
-**Verify:** Ask "List my CoreStory projects" in the AI chat.
-
----
-
-### Other MCP-Capable Agents
-
-Any agent that supports MCP's HTTP transport can connect to CoreStory. The configuration pattern is the same:
-
-- **Transport:** HTTP (streamable)
-- **URL:** `https://c2s.corestory.ai/mcp`
-- **Authentication:** Bearer token in the `Authorization` header
-
-Refer to your agent's documentation for the specific configuration syntax.
+<Warning>
+Most clients list a server's tools *before* sign-in completes, because `tools/list` does not require authentication. Seeing CoreStory tools is not proof you are authenticated — calling one is. If tools appear but every call fails with an authorization error, finish the browser sign-in.
+</Warning>
 
 ---
 
@@ -379,9 +198,9 @@ Always query for *understanding* before querying for *location*. The Expert phas
 
 ### Security
 
-- **Never commit tokens to version control.** Use environment variables, input prompts (VS Code), or secure credential storage.
-- **Use project-scoped tokens** when sharing configuration with a team, and let each team member enter their own token.
-- **Rotate tokens regularly** and revoke compromised tokens immediately in CoreStory Settings.
+- **Prefer the browser sign-in over tokens.** OAuth stores a short-lived credential in your agent's own credential store, so nothing sensitive lands in the config files you commit.
+- **Share the MCP URL, not credentials.** A project-scoped config file can safely contain the URL — each teammate signs in as themselves and sees only what their CoreStory account allows.
+- **Revoke leftover legacy tokens** in **Settings → IDE Integrations → Legacy tokens** once you have migrated.
 - **Review generated content** for sensitive data before committing to public repositories.
 
 ---
@@ -395,10 +214,11 @@ Always query for *understanding* before querying for *location*. The Expert phas
 **Solutions:**
 
 1. Verify the MCP server appears in your agent's server list (e.g., `claude mcp list` for Claude Code, or the tools panel in VS Code/Cursor)
-2. Check that the token is correct and hasn't expired — try generating a new one
-3. Verify the URL is exactly `https://c2s.corestory.ai/mcp` (no trailing slash)
-4. Restart your agent after configuration changes
-5. Ask the agent to list available MCP servers and tools as a diagnostic
+2. Confirm you completed the browser sign-in — in Claude Code, run `/mcp`, select `corestory`, and choose **Authenticate**
+3. Verify the URL matches the one in **Settings → IDE Integrations** exactly, including the org slug
+4. Check that no stale `Authorization` header is left over from the deprecated token flow — it suppresses the browser sign-in
+5. Restart your agent after configuration changes
+6. Ask the agent to list available MCP servers and tools as a diagnostic
 
 ### Project Not Found or Ingestion Incomplete
 
