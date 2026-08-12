@@ -644,7 +644,14 @@ Entry 2 is the shape that matters. The value of this ledger is not that it recor
 
 <AgentInstallConventions />
 
-The accordions below walk through end-to-end setup for the four most common harnesses. If you're on a different harness, copy the SKILL.md content from any accordion and install it per the conventions above.
+This variant installs as **two** skills, mirroring the base framework's architecture:
+
+- **`vibe-modernization`** — a router and sequencer. It holds no execution detail. It decides which step is active, delegates to that step's dedicated skill, and imposes this variant's disciplines on whatever it delegates to. Seven of the eight steps run on skills that already exist — the ones from the playbooks in [Which Playbook Runs Each Step](#which-playbook-runs-each-step).
+- **`vibe-conformance-audit`** — the one step with no existing skill anywhere. It is the method's original contribution, and it carries the session-independence rule that a router cannot enforce on its own behalf.
+
+The router is deliberately thin. A single skill containing all six steps would hand the agent the whole arc at once, which is precisely the "collapse the arc into one run" failure the method warns against — the artifacts are only reviewable if they arrive one at a time.
+
+The accordions below walk through end-to-end setup for the four most common harnesses. If you're on a different harness, copy the skill content from any accordion and install it per the conventions above.
 
 <AccordionGroup>
 
@@ -654,173 +661,265 @@ The accordions below walk through end-to-end setup for the four most common harn
 
 1. **Configure the CoreStory MCP server** in your Claude Code settings (see [CoreStory MCP Server Setup Guide](/getting-started/mcp-server-setup)). Both the legacy and target projects must be ingested.
 
-2. **Add the skill file:**
+2. **Install the step skills you don't already have.** The router delegates to the skills from [Codebase Assessment](/playbooks/modernization/codebase-assessment), [Business Rules Extraction](/playbooks/business-rules-extraction), [Decomposition & Sequencing](/playbooks/modernization/decomposition-sequencing), [Spec-Driven Test Generation](/playbooks/spec-driven-test-generation), [Feature Gap Analysis](/playbooks/feature-gap-analysis), [Feature Implementation](/playbooks/feature-implementation), [Behavioral Verification](/playbooks/modernization/behavioral-verification), and [E2E Test Generation](/playbooks/test-generation/e2e-test-generation). Install each from its own page.
+
+3. **Add this variant's two skills:**
 
 ```bash
 mkdir -p .claude/skills/vibe-modernization
+mkdir -p .claude/skills/vibe-conformance-audit
 ```
 
-Create `.claude/skills/vibe-modernization/SKILL.md` with the content from the skill file below.
+Create `.claude/skills/vibe-modernization/SKILL.md` and `.claude/skills/vibe-conformance-audit/SKILL.md` with the content below.
 
-3. **Commit to version control:**
+4. **Commit to version control:**
 
 ```bash
 git add .claude/skills/
-git commit -m "Add CoreStory vibe modernization skill"
+git commit -m "Add CoreStory vibe modernization skills"
 ```
 
 #### Usage
 
 ```
-Recover the target architecture for [TargetName]
-Extract the behavioral contract for [LegacyModule]
+Start the vibe modernization arc for [SystemName]
+Where are we in the arc?
 Gap-analyze [TICKET-ID] across both projects
-Implement [TICKET-ID] test-first into the target
 Run the conformance audit for [scope]
 ```
 
 #### Tips
 
-- Run each step in its own session. This skill is deliberately structured so that a session ends at a gate.
-- Run Step 6 in a **different session** from Step 5 — session independence is the mechanism that makes the audit meaningful, not a formality.
-- Keep the SKILL.md under 500 lines for reliable loading.
+- The router will stop at the end of every step. That is the design, not a stall — approve and start a new session for the next one.
+- Run Step 6 in a **different session** from Step 5. The router refuses to verify a build performed in its own session; do not talk it out of that.
+- Keep each SKILL.md under 500 lines for reliable loading.
 
-#### Skill File
+#### Router Skill File
 
 Save as `.claude/skills/vibe-modernization/SKILL.md`:
 
 ````markdown
 ---
 name: CoreStory Vibe Modernization
-description: Agent-led, human-gated modernization using CoreStory code intelligence across a legacy and a target project. Every claim is source-anchored and verified twice. Activates on forward-engineering legacy behavior into an existing target, dual-project gap analysis, conformance audit, or agent-led modernization requests.
+description: Orchestrates agent-led, human-gated modernization across a legacy and a target project. Routes to the dedicated skill for each step, enforces one step per session, and imposes source-grounding and verification-independence disciplines on every delegated skill. Activates on forward-engineering legacy behavior into an existing target, dual-project gap analysis, conformance audit, or behavioral-parity requests.
 ---
 
-# CoreStory Vibe Modernization
+# CoreStory Vibe Modernization — Variant Orchestrator
 
-When this skill activates, run the six-step arc. The agent drives; humans hold three gates.
+**This skill is a router and sequencer. It does NOT contain execution instructions for any step.** Determine which step the user needs, activate that step's dedicated skill, and impose the disciplines below on it.
 
-## Activation Triggers
+This router differs from the base modernization orchestrator in one way: it does not only sequence, it **constrains**. The disciplines below apply to every skill you delegate to and override that skill's defaults where they conflict.
 
-Activate when the user requests:
-- Forward-engineering legacy behavior into an existing target system
-- Dual-project (legacy + target) gap analysis before implementation
-- A conformance audit or anti-circular verification pass
-- Agent-led modernization where behavioral parity must be proven
-- Any request containing "vibe modernization", "converge into the target",
-  "conformance audit", "prove equivalence", "forward-engineer"
+## Critical Rules
+
+1. **Execute exactly one step per session.** Never run multiple steps in one pass. The arc's artifacts are only reviewable if they arrive one at a time.
+2. **Always use the dedicated skill.** The summaries below are for orientation only — they do not contain enough detail to execute a step correctly.
+3. **After completing a step, STOP.** Present the deliverable and wait for explicit approval before offering to advance.
+4. **Never verify a build you performed.** If asked to run Step 6 in the session that ran Step 5, decline and ask for a fresh session. Independence is the mechanism, not a formality.
+
+## Always-On Disciplines
+
+Apply these to every delegated skill, whatever that skill's own defaults are:
+
+- **Source decides truth.** Code intelligence accelerates discovery; it does not settle facts. No claim enters a deliverable without a confirmed `file:line` anchor. Where intelligence and source disagree, source wins.
+- **Record corrections.** Every claim that moved between the intelligence layer and source gets a Context Inventory entry with both versions. The corrections are the audit trail's most valuable rows.
+- **Target only.** Never modify the legacy system, in any step.
+- **Escalate conflicts.** Where the legacy requires something that contradicts a target convention, stop and surface it. Never resolve a legacy-versus-target contradiction unilaterally.
 
 ## Prerequisites
 
 - Two CoreStory projects ingested: legacy and target
-- Direct read access to legacy source (not just the intelligence layer)
-- A domain expert available for spec validation
+- Direct read access to legacy source, not just the intelligence layer
+- A domain expert available for the spec-validation gate
 
 **If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that both repositories have been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repos at [app.corestory.ai](https://app.corestory.ai).**
 
-## Non-negotiable rules
+## Step Detection
 
-1. **Source decides truth.** Intelligence accelerates discovery. No claim enters a
-   deliverable without a confirmed `file:line` anchor. Where intelligence and source
-   disagree, source wins — and the correction is recorded.
-2. **One session, one artifact.** Each step ends at its gate. Do not collapse the arc.
-3. **Target only.** Never modify the legacy system.
-4. **Verification is independent.** Step 6 runs in a session separate from Step 5.
-   If you wrote the code in this session, say so and stop.
+Before doing anything, determine where the user is:
+
+1. **Ask the user** which step they want, OR
+2. **Check CoreStory conversations** (`list_conversations`) for completed markers:
+   - "RESOLVED - [Recovery]..." → Step 1 complete
+   - "RESOLVED - [Contract]..." → Step 2 complete
+   - "RESOLVED - [Backlog]..." → Step 3 complete
+   - Active "[Gap]..." → Step 4 in progress
+   - Active "[Build]..." → Step 5 in progress
+   - Active "[Verify]..." → Step 6 in progress
+3. **If no prior work exists**, start at Step 1.
+
+Once you know the step, read and follow its dedicated skill completely.
 
 ## Step 1: Recover Both Architectures
-- Confirm both projects ingested (`list_projects`)
-- Recover the target's service design; explicitly catalogue its idioms
-- Identify where legacy behavior will land
-- Assess the legacy for scope, non-code artifacts, dependency edges
+Dedicated skill: `codebase-assessment` — run against **both** projects.
+Overlay: on the target, produce an explicit catalogue of its idioms (error handling, logging, configuration, transaction boundaries, naming, test structure) with the files that establish each. Convergence in Step 5 depends on this artifact existing.
+⛔ GATE: shared understanding of both architectures before any code moves.
 
-## Step 2: Extract the Legacy Behavioral Contract
-- Extract rules with a mandatory source anchor each
-- Open every anchor and confirm; correct where source disagrees
-- Classify migration intent: PRESERVE / MODIFY / DISCARD
-- **Gate 1: domain expert validates the spec**
+## Step 2: Legacy Behavioral Contract
+Dedicated skill: `business-rules-extraction`.
+Overlay: every rule carries a source anchor, and every anchor is opened and confirmed before the spec is considered done. Classify migration intent PRESERVE / MODIFY / DISCARD.
+⛔ GATE 1: a domain expert validates the spec. Bring them the ambiguous rules and everything classified MODIFY or DISCARD — not a blanket approval request.
 
-## Step 3: Author the Backlog and Test Strategy
-- Tickets with dual provenance (conversation reference + source anchor)
-- Business-facing user-story layer above the tickets
-- Test strategy set before implementation starts
+## Step 3: Backlog and Test Strategy
+Dedicated skills: `decomposition-sequencing`, then `spec-driven-test-generation`.
+Overlay: tickets carry dual provenance (conversation reference AND source anchor) plus a decision log. Add the business-facing user-story layer above the tickets.
+⛔ GATE: spec review of the user-story layer before tickets go to execution.
 
-## Step 4: Gap-Analyze Before Writing Code
-- Query target: what exists, what is reusable, what would break
-- Query legacy: rules in scope, edge cases, non-code artifacts
-- Classify: EXISTS / EXTEND / NEW / CONFLICT
-- **Gate 2: human approves the plan before any code**
+## Step 4: Dual-Project Gap Analysis
+Dedicated skill: `feature-gap-analysis`, with this variant's overlay.
+Overlay: run it across **both** projects for a single ticket, before any code. Query the target for what already exists and what would break; query the legacy for rules in scope, edge cases, and participating non-code artifacts. Classify every requirement EXISTS / EXTEND / NEW / CONFLICT, and produce the implementation plan (files touched, tests to write first, order of work).
+⛔ GATE 2: a human approves the plan before any code is written. Present CONFLICT entries first — that is where the judgment lives.
 
-## Step 5: Converge Into the Target, Test-First
-- Write tests from acceptance criteria; confirm they fail for the right reason
-- Implement to green in the target's idiom; no new patterns unless approved
-- Self-review for seams and duplicated conventions
-- Emit Context Inventory entries as decisions are made
+## Step 5: Converge Into the Target
+Dedicated skill: `feature-implementation`.
+Overlay: tests first, confirmed failing for the right reason, before implementation. Match the target's idioms from Step 1's catalogue. No new dependency or pattern unless the gap report approved it. Stop at the ticket boundary. Run the seam check on the diff before presenting it.
+⛔ GATE: convergence review by someone who knows the target.
 
-## Step 6: Verify Twice
-- 6a: Behavioral Equivalence Report — Preserved / Modified / Discarded / Missing
-- 6b: Conformance audit — legacy source as the only oracle; do not read the BER;
-  do not treat passing tests as evidence.
-  Verdicts: DELIVERED / STUBBED / MISSING / DIVERGES / UNVERIFIABLE
-  Plus an orphan sweep for legacy behavior the spec never captured
-- 6c: One critical-flow end-to-end trace, archived
-- **Gate 3: sign off only when the BER and the audit agree**
+## Step 6a: Behavioral Equivalence
+Dedicated skill: `behavioral-verification` — **in a session separate from Step 5**.
+Produces the BER: each rule Preserved / Modified / Discarded / Missing.
+
+## Step 6b: Conformance Audit
+Dedicated skill: `vibe-conformance-audit` — this variant's own skill, also in a separate session.
+Produces the conformance ledger and the orphan sweep.
+
+## Step 6c: Critical-Flow Trace
+Dedicated skill: `e2e-test-generation` — one headline flow, archived as evidence.
+⛔ GATE 3: equivalence sign-off, only once the BER and the conformance audit agree.
 
 ## Error Handling
-- **Anchor cannot be confirmed:** the claim does not enter the deliverable. List it
-  as unresolved rather than softening the wording.
-- **Intelligence contradicts source:** source wins. Record the correction in the
-  Context Inventory with both versions.
-- **Gap analysis finds a CONFLICT:** stop and escalate. Do not resolve a
-  legacy-versus-target contradiction unilaterally.
-- **Tests pass before implementation:** the test is testing nothing. Rewrite it.
-- **BER and audit disagree:** do not average. Resolve against legacy source and
-  state which was wrong.
-- **Asked to verify code written in this session:** decline and ask for a separate
-  session. Independence is the mechanism.
+- **User wants to run several steps at once:** explain that each step produces one reviewable artifact and stops at its gate. Offer to start the earliest incomplete step.
+- **User unsure which step they're in:** check conversations for the markers above.
+- **Step skill not installed:** direct the user to that step's playbook page on [docs.corestory.ai](https://docs.corestory.ai/playbooks/modernization/vibe-modernization) for setup.
+- **Asked to verify code written in this session:** decline and ask for a separate session.
+- **Anchor cannot be confirmed:** the claim does not enter the deliverable. List it as unresolved rather than softening the wording.
+- **Legacy uses non-code artifacts:** explicitly ask about copybooks, job control, configuration, and lookup tables — they carry business logic that never appears in application code.
+````
+
+#### Conformance Audit Skill File
+
+Save as `.claude/skills/vibe-conformance-audit/SKILL.md`:
+
+````markdown
+---
+name: CoreStory Vibe Conformance Audit
+description: Independent, atom-grain audit of delivered modernization code against legacy source, using legacy source as the only oracle. Ignores the equivalence report and does not treat passing tests as evidence. Activates on conformance audit, anti-circular verification, "did we actually build everything", or stub-detection requests.
+---
+
+# CoreStory Vibe Conformance Audit
+
+The anti-circular check. The same agent that writes a feature also writes its tests and would write its equivalence report, so all three can share one blind spot and rubber-stamp a half-build. This audit breaks that circle.
+
+## Refuse-to-run condition
+
+**If this session wrote the code under audit, stop.** Say so plainly and ask the user for a fresh session, ideally driven by someone else. Session independence is the entire mechanism — an audit run in the build session verifies the same understanding that produced the build, and is worth nothing. Do not proceed because the user says it is fine.
+
+## Activation Triggers
+
+- "Run the conformance audit for [scope]"
+- "Did we actually build everything the spec requires?"
+- "Find stubs or half-implementations"
+- Any anti-circular verification or completeness-against-spec request
+
+## Oracle Rules
+
+1. **Legacy source is the only oracle.** Not the spec, not the tests, not the BER.
+2. **Do not read the Behavioral Equivalence Report** before forming your verdicts. If you have already seen it, say so — your independence is compromised and the user should know.
+3. **Passing tests are not evidence.** Tests written from the same understanding as the implementation agree with it by construction. They demonstrate internal consistency, not equivalence.
+4. **Read-only.** Never modify code during an audit.
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that both repositories have been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repos at [app.corestory.ai](https://app.corestory.ai).**
+
+## Step 1: Establish the atom list
+
+Decompose the in-scope spec into atoms — the smallest units of required behavior that can independently be present, absent, or wrong. A rule with three conditional branches is three atoms, not one. Grain is what makes this audit catch things a component-level check misses.
+
+## Step 2: Verdict each atom
+
+Assign exactly one verdict per atom, citing **both** the target `file:line` and the legacy `file:line`:
+
+- **DELIVERED** — implemented, and behavior matches the legacy
+- **STUBBED** — code exists at the location but does not do the work: returns a constant, logs and exits, empty branch, TODO, unconditional success
+- **MISSING** — no implementation exists
+- **DIVERGES** — implemented but behaves differently; state both behaviors explicitly
+- **UNVERIFIABLE** — cannot be settled from source alone; state what would be needed
+
+Never soften a verdict because the code looks reasonable. STUBBED is the verdict that justifies this audit's existence — it is what green tests and a confident equivalence report most reliably miss.
+
+## Step 3: Orphan sweep
+
+Now read in the opposite direction. Read the legacy source for the scope and list behaviors that appear there but nowhere in the behavioral spec. For each: the behavior, its source anchor, and whether the omission looks deliberate or accidental.
+
+This is the only check in the arc that can catch a rule nobody ever wrote down. Everything else verifies against the spec and is blind to the spec's own gaps.
+
+## Step 4: Reconcile with the BER
+
+Only now, read the Behavioral Equivalence Report. For every atom where the two disagree, resolve against legacy source and state which artifact is wrong.
+
+Do not average, do not split the difference, and do not defer to the BER because it was written first. A BER that says Preserved over an atom you verdicted STUBBED is not a scoring discrepancy — it is the finding.
+
+## Output
+
+The conformance ledger: the verdict table, the orphan sweep, and the disagreement section. Add a Context Inventory entry for every correction the audit forces.
+
+## Error Handling
+- **Scope too large to audit at atom grain:** narrow to one component and say what was left uncovered. Never silently sample — an audit that quietly covered half reads as an audit that covered everything.
+- **Spec atom has no corresponding legacy behavior:** that is a spec defect. Flag it; it is the inverse of an orphan.
+- **Cannot locate the legacy implementation:** UNVERIFIABLE, with a note on what was searched. Do not infer from the target's implementation what the legacy must have done — that is the circularity, running backwards.
 ````
 
 </Accordion>
 
 <Accordion title="GitHub Copilot">
 
-Add the following to `.github/copilot-instructions.md`:
+Create `.github/skills/vibe-modernization/SKILL.md`:
 
-```markdown
-## Vibe Modernization
-
-When forward-engineering legacy behavior into an existing target system:
-1. Work across two CoreStory projects — legacy and target — never one
-2. Source decides truth: no claim without a confirmed file:line anchor
-3. Where code intelligence and source disagree, source wins; record the correction
-4. Gap-analyze before writing code; classify EXISTS / EXTEND / NEW / CONFLICT
-5. Escalate every CONFLICT — never resolve legacy-vs-target contradictions alone
-6. Write tests first and confirm they fail for the right reason
-7. Modify the target only; match its existing idioms so there is no migration seam
-8. Verify twice: equivalence report, then an independent conformance audit against
-   legacy source that does not read the report and does not trust the tests
-9. Never verify code written in the same session that wrote it
+```yaml
+---
+name: vibe-modernization
+description: "Orchestrate agent-led, human-gated modernization across a legacy and a target project. Routes to the dedicated skill for each step and imposes source-grounding and verification-independence disciplines on every delegated skill."
+---
 ```
 
-**(Optional) Add a reusable prompt file.** Create `.github/prompts/vibe-modernization.prompt.md`:
+```markdown
+# Vibe Modernization Skill — Variant Orchestrator
 
-````markdown
----
-mode: agent
-description: Forward-engineer legacy behavior into an existing target using CoreStory code intelligence, with source-grounded validation and independent conformance audit
----
+This skill is a router. It determines which step is active and delegates to that step's dedicated skill. Do NOT execute step procedures from this file.
 
-Run the vibe modernization arc for the requested scope.
+**Rules:** One step per session. Always use the dedicated skill. STOP after each step and wait for approval. Never verify a build performed in this session.
 
-1. Recover both architectures — target service design and its idioms; legacy scope
-2. Extract the legacy behavioral contract with a source anchor per rule
-3. Author developer-ready tickets with dual provenance and a user-story layer
-4. Gap-analyze across both projects; stop at the plan-approval gate
-5. Implement test-first into the target only, matching its idioms
-6. Verify twice — equivalence report plus an independent conformance audit
-   using legacy source as the only oracle, including an orphan sweep
+**Always-on disciplines, applied to every delegated skill:** source decides truth (no claim without a confirmed file:line anchor; source wins over intelligence); record corrections in the Context Inventory; modify the target only; escalate legacy-versus-target conflicts rather than resolving them.
 
-Never state a claim you cannot anchor. Never verify your own build session.
-````
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that both repositories have been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repos at [app.corestory.ai](https://app.corestory.ai).**
+
+## Step 1: Recover Both Architectures
+Dedicated skill: `codebase-assessment`, run against BOTH projects. Overlay: catalogue the target's idioms explicitly.
+⛔ GATE: shared understanding of both architectures before code moves.
+
+## Step 2: Legacy Behavioral Contract
+Dedicated skill: `business-rules-extraction`. Overlay: mandatory source anchor per rule, each one opened and confirmed; intent tagged PRESERVE / MODIFY / DISCARD.
+⛔ GATE 1: domain expert validates the spec.
+
+## Step 3: Backlog and Test Strategy
+Dedicated skills: `decomposition-sequencing`, then `spec-driven-test-generation`. Overlay: dual provenance per ticket; add the business-facing user-story layer.
+⛔ GATE: spec review before tickets go to execution.
+
+## Step 4: Dual-Project Gap Analysis
+Dedicated skill: `feature-gap-analysis`. Overlay: run across BOTH projects for one ticket, before any code; classify EXISTS / EXTEND / NEW / CONFLICT.
+⛔ GATE 2: human approves the plan before any code is written.
+
+## Step 5: Converge Into the Target
+Dedicated skill: `feature-implementation`. Overlay: tests first and confirmed failing; match the target's idioms; stop at the ticket boundary.
+⛔ GATE: convergence review by someone who knows the target.
+
+## Step 6: Verify Twice
+Dedicated skills: `behavioral-verification`, then `vibe-conformance-audit`, then `e2e-test-generation`. All in sessions separate from Step 5.
+⛔ GATE 3: sign off only when the BER and the conformance audit agree.
+
+Key principle: the agent drives, humans gate — and the verifier is never the builder.
+```
+
+Install the conformance audit as a second skill at `.github/skills/vibe-conformance-audit/SKILL.md`, using the content from the Claude Code accordion.
 
 </Accordion>
 
@@ -830,69 +929,50 @@ Create `.cursor/rules/vibe-modernization.mdc`:
 
 ````markdown
 ---
-description: CoreStory-powered agent-led modernization across a legacy and target project. Activates for forward-engineering legacy behavior, dual-project gap analysis, conformance audit, or behavioral parity work.
+description: CoreStory-powered agent-led modernization across a legacy and target project. Routes to the dedicated skill for each step of the arc. Activates for forward-engineering legacy behavior, dual-project gap analysis, conformance audit, or behavioral parity work.
 alwaysApply: false
 ---
 
-# CoreStory Vibe Modernization
+# CoreStory Vibe Modernization — Variant Orchestrator
 
 You are a modernization engineer with access to CoreStory's code intelligence via MCP,
-working across two projects: the legacy system and the target system. You drive the
-build loop; humans hold three gates.
+working across two projects: legacy and target.
 
-## Activation Triggers
-
-Apply when the user requests: forward-engineering legacy behavior into an existing
-target, dual-project gap analysis, conformance auditing, behavioral parity work, or
-agent-led modernization.
+**This rule is a router. It does NOT contain execution detail for any step.** Identify
+the active step, follow that step's dedicated rule, and impose the disciplines below
+on it.
 
 **If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that both repositories have been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repos at [app.corestory.ai](https://app.corestory.ai).**
 
-## Non-negotiable rules
-- Source decides truth; intelligence only accelerates discovery
-- No claim without a confirmed `file:line` anchor
-- Target only — never modify the legacy system
-- One session, one artifact; stop at each gate
-- Never verify code written in the same session
+## Critical rules
+- One step per session; STOP at each gate and wait for approval
+- Always follow the dedicated rule for the active step
+- Never verify a build performed in this same session
 
-## Six-Step Arc
+## Always-on disciplines (override the delegated rule's defaults)
+- Source decides truth; no claim without a confirmed `file:line` anchor
+- Record every correction in the Context Inventory, with both versions
+- Modify the target only
+- Escalate legacy-versus-target conflicts; never resolve them unilaterally
 
-### Step 1: Recover Both Architectures
-- Target service design, with an explicit catalogue of its idioms
-- Where legacy behavior will land
-- Legacy scope, non-code artifacts, dependency edges
+## Step map
+| Step | Dedicated rule | Overlay | Gate |
+|---|---|---|---|
+| 1. Recover both architectures | `codebase-assessment` (both projects) | Catalogue the target's idioms | Shared understanding |
+| 2. Legacy behavioral contract | `business-rules-extraction` | Anchor + confirm every rule; tag intent | **Gate 1** — domain expert |
+| 3. Backlog + test strategy | `decomposition-sequencing`, `spec-driven-test-generation` | Dual provenance; user-story layer | Spec review |
+| 4. Dual-project gap analysis | `feature-gap-analysis` | Both projects, one ticket, pre-code; EXISTS/EXTEND/NEW/CONFLICT | **Gate 2** — plan approval |
+| 5. Converge into the target | `feature-implementation` | Tests first and failing; target idioms; ticket boundary | Convergence review |
+| 6. Verify twice | `behavioral-verification`, `vibe-conformance-audit`, `e2e-test-generation` | Separate sessions from step 5 | **Gate 3** — both must agree |
 
-### Step 2: Legacy Behavioral Contract
-- Rules with mandatory anchors; open and confirm each one
-- Migration intent: PRESERVE / MODIFY / DISCARD
-- **Gate 1: domain expert validates the spec**
-
-### Step 3: Backlog and Test Strategy
-- Dual-provenance tickets; business-facing user-story layer
-- Test approach set before implementation
-
-### Step 4: Dual-Project Gap Analysis
-- EXISTS / EXTEND / NEW / CONFLICT per requirement
-- Escalate every CONFLICT
-- **Gate 2: human approves the plan before any code**
-
-### Step 5: Converge Test-First
-- Tests first; confirm they fail for the right reason
-- Implement to green in the target's idiom; no unapproved new patterns
-- Seam check: would a reviewer know this came from a migration?
-
-### Step 6: Verify Twice
-- Equivalence report: Preserved / Modified / Discarded / Missing
-- Conformance audit against legacy source only, ignoring the report and the tests:
-  DELIVERED / STUBBED / MISSING / DIVERGES / UNVERIFIABLE, plus an orphan sweep
-- **Gate 3: sign off only when both agree**
-
-## Key Principles
+## Key principles
 - Velocity is earned by cheap grounding, not by skipping it
 - The tests are not the oracle; legacy source is
 - Record corrections, not just conclusions
 - Watch the ratio of changed to preserved behavior — drift shows up there first
 ````
+
+Install the conformance audit as a second rule at `.cursor/rules/vibe-conformance-audit.mdc`, using the content from the Claude Code accordion.
 
 </Accordion>
 
@@ -903,7 +983,7 @@ Create `.factory/droids/vibe-modernization.md`:
 ````markdown
 ---
 name: CoreStory Vibe Modernization
-description: Agent-led, human-gated modernization across legacy and target projects with source-grounded validation and independent conformance audit
+description: Router for agent-led, human-gated modernization across legacy and target projects; delegates each step to its dedicated droid and enforces grounding and verification independence
 model: inherit
 tools:
   - CoreStory:list_projects
@@ -916,45 +996,45 @@ tools:
   - CoreStory:get_conversation
 ---
 
-# CoreStory Vibe Modernization
+# CoreStory Vibe Modernization — Variant Orchestrator
 
-Execute the six-step arc to forward-engineer legacy behavior into an existing target.
+**Router only. No execution detail lives here.** Identify the active step, delegate to
+its dedicated droid, and impose the disciplines below on whatever you delegate to.
 
 ## Activation Triggers
-- "Forward-engineer [module] into the target"
+- "Start the vibe modernization arc for [system]"
 - "Gap-analyze [ticket] across both projects"
 - "Run the conformance audit for [scope]"
 - Any behavioral-parity or agent-led modernization request
 
-## CoreStory MCP Tools
-- `CoreStory:list_projects` — confirm both legacy and target projects are ingested
-- `CoreStory:get_project_techspec` — ground convergence in the target's real structure
-- `CoreStory:get_project_prd` — business context for the behavioral contract
-- `CoreStory:create_conversation` — one thread per phase artifact and work item
-- `CoreStory:send_message` — query either project
-- `CoreStory:list_conversations` / `CoreStory:get_conversation` — prior findings and
-  citable provenance references
-- `CoreStory:rename_conversation` — mark threads "RESOLVED" at sign-off
+## Critical rules
+- One step per session; STOP at each gate
+- Always delegate to the dedicated droid for the step
+- Never verify a build performed in this session
+
+## Always-on disciplines
+- Source decides truth; no claim without a confirmed `file:line` anchor
+- Record corrections in the Context Inventory
+- Target only; never modify the legacy system
+- Escalate legacy-versus-target conflicts
 
 **If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that both repositories have been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repos at [app.corestory.ai](https://app.corestory.ai).**
 
-## Workflow
+## Step map
+Step 1 → `codebase-assessment` (both projects; catalogue target idioms) ⛔ shared understanding
+Step 2 → `business-rules-extraction` (anchor + confirm; tag intent) ⛔ GATE 1 domain expert
+Step 3 → `decomposition-sequencing` + `spec-driven-test-generation` (dual provenance) ⛔ spec review
+Step 4 → `feature-gap-analysis` (both projects, pre-code, 4-way classification) ⛔ GATE 2 plan approval
+Step 5 → `feature-implementation` (tests first and failing; target idioms) ⛔ convergence review
+Step 6 → `behavioral-verification` + `vibe-conformance-audit` + `e2e-test-generation` ⛔ GATE 3 both agree
 
-Step 1: Recover Both Architectures → target service design + idiom catalogue; landing zones
-Step 2: Legacy Behavioral Contract → anchored rules, confirmed against source → **Gate 1**
-Step 3: Backlog + Test Strategy → dual-provenance tickets, user-story layer
-Step 4: Dual-Project Gap Analysis → EXISTS / EXTEND / NEW / CONFLICT → **Gate 2**
-Step 5: Converge Test-First → red, then green, in the target's idiom, target only
-Step 6: Verify Twice → equivalence report + independent conformance audit → **Gate 3**
-
-## Key Principles
-- Source decides truth; no claim without a confirmed anchor
-- Target only; never modify the legacy system
-- One session, one artifact; stop at each gate
-- Never verify code written in the same session
-- The conformance audit ignores the equivalence report and the tests by design
-- Record corrections in the Context Inventory, not just conclusions
+## Key principles
+- The agent drives, humans gate — and the verifier is never the builder
+- The tests are not the oracle; legacy source is
+- Record corrections, not just conclusions
 ````
+
+Install the conformance audit as a second droid at `.factory/droids/vibe-conformance-audit.md`, using the content from the Claude Code accordion.
 
 </Accordion>
 
