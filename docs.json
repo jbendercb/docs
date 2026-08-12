@@ -75,7 +75,8 @@
                   "playbooks/modernization/target-architecture",
                   "playbooks/modernization/decomposition-sequencing",
                   "playbooks/modernization/behavioral-verification",
-                  "playbooks/modernization/monolith-to-microservices"
+                  "playbooks/modernization/monolith-to-microservices",
+                  "playbooks/modernization/vibe-modernization"
                 ]
               },
               "playbooks/agentic-bug-resolution",
