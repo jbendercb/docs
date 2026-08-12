@@ -288,6 +288,8 @@ Use when: payment processing, financial calculations, regulatory-sensitive logic
 
 ## Architecture-to-Architecture Variants
 
+This framework specializes in two independent directions: by the **shape of the target** (this section) and by **who does the work between the gates** (see [Execution-Mode Variants](#execution-mode-variants) below). The two compose — you can run an agent-led engagement toward a microservices target.
+
 Phase 5 links to architecture-specific variant playbooks that provide pattern-specific guidance for the most common modernization patterns.
 
 ### Monolith → Microservices *(available now)*
@@ -307,6 +309,22 @@ COBOL/mainframe systems to Java/Python on cloud infrastructure. Addresses the un
 ### On-Prem → Cloud-Native *(coming soon)*
 
 Infrastructure modernization with application refactoring. Covers cloud-native patterns (containers, serverless, managed services), data migration, and the operational shift from on-prem to cloud.
+
+---
+
+## Execution-Mode Variants
+
+The six phases above prescribe *where* decisions happen, but not *how much* the agent does between those decision points. That is a separate axis, and it is a real choice.
+
+This playbook as written is **human-led and agnostic about the labor split**: engineers read the code, engineers decide, the agent advises, and a team can run it anywhere from heavy manual involvement to light-touch. Execution-mode variants take an explicit position on that axis instead of leaving it open.
+
+### Vibe Modernization *(available now)*
+
+The framework run at its most aggressive setting: **agent-led and human-gated.** The agent owns the build loop end to end — gap analysis, test-first implementation, verification drafting — and human judgment concentrates at three high-leverage gates rather than spreading across every phase boundary.
+
+Handing the agent the wheel does not remove safety, it relocates it. With no continuous human review to catch drift in the moment, that job moves to a mandatory source-grounding discipline (no claim enters a deliverable without a confirmed `file:line` anchor) and to an independent conformance audit that checks the delivered code against legacy source without reading the equivalence report or trusting the tests. Reach for it when behavioral parity is the point and you need agent velocity without giving up the audit trail.
+
+**[Read the Vibe Modernization playbook →](/playbooks/modernization/vibe-modernization)**
 
 ---
 

@@ -1,0 +1,1013 @@
+---
+title: "Vibe Modernization"
+sidebarTitle: "Vibe Modernization"
+description: "Run the modernization workflow at its most aggressive setting — the agent drives the build loop end to end, humans hold a small number of high-leverage gates, and independent verification proves the result under audit."
+icon: "gauge-high"
+---
+
+import AgentInstallConventions from "/snippets/agent-install-conventions.mdx";
+
+## Overview
+
+Vibe coding is the most fun software has been in years: you describe what you want, the agent writes it, you keep moving. On a side project that trade is obviously worth it. Point the same loop at a system that clears customs declarations, prices policies, or moves money, and the trade inverts — not because the agent writes bad code, but because nothing in the loop *proves* the result is correct. There is no ground truth and no audit trail. When someone asks "how do you know this behaves like the system it replaced?", the honest answer is a shrug.
+
+The wall is not speed. Modernizations do not stall because the code arrived too fast. The wall is proof.
+
+**Vibe modernization is rebuilding a legacy system by turning a grounded AI agent loose to forward-engineer its behavior into the target architecture — the speed and feel of vibe coding, bolted to verified ground truth so it holds up under audit.**
+
+This is a *mode* of code modernization, not a replacement for it. It runs the same six-phase spine as the [Code Modernization](/playbooks/code-modernization) playbook and reaches the same gates. What makes it its own variant is a single decision about **who's driving** — and the disciplines that decision forces. Where the architecture-to-architecture variants (like [Monolith → Microservices](/playbooks/modernization/monolith-to-microservices)) specialize the framework by *target shape*, this one specializes it by *execution mode*. The two compose: you can run vibe modernization toward a microservices target.
+
+CoreStory's role shifts accordingly. In the base playbook CoreStory is an advisor to a human protagonist — Expert, Navigator, Verifier. Here the agent is the protagonist and CoreStory is the **grounding layer that makes agent velocity safe**: it accelerates discovery across both the legacy system and the target, and every claim it surfaces is checked against source before it enters a deliverable.
+
+**Who this is for:** Engineering leads and delivery teams who want agent-speed modernization on a system where behavioral parity is a hard requirement — regulated domains, financial calculations, compliance filings, anything where getting behavior wrong is expensive.
+
+**What you'll get:** A working modernized component *and* the audit trail that proves it — a gap report per work item, test-first code in the target's own idiom, a Behavioral Equivalence Report, an independent conformance ledger, and a running provenance record tying every decision back to a source anchor.
+
+---
+
+## When to Use This Playbook
+
+Reach for this variant when **both** of the following hold:
+
+- **Behavioral parity is the point.** The value is in preserving decades of accreted behavior, not re-imagining the product. If the goal is a redesign, this isn't it — that's a rewrite, and this playbook's entire verification apparatus is built to catch exactly the drift a rewrite intends.
+- **You want agent velocity without giving up the audit trail.** The deliverable is a source-traced, independently-verified body of work, not just working code. If nobody will ever ask you to prove equivalence, the overhead here is not worth paying.
+
+That is the whole entry test. Note what is deliberately *not* on it: whether the target already exists. The method runs either way — see [Standing vs. greenfield target](#standing-vs-greenfield-target) below.
+
+## When to Skip This Playbook
+
+- **You cannot ingest the legacy system.** Everything downstream depends on grounding claims in legacy source. Without it you are vibe coding, not vibe modernizing.
+- **No one can validate the business rules.** The behavioral spec is the contract the whole method verifies against. If no domain expert can confirm it, you will build fast against the wrong contract.
+- **You cannot staff independent verification.** The method's safety property comes from the verifier being separate from the builder. If the same session and the same person write the code, the tests, *and* the equivalence report, you have re-created the circularity this variant exists to break — and you would be better served by the base playbook's continuous human review.
+- **The strategy is Rehost or Relocate.** No application-level change means no behavior to forward-engineer. See the [7 Rs](/playbooks/code-modernization#the-7-rs-choosing-a-modernization-strategy).
+- **The team has no appetite for gates.** Agent-led is not agent-unattended. If plan approval and equivalence sign-off will be rubber-stamped, run the base playbook where human judgment is distributed across every phase boundary instead of concentrated at a few points.
+
+---
+
+## Prerequisites
+
+- **Two CoreStory projects, both fully ingested** — one for the legacy system, one for the target. The dual-project setup is what lets the agent reason across both sides in a single pass. (Greenfield target: the second project comes online as the target takes shape.)
+- **An AI coding agent with CoreStory MCP configured** — see [Supercharging AI Agents](/getting-started/supercharging-ai-agents).
+- **Direct read access to legacy source** for the agent, not just the intelligence layer. Code intelligence accelerates discovery; source decides truth. The agent must be able to open the file and cite the line.
+- **A named domain expert** who can validate the behavioral spec. This is a gate, not a courtesy review.
+- **A test harness in the target** that can run red before it runs green. Test-first is not optional here — it is how the agent proves it understood the requirement before it wrote the code.
+- **Someone other than the builder available for verification.** Separate session at minimum; separate person preferred.
+- (Recommended) **A working target build** you can run locally. An agent that cannot compile cannot self-correct, and the velocity argument collapses.
+
+---
+
+## How It Works
+
+### Center of Gravity: Who's Driving
+
+This is the distinction that generates everything else, so it's worth stating plainly.
+
+The base Code Modernization playbook is **human-led and agnostic about the labor split.** It prescribes *where* decisions happen — the [HITL gates](/playbooks/code-modernization#human-in-the-loop-gates), mandatory expert review on ambiguous findings, one phase per session, "AI informs; architects decide" — but not *how much* the agent does between those gates. A team can run it with heavy manual involvement (people read the code, people decide, the agent advises) or lighter-touch, anywhere along that spectrum.
+
+Vibe modernization is **agent-led and human-gated.** It takes the stance the base playbook leaves open: the agent owns the build loop end to end at speed — gap analysis, test-first implementation, verification drafting — and human judgment is **concentrated at a few high-leverage gates** rather than spread across every phase boundary. The whole arc is arranged to keep the agent running flat-out between a small number of decision points.
+
+> **Base playbook:** agnostic about who does the work, defaults to human-led.
+> **Vibe modernization:** opinionated — the agent drives, humans gate. Same rigor, different center of gravity.
+
+The obvious objection is that handing the agent the wheel trades away safety. It doesn't — it *relocates* it. When the agent is driving at speed you cannot lean on continuous human review to catch drift, so that job moves to the audit trail and an independent verification pass. **You can let the agent drive precisely because the verification discipline catches what pervasive manual oversight otherwise would.** That is the safety argument, and it is why the disciplines below are non-negotiable in this variant while remaining optional in the base.
+
+### How It Differs from Base Code Modernization
+
+One thing determines which you are running: the center of gravity above. So the distinctions below are not capabilities the base playbook *lacks* — they are disciplines this variant makes mandatory, because with the agent driving it cannot fall back on continuous human judgment to catch drift.
+
+| # | Discipline | Base playbook | Vibe modernization |
+|---|---|---|---|
+| 1 | **Converge, don't port** | Agnostic — a team may port module-by-module or converge, its call | The agent forward-engineers into the target as **one coherent body**. The output reads as though it had always been part of the target, not as a patchwork of per-module ports |
+| 2 | **Source-grounded validation** | Grounding exists but is risk-based — a human decides how deep to verify each finding | **Every claim is verified against source before it enters a deliverable**, mechanically, with a `file:line` anchor. Not optional, because there is no continuous human review to catch an ungrounded claim in the moment |
+| 3 | **Anti-circular verification** | Independence comes from human gates and expert review | The Behavioral Equivalence Report **plus** an independent atom-grain conformance audit — because the same agent writes the code, its test, *and* its BER, and those three can share a blind spot |
+
+Discipline 3 is the genuinely new idea. It is what stops "vibe" from meaning "unverified."
+
+On convergence and the Strangler Fig: the base playbook's [default execution pattern](/playbooks/code-modernization#strangler-fig-default) runs old and new side by side behind a façade. Convergence is not a rejection of that — on a live-production cutover you may still wrap the converged code in a coexistence layer for safe rollback. The invariant is that the *code* is one coherent body rather than a bolted-on port; the façade is a deployment concern and remains available to you.
+
+### Standing vs. Greenfield Target
+
+Whether a target architecture already exists is **not** a reason to choose one playbook over the other. It changes only the shape of the front of the arc:
+
+- **Standing (brownfield) target** — already exists, partially built, with its own architecture and idioms. You skip target design entirely, reverse-engineer *both* sides, and converge into what's there. This is the path the walkthrough below is written for.
+- **Greenfield target** — nothing built yet. You fold the base playbook's [Phase 3](/playbooks/code-modernization#phase-3-target-architecture-strategy) back into the arc — select the strategy with the 7 Rs, design the target — and then proceed unchanged. Everything downstream (the grounding, the convergence, the two-check verification) is identical; Step 1 below simply keeps the target's emerging structure grounded rather than recovering a structure that already exists.
+
+Reasoning across both a legacy and a target codebase is a net improvement for **any** modernization variant, base included. It is shared ground, not a vibe-mod distinction — it just happens to be indispensable when the agent is the one doing the reasoning.
+
+### CoreStory MCP Tools Used
+
+| Tool | Step(s) | Purpose |
+|------|----------|---------|
+| `list_projects` | 1 | Confirm both projects — legacy and target — and verify ingestion is complete |
+| `create_conversation` | 1, 2, 3, 4, 6 | Open a dedicated thread per phase artifact and per work item |
+| `send_message` | 1, 2, 3, 4, 5, 6 | Query either project for structure, behavior, gap analysis, and verification evidence |
+| `get_project_techspec` | 1, 4 | Retrieve the target's Tech Spec to ground convergence in its actual structure |
+| `get_project_prd` | 2, 3 | Retrieve business context for the behavioral contract and the user-story layer |
+| `list_conversations` | 3, 4, 6 | Locate prior phase threads for cross-reference and provenance citation |
+| `get_conversation` | 3, 4, 6 | Pull prior findings into the current artifact, with a citable reference |
+| `rename_conversation` | 6 | Mark completed threads "RESOLVED" once their artifact is signed off |
+
+### The Vibe Modernization Arc
+
+> **Note:** The six steps below are internal to this playbook. They map onto the [six-phase modernization framework](/playbooks/code-modernization) rather than replacing it — the mapping is in the table under each step heading.
+
+1. **Recover Both Architectures** — reverse-engineer the target's service design and the legacy's structure, so the agent knows where legacy behavior will land.
+2. **Extract the Legacy Behavioral Contract** — a source-verified behavioral spec. This is the contract everything downstream verifies against.
+3. **Author the Backlog and Test Strategy** — the backlog is a deliverable in its own right, authored with the same grounding discipline as the code.
+4. **Gap-Analyze Before Writing Code** — per work item, across both projects: what exists in the target, what the legacy requires, what must change. **This is the plan-approval gate.**
+5. **Converge Into the Target, Test-First** — Red → Green, in the target's own idiom, emitting provenance as it goes.
+6. **Verify Twice** — the Behavioral Equivalence Report *and* an independent conformance audit, both run in sessions separate from the build.
+
+A discipline that spans all six: **one session, one artifact of depth.** Do not collapse the arc into a single run. Each step produces one reviewable deliverable and stops at its gate. The speed comes from the agent working without interruption *inside* a step, not from merging steps together.
+
+### Which Playbook Runs Each Step
+
+Most of the arc is existing playbooks run with the grounding discipline turned up. Only two things are genuinely new.
+
+| Step | Runs on | Status in this variant |
+|------|---------|------------------------|
+| 1. Recover both architectures | [Codebase Assessment](/playbooks/modernization/codebase-assessment), applied to *both* projects | Inverted — you recover a target rather than design one |
+| 2. Legacy behavioral contract | [Business Rules Extraction](/playbooks/business-rules-extraction) | Borrowed, hardened — every rule carries a source anchor |
+| 3. Backlog and test strategy | [Decomposition & Sequencing](/playbooks/modernization/decomposition-sequencing) + [Spec-Driven Test Generation](/playbooks/spec-driven-test-generation) | Borrowed, hardened — the backlog is a graded deliverable |
+| 4. Gap analysis per work item | [Feature Gap Analysis](/playbooks/feature-gap-analysis), run across two projects at once | **Net-new twist** — dual-project, per-ticket, pre-implementation |
+| 5. Converge into the target | [Feature Implementation](/playbooks/feature-implementation) | Borrowed, hardened — test-first and target-only |
+| 6a. Behavioral equivalence | [Behavioral Verification](/playbooks/modernization/behavioral-verification) | Borrowed — but run in a separate session from the build |
+| 6b. Conformance audit | *This playbook* | **Net-new** — the anti-circular check |
+| 6c. Critical-flow trace | [E2E Test Generation](/playbooks/test-generation/e2e-test-generation) | Borrowed — one headline trace, archived for audit |
+
+### HITL Gates
+
+Agent-led is not agent-unattended. This variant trades *many* small review moments for *few* consequential ones — which means the ones that remain carry real weight and cannot be waved through.
+
+> **Gate 1 — Spec validation (after Step 2).** A domain expert confirms the legacy behavioral spec. Business rules define "correct"; get them confirmed before anything is built against them. This is the single highest-leverage hour in the engagement.
+
+> **Gate 2 — Plan approval (Step 4, per work item).** The gap-analysis plan is approved by a human *before any code is written*. The agent proposes; a human decides. This is the gate that keeps velocity from becoming drift.
+
+> **Gate 3 — Equivalence sign-off (after Step 6).** Sign-off happens only when the BER and the conformance audit **agree**. Disagreement is not an averaging problem — it means one of them is wrong, and you find out which before you sign.
+
+A useful check on whether you are running the method honestly: if no gate has ever sent work back, the gates are decorative.
+
+---
+
+## Step-by-Step Walkthrough
+
+### Step 1: Recover Both Architectures
+
+*Base framework: Phases 1 and 3, collapsed and inverted.*
+
+In the base playbook, Phase 1 assesses the legacy for readiness and Phase 3 designs the target. When the target already exists, those two collapse: there is nothing to design, so instead of *choosing* a target you **recover the one that already exists** — and you understand the legacy well enough to converge onto it.
+
+**Confirm both projects are ingested:**
+
+```
+List my CoreStory projects. I need two: the legacy [SystemName]
+project and the target [TargetName] project. Confirm both have
+completed ingestion before we go further.
+```
+
+**Recover the target's service design:**
+
+```
+send_message (target project): "Produce a service-oriented design
+of this system, grounded only in the source:
+
+1. What are the top-level services or modules, and what is each
+   responsible for?
+2. How do they communicate — direct calls, messaging, shared
+   database, HTTP?
+3. What are the layering conventions? Where do adapters,
+   domain logic, and persistence live?
+4. What idioms recur — error handling, logging, configuration,
+   transaction boundaries, test structure?
+5. Where are the extension points a new capability would plug
+   into without disturbing existing structure?
+
+For each answer, cite the files that establish the pattern."
+```
+
+Point 4 is the one people skip, and it is the one convergence depends on. The agent cannot write code that "reads as though it had always been there" unless it has explicitly catalogued what "there" looks like.
+
+**Locate where legacy behavior will land:**
+
+```
+send_message (target project): "Given a legacy capability that
+[brief description of the domain area], which existing services
+or modules in this system are its natural home?
+
+1. What already exists that overlaps with this capability?
+2. What would need to be extended versus created new?
+3. Which existing tests cover the surrounding behavior?
+4. What would a reviewer of this codebase expect a new
+   capability in this area to look like?"
+```
+
+**Assess the legacy side:**
+
+Run [Codebase Assessment](/playbooks/modernization/codebase-assessment) against the legacy project as written. The output you need from it here is narrower than a full modernization assessment: you are looking for scope boundaries, non-code artifacts that encode business logic, and the dependency edges that will determine sequencing.
+
+**What good looks like:** a service design of the target that a new engineer could navigate, and a clear picture of where legacy behavior will land in it. On a brownfield target there is no 7 Rs debate to have — the strategy is fixed by the standing system.
+
+---
+
+### Step 2: Extract the Legacy Behavioral Contract
+
+*Base framework: Phase 2 (Business Rules Inventory), carried over almost unchanged.*
+
+This is the contract everything downstream verifies against, and it is the one step where you should feel no temptation to move fast. Run [Business Rules Extraction](/playbooks/business-rules-extraction) as written, with one hardening: **every behavior must carry a source anchor.**
+
+**Extract with anchors mandatory:**
+
+```
+send_message (legacy project): "Extract the business rules
+implemented in [ModuleName].
+
+For each rule:
+1. State the rule in business terms, not code terms
+2. Give the exact source location that implements it
+   (file and line range)
+3. Note the conditions under which it applies
+4. Note what happens at the boundaries — empty, zero, negative,
+   maximum, missing, malformed
+5. Flag whether this looks like intended business logic, a
+   workaround, or a defect that has been running in production
+
+Do not state a rule you cannot anchor to a specific location."
+```
+
+**Verify the anchors before the spec is considered done:**
+
+This is the step that separates a grounded spec from a plausible one. Code intelligence is a discovery accelerator; it is not the oracle.
+
+```
+For each rule in the extracted inventory, open the cited source
+location directly and confirm the rule as stated matches what
+the code does. Where the code and the stated rule disagree,
+the code wins — correct the rule and note the discrepancy.
+
+Produce a list of any rule whose anchor could not be confirmed.
+Those do not enter the spec until they are resolved.
+```
+
+**Record migration intent per rule:**
+
+```
+For each confirmed rule, classify the intent for modernization:
+- PRESERVE — behavior must be identical in the target
+- MODIFY — behavior changes deliberately; state the new behavior
+  and who approved the change
+- DISCARD — behavior is obsolete and will not be carried forward;
+  state why
+
+This classification is what Step 6 verifies against.
+```
+
+> **Gate 1 — Spec validation.** A domain expert confirms the spec before anything is built against it. Bring them the rules that are ambiguous, that look like defects, and that you have classified MODIFY or DISCARD. Do not bring them 400 rules and ask for a blanket approval.
+
+**What good looks like:** each behavior stated with its source anchor and a migration intent, so Step 6 has an unambiguous checklist rather than a judgment call.
+
+---
+
+### Step 3: Author the Backlog and Test Strategy
+
+*Base framework: Phase 4 (Decomposition & Sequencing), carried over and hardened.*
+
+The base playbook decomposes and sequences into work packages. Here the **backlog itself is a deliverable**, authored with the same grounding discipline as the code — because the agent will execute against it without a human re-deriving the requirement at each ticket.
+
+**Author tickets with dual provenance:**
+
+```
+send_message: "For work package [WP-XXX], compose developer-ready
+tickets. Each ticket must carry:
+
+1. A business-facing statement of what changes and why
+2. The specific legacy rules it implements, by rule ID
+3. Dual provenance for every factual claim — the CoreStory
+   conversation reference AND the legacy source file:line
+4. Acceptance criteria stated so a test can be written from
+   them directly, without interpretation
+5. The target location where this will land, from Step 1
+6. A decision log entry wherever the spec, the intelligence
+   layer, and the source disagreed — and how it was resolved"
+```
+
+**Add the user-story layer:**
+
+Between a technical work package and a developer ticket there is a missing middle: a business-facing statement a domain expert can actually review. Without it, spec review degrades into engineers reading tickets to each other.
+
+```
+send_message: "For work package [WP-XXX], write the business-facing
+user stories that sit above these tickets. Each should be
+reviewable by a domain expert who does not read code:
+
+- What business capability does this deliver?
+- What are the acceptance criteria in business language?
+- Which legacy rules does it preserve, modify, or discard?
+- What would a user notice if this were wrong?"
+```
+
+**Set the test strategy:**
+
+Run [Spec-Driven Test Generation](/playbooks/spec-driven-test-generation) to establish the engagement's test approach before implementation starts, not after. The distribution matters more than the count: characterization tests derived from legacy behavior are the ones that catch parity failures, and they need to exist before the code does.
+
+**What good looks like:** every ticket carries dual-provenance anchors and a decision log. A hand-authored backlog drifts in shape and depth across a long engagement; a generated one holds its grain — which is exactly what an agent executing it needs.
+
+---
+
+### Step 4: Gap-Analyze Before Writing Code
+
+*Base framework: Phase 5, pre-implementation. This is the net-new twist.*
+
+Before any code is written for a work item, run [Feature Gap Analysis](/playbooks/feature-gap-analysis) **across both projects at once**. Standard gap analysis compares two systems' capabilities. Here you are asking a sharper question: *given what the target already has and what the legacy requires, what is the minimum coherent change?*
+
+**Run the dual-project gap analysis:**
+
+```
+send_message (target project): "For ticket [TICKET-ID], establish
+what already exists here:
+
+1. What existing services, classes, or functions already do part
+   of this?
+2. What existing tests already cover adjacent behavior?
+3. What existing data model supports this, and what is missing?
+4. What existing configuration or wiring would this plug into?
+5. What would break if this were added naively?"
+```
+
+```
+send_message (legacy project): "For the same capability, establish
+what the legacy actually requires:
+
+1. Which rules from the behavioral spec are in scope for this ticket?
+2. What edge cases does the legacy handle that a naive
+   implementation would miss?
+3. What upstream inputs and downstream consumers does this touch?
+4. What non-code artifacts (copybooks, job control, configuration,
+   lookup tables) participate in this behavior?"
+```
+
+**Produce the plan:**
+
+```
+Synthesize a gap report for [TICKET-ID]:
+
+- EXISTS — already present in the target, reusable as-is
+- EXTEND — present but needs modification; state the modification
+- NEW — must be built; state where it lands and why there
+- CONFLICT — the legacy requires something that contradicts a
+  target convention; state both and recommend a resolution
+
+Then state the implementation plan: files touched, tests to write
+first, and the order of work. Anchor every legacy claim to source.
+```
+
+The CONFLICT category is the one that earns the gate. Conflicts are where a modernization silently becomes a rewrite, and they are precisely the decisions an agent should not make alone.
+
+> **Gate 2 — Plan approval.** A human approves the gap report and the implementation plan before code is written. Read the CONFLICT entries first; they are where the judgment lives. If the plan proposes touching more of the target than the ticket justifies, that is scope drift arriving early, where it is cheap to stop.
+
+**What good looks like:** the plan is specific enough that a reviewer disagreeing with it can say exactly which line they disagree with.
+
+---
+
+### Step 5: Converge Into the Target, Test-First
+
+*Base framework: Phase 5 (Iterative Execution), carried over and hardened.*
+
+This is where "converge, don't port" becomes an execution pattern. The agent forward-engineers directly into the target so the result is one coherent body rather than a patchwork.
+
+**Write the failing tests first:**
+
+```
+From the acceptance criteria in [TICKET-ID], write the tests before
+any implementation:
+
+1. One test per acceptance criterion, named for the behavior
+2. Characterization tests for each legacy edge case identified
+   in the gap report
+3. Follow the target's existing test conventions exactly —
+   structure, naming, fixtures, assertion style
+
+Run them. Confirm they fail, and confirm they fail for the right
+reason. A test that passes before implementation is testing nothing.
+```
+
+The "fails for the right reason" check matters more than it sounds. A test that fails because a class does not exist yet is not the same as a test that fails because behavior is wrong, and only the second one is doing work.
+
+**Implement to green, in the target's idiom:**
+
+```
+Implement [TICKET-ID] to make the failing tests pass.
+
+Constraints:
+- Target project only. Do not modify the legacy system.
+- Match the target's existing idioms from the Step 1 catalogue —
+  error handling, logging, configuration, transaction boundaries,
+  naming.
+- No new dependency or pattern unless the gap report approved it.
+- Stop at the ticket boundary. Anything you notice outside it goes
+  in the notes, not in the diff.
+```
+
+**Self-review for convergence:**
+
+```
+Review the diff as a reviewer who works on this target system daily
+and has never seen the legacy system:
+
+1. Would anything here tell you it came from a migration?
+2. Does anything introduce a second way of doing something the
+   codebase already does one way?
+3. Is there a seam where "the ported code" starts?
+
+Convergence means the answer to all three is no.
+```
+
+**Emit the provenance entries:**
+
+Every non-obvious decision made during implementation gets a Context Inventory entry as it happens — not reconstructed later, when the reasoning has evaporated. See [Output Formats](#output-formats) below.
+
+**What good looks like:** acceptance-derived tests written and confirmed failing first, then coded to green; and new code that is indistinguishable from the target's existing style, with no seam where the migration starts.
+
+---
+
+### Step 6: Verify Twice
+
+*Base framework: Phase 6 (Behavioral Verification), carried over and deepened.*
+
+The base playbook signs off on a Behavioral Equivalence Report. Here that is the **first** of two independent checks — because the same agent that wrote the feature also wrote its tests and would write its BER, and those three can share a blind spot and rubber-stamp a half-build.
+
+> **Run both checks in sessions separate from the build.** Not a fresh prompt in the same session — a separate session, ideally driven by a different person. Session independence is the mechanism; everything else here is bookkeeping.
+
+**6a — Behavioral Equivalence Report.**
+
+Run [Behavioral Verification](/playbooks/modernization/behavioral-verification) as written. Each rule from the Step 2 spec is classified **Preserved / Modified / Discarded / Missing**, traced to its implementation in the target.
+
+**6b — Conformance audit.**
+
+This is the net-new check, and it is deliberately narrow: read-only, atom-grain, with legacy source as the only oracle. It does not read the BER, and it does not trust the tests.
+
+```
+Audit the delivered implementation for [scope] against the legacy
+source directly. Do not read the Behavioral Equivalence Report and
+do not treat passing tests as evidence.
+
+For each atom of required behavior in the spec, assign exactly one
+verdict:
+
+- DELIVERED — implemented and matches legacy behavior
+- STUBBED — code exists at this location but does not do the work
+  (returns a constant, logs and exits, TODO, empty branch)
+- MISSING — no implementation exists
+- DIVERGES — implemented but behaves differently from the legacy;
+  state both behaviors
+- UNVERIFIABLE — cannot be confirmed from source alone; state what
+  would be needed
+
+Cite the target file:line and the legacy file:line for every verdict.
+```
+
+**The orphan sweep** is the other half of the audit, and it catches a different failure — behavior the spec never captured at all:
+
+```
+Now sweep in the opposite direction. Read the legacy source for
+[scope] and list behaviors that appear in the legacy but do not
+appear anywhere in the behavioral spec.
+
+For each: state the behavior, its source anchor, and whether its
+absence from the spec looks deliberate or like an omission.
+```
+
+STUBBED and the orphan sweep are where this audit earns its place. Green tests and a confident "Preserved" tell you the code does what the spec said; only an independent read against source tells you whether the spec was complete and whether the code actually does the work.
+
+**6c — Critical-flow trace.**
+
+One headline end-to-end flow, traced and archived. Run [E2E Test Generation](/playbooks/test-generation/e2e-test-generation) and pick the flow whose failure would be most expensive — not the one that is easiest to instrument. Archive the trace as evidence, not just the pass result.
+
+> **Gate 3 — Equivalence sign-off.** Sign off only when the BER and the conformance audit agree. Where they disagree, resolve against legacy source before signing. A BER that says Preserved and an audit that says STUBBED is not a scoring discrepancy — it is the method working.
+
+**What good looks like:** the conformance audit finds something the tests and the BER both waved through. In the field application that produced this variant, it surfaced a regressed re-import path that had a green test suite and a clean equivalence report over it. That single catch is the argument for the whole step.
+
+---
+
+## The Two Disciplines That Make "Vibe" Safe
+
+Velocity is the easy half. These two are what let you claim the audit trail — call them out explicitly when teaching the method, because they are what people drop first under schedule pressure.
+
+**1. Source-grounded validation.** Intelligence accelerates discovery; **source decides truth.** No claim — about legacy behavior, target structure, or a proposed change — enters a deliverable until it has been checked against the actual code and given a `file:line` anchor. This is ordinary good hygiene rather than a special mechanism, and it is what makes the velocity honest: you move fast *because* the grounding is cheap, not by skipping it.
+
+The practical test: pick any sentence in any deliverable and ask what it is anchored to. If the answer is "the agent said so," it is not grounded, however plausible it reads.
+
+**2. Anti-circular verification.** The same agent that writes a feature also tends to write its test and its equivalence report, so all three can share the same blind spot. The conformance audit breaks the circle: atom grain, independently, with legacy source as the only oracle, run in a session separate from the build. This is the method's original contribution and the reason "vibe" here does not mean "unverified."
+
+The practical test: could the verification pass have been written by someone who never saw the implementation session? If not, it is not independent.
+
+---
+
+## Output Formats
+
+Each artifact below is a gate input. A unit of work is not done until its artifacts exist.
+
+### Gap Report (per work item, Step 4)
+
+```markdown
+# Gap Report: [TICKET-ID] — [Capability]
+
+## Scope
+Legacy rules in scope: [BR-012, BR-013, BR-027]
+Target landing zone: [service/module, from Step 1]
+
+## Findings
+| ID | Classification | Detail | Legacy anchor | Target anchor |
+|----|---------------|--------|---------------|---------------|
+| G-1 | EXISTS | Validation already implemented | `PGM01:L440-472` | `OrderValidator.java:88` |
+| G-2 | EXTEND | Needs the negative-quantity branch | `PGM01:L510-533` | `OrderValidator.java:120` |
+| G-3 | NEW | No equivalent exists | `PGM02:L88-140` | *(new)* `ReimportHandler.java` |
+| G-4 | CONFLICT | Legacy allows a state the target's model forbids | `PGM02:L201` | `OrderState.java:34` |
+
+## Conflicts requiring decision
+**G-4** — [statement of both behaviors, recommended resolution, and what
+is lost either way]
+
+## Implementation plan
+1. Tests to write first: [list, one per acceptance criterion]
+2. Files touched: [list]
+3. Order of work: [sequence]
+
+## Approval
+Approved by: __________  Date: __________
+```
+
+### Conformance Ledger (Step 6b)
+
+```markdown
+# Conformance Audit: [Scope]
+
+Oracle: legacy source only. BER not read. Tests not treated as evidence.
+
+## Verdicts
+| Atom | Verdict | Target anchor | Legacy anchor | Note |
+|------|---------|---------------|---------------|------|
+| A-01 | DELIVERED | `Handler.java:142` | `PGM01:L440` | — |
+| A-02 | STUBBED | `Handler.java:210` | `PGM01:L512` | Returns constant; no branch logic |
+| A-03 | DIVERGES | `Mapper.java:77` | `PGM02:L88` | Legacy rounds half-up; target rounds half-even |
+| A-04 | UNVERIFIABLE | — | `PGM03:L44` | Behavior depends on runtime configuration |
+
+## Orphan sweep
+Legacy behaviors absent from the spec:
+| Behavior | Legacy anchor | Assessment |
+|----------|---------------|------------|
+| Retry on downstream timeout | `PGM02:L320-355` | Omission — not deliberate |
+
+## Disagreement with the BER
+[Any atom where this audit and the BER reach different conclusions,
+and the source evidence that resolves it]
+```
+
+### Context Inventory (running, all steps)
+
+The provenance ledger. One entry per non-obvious decision, written when the decision is made.
+
+```markdown
+# Context Inventory: [Engagement/Component]
+
+| # | Decision or claim | Source of the claim | How it was validated | Anchor | Outcome |
+|---|-------------------|--------------------|--------------------|--------|---------|
+| 1 | Quantity validation rejects zero | CoreStory conv. `abc-123` | Opened source; confirmed | `PGM01:L448` | Confirmed as stated |
+| 2 | Rounding is half-up | CoreStory conv. `abc-123` | Opened source; contradicted | `PGM02:L88` | **Corrected** — half-even; intelligence layer was wrong |
+| 3 | Re-import path is unused | Assumption during planning | Orphan sweep, Step 6b | `PGM02:L320` | **Corrected** — path is live |
+```
+
+Entry 2 is the shape that matters. The value of this ledger is not that it records what was right — it is that it records what was *corrected*, and against what. That is the difference between an audit trail and a changelog.
+
+---
+
+## Prompting Patterns Reference
+
+### Grounding Patterns
+
+| Pattern | Example |
+|---------|---------|
+| **Anchor demand** | "Do not state a rule you cannot anchor to a specific file and line range." |
+| **Source arbitration** | "Open the cited location directly and confirm. Where the code and the stated behavior disagree, the code wins." |
+| **Unverified surfacing** | "List every claim in this artifact whose anchor could not be confirmed. Those do not enter the deliverable." |
+| **Non-code artifacts** | "What copybooks, job control, configuration, or lookup tables participate in this behavior?" |
+
+### Convergence Patterns
+
+| Pattern | Example |
+|---------|---------|
+| **Idiom catalogue** | "What idioms recur in this codebase — error handling, logging, configuration, transaction boundaries, test structure? Cite the files that establish each pattern." |
+| **Landing zone** | "Which existing services are the natural home for this capability, and what would a reviewer of this codebase expect it to look like?" |
+| **Seam check** | "Review this diff as someone who works on this system daily and has never seen the legacy. Would anything tell you it came from a migration?" |
+| **Duplication check** | "Does this introduce a second way of doing something the codebase already does one way?" |
+
+### Dual-Project Gap Patterns
+
+| Pattern | Example |
+|---------|---------|
+| **Exists-first** | "Before proposing anything new: what already exists here that does part of this?" |
+| **Requirement extraction** | "Which rules from the behavioral spec are in scope for this ticket, and what edge cases would a naive implementation miss?" |
+| **Conflict surfacing** | "Where does the legacy require something that contradicts a target convention? State both and recommend a resolution." |
+| **Blast radius** | "What would break if this were added naively?" |
+
+### Anti-Circular Verification Patterns
+
+| Pattern | Example |
+|---------|---------|
+| **Oracle restriction** | "Audit against legacy source only. Do not read the equivalence report. Do not treat passing tests as evidence." |
+| **Stub detection** | "Does code exist at this location that does not do the work — returns a constant, logs and exits, empty branch, TODO?" |
+| **Orphan sweep** | "List behaviors in the legacy source that do not appear anywhere in the behavioral spec." |
+| **Disagreement forcing** | "Where does this audit reach a different conclusion from the equivalence report? Resolve against source and state which is wrong." |
+
+---
+
+## Best Practices
+
+**One session, one artifact of depth.** The temptation with an agent this fast is to run the whole arc in one sitting. Don't. Each step produces one reviewable deliverable and stops at its gate. The velocity comes from the agent working uninterrupted *inside* a step, not from merging steps together — and a merged arc produces artifacts nobody can review, which defeats the point.
+
+**Humans decide, agents inform.** The plan approval and the spec validation are not rubber stamps. The method's speed makes waving them through feel efficient; it is the single most reliable way to end up with a fast, confident, wrong result.
+
+**Budget review attention for convergence.** "Reads as one coherent body" is not automatable. It is a judgment about whether the new code genuinely matches the target's idioms, and it needs a human who knows the target to make it. Schedule that attention explicitly rather than hoping it happens.
+
+**Keep the verifier independent.** If the session that wrote the code also runs the BER and the audit, you have re-created the circularity the method exists to break. Separate sessions at minimum; separate people where you can. This is the one shortcut that silently invalidates everything else.
+
+**Watch the parity ratio.** Track deliberately-modified and net-new behavior against preserved behavior. Modernization becomes rewrite one "while we're in here" at a time, and the ratio climbing is the earliest signal you are drifting off-method — well before anyone would describe what is happening as a rewrite.
+
+**Ship the artifacts with the code.** A unit of work is not done until its gap report, its tests, its BER, its conformance verdicts, and its Context Inventory entries exist. Build fast to hit a demo if you must, but the artifacts are the line between a modernization and a plausible-looking rewrite.
+
+**Record corrections, not just conclusions.** When the intelligence layer says one thing and source says another, that correction is the most valuable entry in the Context Inventory. It is the evidence that the grounding discipline is actually running rather than being asserted.
+
+**Do not let the tests become the oracle.** Tests written by the same agent from the same understanding will agree with the implementation. They prove internal consistency, not equivalence. Only legacy source settles equivalence.
+
+---
+
+## Agent Implementation Guides
+
+<AgentInstallConventions />
+
+The accordions below walk through end-to-end setup for the four most common harnesses. If you're on a different harness, copy the SKILL.md content from any accordion and install it per the conventions above.
+
+<AccordionGroup>
+
+<Accordion title="Claude Code">
+
+#### Setup
+
+1. **Configure the CoreStory MCP server** in your Claude Code settings (see [CoreStory MCP Server Setup Guide](/getting-started/mcp-server-setup)). Both the legacy and target projects must be ingested.
+
+2. **Add the skill file:**
+
+```bash
+mkdir -p .claude/skills/vibe-modernization
+```
+
+Create `.claude/skills/vibe-modernization/SKILL.md` with the content from the skill file below.
+
+3. **Commit to version control:**
+
+```bash
+git add .claude/skills/
+git commit -m "Add CoreStory vibe modernization skill"
+```
+
+#### Usage
+
+```
+Recover the target architecture for [TargetName]
+Extract the behavioral contract for [LegacyModule]
+Gap-analyze [TICKET-ID] across both projects
+Implement [TICKET-ID] test-first into the target
+Run the conformance audit for [scope]
+```
+
+#### Tips
+
+- Run each step in its own session. This skill is deliberately structured so that a session ends at a gate.
+- Run Step 6 in a **different session** from Step 5 — session independence is the mechanism that makes the audit meaningful, not a formality.
+- Keep the SKILL.md under 500 lines for reliable loading.
+
+#### Skill File
+
+Save as `.claude/skills/vibe-modernization/SKILL.md`:
+
+````markdown
+---
+name: CoreStory Vibe Modernization
+description: Agent-led, human-gated modernization using CoreStory code intelligence across a legacy and a target project. Every claim is source-anchored and verified twice. Activates on forward-engineering legacy behavior into an existing target, dual-project gap analysis, conformance audit, or agent-led modernization requests.
+---
+
+# CoreStory Vibe Modernization
+
+When this skill activates, run the six-step arc. The agent drives; humans hold three gates.
+
+## Activation Triggers
+
+Activate when the user requests:
+- Forward-engineering legacy behavior into an existing target system
+- Dual-project (legacy + target) gap analysis before implementation
+- A conformance audit or anti-circular verification pass
+- Agent-led modernization where behavioral parity must be proven
+- Any request containing "vibe modernization", "converge into the target",
+  "conformance audit", "prove equivalence", "forward-engineer"
+
+## Prerequisites
+
+- Two CoreStory projects ingested: legacy and target
+- Direct read access to legacy source (not just the intelligence layer)
+- A domain expert available for spec validation
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that both repositories have been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repos at [app.corestory.ai](https://app.corestory.ai).**
+
+## Non-negotiable rules
+
+1. **Source decides truth.** Intelligence accelerates discovery. No claim enters a
+   deliverable without a confirmed `file:line` anchor. Where intelligence and source
+   disagree, source wins — and the correction is recorded.
+2. **One session, one artifact.** Each step ends at its gate. Do not collapse the arc.
+3. **Target only.** Never modify the legacy system.
+4. **Verification is independent.** Step 6 runs in a session separate from Step 5.
+   If you wrote the code in this session, say so and stop.
+
+## Step 1: Recover Both Architectures
+- Confirm both projects ingested (`list_projects`)
+- Recover the target's service design; explicitly catalogue its idioms
+- Identify where legacy behavior will land
+- Assess the legacy for scope, non-code artifacts, dependency edges
+
+## Step 2: Extract the Legacy Behavioral Contract
+- Extract rules with a mandatory source anchor each
+- Open every anchor and confirm; correct where source disagrees
+- Classify migration intent: PRESERVE / MODIFY / DISCARD
+- **Gate 1: domain expert validates the spec**
+
+## Step 3: Author the Backlog and Test Strategy
+- Tickets with dual provenance (conversation reference + source anchor)
+- Business-facing user-story layer above the tickets
+- Test strategy set before implementation starts
+
+## Step 4: Gap-Analyze Before Writing Code
+- Query target: what exists, what is reusable, what would break
+- Query legacy: rules in scope, edge cases, non-code artifacts
+- Classify: EXISTS / EXTEND / NEW / CONFLICT
+- **Gate 2: human approves the plan before any code**
+
+## Step 5: Converge Into the Target, Test-First
+- Write tests from acceptance criteria; confirm they fail for the right reason
+- Implement to green in the target's idiom; no new patterns unless approved
+- Self-review for seams and duplicated conventions
+- Emit Context Inventory entries as decisions are made
+
+## Step 6: Verify Twice
+- 6a: Behavioral Equivalence Report — Preserved / Modified / Discarded / Missing
+- 6b: Conformance audit — legacy source as the only oracle; do not read the BER;
+  do not treat passing tests as evidence.
+  Verdicts: DELIVERED / STUBBED / MISSING / DIVERGES / UNVERIFIABLE
+  Plus an orphan sweep for legacy behavior the spec never captured
+- 6c: One critical-flow end-to-end trace, archived
+- **Gate 3: sign off only when the BER and the audit agree**
+
+## Error Handling
+- **Anchor cannot be confirmed:** the claim does not enter the deliverable. List it
+  as unresolved rather than softening the wording.
+- **Intelligence contradicts source:** source wins. Record the correction in the
+  Context Inventory with both versions.
+- **Gap analysis finds a CONFLICT:** stop and escalate. Do not resolve a
+  legacy-versus-target contradiction unilaterally.
+- **Tests pass before implementation:** the test is testing nothing. Rewrite it.
+- **BER and audit disagree:** do not average. Resolve against legacy source and
+  state which was wrong.
+- **Asked to verify code written in this session:** decline and ask for a separate
+  session. Independence is the mechanism.
+````
+
+</Accordion>
+
+<Accordion title="GitHub Copilot">
+
+Add the following to `.github/copilot-instructions.md`:
+
+```markdown
+## Vibe Modernization
+
+When forward-engineering legacy behavior into an existing target system:
+1. Work across two CoreStory projects — legacy and target — never one
+2. Source decides truth: no claim without a confirmed file:line anchor
+3. Where code intelligence and source disagree, source wins; record the correction
+4. Gap-analyze before writing code; classify EXISTS / EXTEND / NEW / CONFLICT
+5. Escalate every CONFLICT — never resolve legacy-vs-target contradictions alone
+6. Write tests first and confirm they fail for the right reason
+7. Modify the target only; match its existing idioms so there is no migration seam
+8. Verify twice: equivalence report, then an independent conformance audit against
+   legacy source that does not read the report and does not trust the tests
+9. Never verify code written in the same session that wrote it
+```
+
+**(Optional) Add a reusable prompt file.** Create `.github/prompts/vibe-modernization.prompt.md`:
+
+````markdown
+---
+mode: agent
+description: Forward-engineer legacy behavior into an existing target using CoreStory code intelligence, with source-grounded validation and independent conformance audit
+---
+
+Run the vibe modernization arc for the requested scope.
+
+1. Recover both architectures — target service design and its idioms; legacy scope
+2. Extract the legacy behavioral contract with a source anchor per rule
+3. Author developer-ready tickets with dual provenance and a user-story layer
+4. Gap-analyze across both projects; stop at the plan-approval gate
+5. Implement test-first into the target only, matching its idioms
+6. Verify twice — equivalence report plus an independent conformance audit
+   using legacy source as the only oracle, including an orphan sweep
+
+Never state a claim you cannot anchor. Never verify your own build session.
+````
+
+</Accordion>
+
+<Accordion title="Cursor">
+
+Create `.cursor/rules/vibe-modernization.mdc`:
+
+````markdown
+---
+description: CoreStory-powered agent-led modernization across a legacy and target project. Activates for forward-engineering legacy behavior, dual-project gap analysis, conformance audit, or behavioral parity work.
+alwaysApply: false
+---
+
+# CoreStory Vibe Modernization
+
+You are a modernization engineer with access to CoreStory's code intelligence via MCP,
+working across two projects: the legacy system and the target system. You drive the
+build loop; humans hold three gates.
+
+## Activation Triggers
+
+Apply when the user requests: forward-engineering legacy behavior into an existing
+target, dual-project gap analysis, conformance auditing, behavioral parity work, or
+agent-led modernization.
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that both repositories have been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repos at [app.corestory.ai](https://app.corestory.ai).**
+
+## Non-negotiable rules
+- Source decides truth; intelligence only accelerates discovery
+- No claim without a confirmed `file:line` anchor
+- Target only — never modify the legacy system
+- One session, one artifact; stop at each gate
+- Never verify code written in the same session
+
+## Six-Step Arc
+
+### Step 1: Recover Both Architectures
+- Target service design, with an explicit catalogue of its idioms
+- Where legacy behavior will land
+- Legacy scope, non-code artifacts, dependency edges
+
+### Step 2: Legacy Behavioral Contract
+- Rules with mandatory anchors; open and confirm each one
+- Migration intent: PRESERVE / MODIFY / DISCARD
+- **Gate 1: domain expert validates the spec**
+
+### Step 3: Backlog and Test Strategy
+- Dual-provenance tickets; business-facing user-story layer
+- Test approach set before implementation
+
+### Step 4: Dual-Project Gap Analysis
+- EXISTS / EXTEND / NEW / CONFLICT per requirement
+- Escalate every CONFLICT
+- **Gate 2: human approves the plan before any code**
+
+### Step 5: Converge Test-First
+- Tests first; confirm they fail for the right reason
+- Implement to green in the target's idiom; no unapproved new patterns
+- Seam check: would a reviewer know this came from a migration?
+
+### Step 6: Verify Twice
+- Equivalence report: Preserved / Modified / Discarded / Missing
+- Conformance audit against legacy source only, ignoring the report and the tests:
+  DELIVERED / STUBBED / MISSING / DIVERGES / UNVERIFIABLE, plus an orphan sweep
+- **Gate 3: sign off only when both agree**
+
+## Key Principles
+- Velocity is earned by cheap grounding, not by skipping it
+- The tests are not the oracle; legacy source is
+- Record corrections, not just conclusions
+- Watch the ratio of changed to preserved behavior — drift shows up there first
+````
+
+</Accordion>
+
+<Accordion title="Factory.ai">
+
+Create `.factory/droids/vibe-modernization.md`:
+
+````markdown
+---
+name: CoreStory Vibe Modernization
+description: Agent-led, human-gated modernization across legacy and target projects with source-grounded validation and independent conformance audit
+model: inherit
+tools:
+  - CoreStory:list_projects
+  - CoreStory:get_project_techspec
+  - CoreStory:get_project_prd
+  - CoreStory:create_conversation
+  - CoreStory:send_message
+  - CoreStory:rename_conversation
+  - CoreStory:list_conversations
+  - CoreStory:get_conversation
+---
+
+# CoreStory Vibe Modernization
+
+Execute the six-step arc to forward-engineer legacy behavior into an existing target.
+
+## Activation Triggers
+- "Forward-engineer [module] into the target"
+- "Gap-analyze [ticket] across both projects"
+- "Run the conformance audit for [scope]"
+- Any behavioral-parity or agent-led modernization request
+
+## CoreStory MCP Tools
+- `CoreStory:list_projects` — confirm both legacy and target projects are ingested
+- `CoreStory:get_project_techspec` — ground convergence in the target's real structure
+- `CoreStory:get_project_prd` — business context for the behavioral contract
+- `CoreStory:create_conversation` — one thread per phase artifact and work item
+- `CoreStory:send_message` — query either project
+- `CoreStory:list_conversations` / `CoreStory:get_conversation` — prior findings and
+  citable provenance references
+- `CoreStory:rename_conversation` — mark threads "RESOLVED" at sign-off
+
+**If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that both repositories have been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repos at [app.corestory.ai](https://app.corestory.ai).**
+
+## Workflow
+
+Step 1: Recover Both Architectures → target service design + idiom catalogue; landing zones
+Step 2: Legacy Behavioral Contract → anchored rules, confirmed against source → **Gate 1**
+Step 3: Backlog + Test Strategy → dual-provenance tickets, user-story layer
+Step 4: Dual-Project Gap Analysis → EXISTS / EXTEND / NEW / CONFLICT → **Gate 2**
+Step 5: Converge Test-First → red, then green, in the target's idiom, target only
+Step 6: Verify Twice → equivalence report + independent conformance audit → **Gate 3**
+
+## Key Principles
+- Source decides truth; no claim without a confirmed anchor
+- Target only; never modify the legacy system
+- One session, one artifact; stop at each gate
+- Never verify code written in the same session
+- The conformance audit ignores the equivalence report and the tests by design
+- Record corrections in the Context Inventory, not just conclusions
+````
+
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## Troubleshooting
+
+**The agent produces confident claims that turn out to be wrong.**
+
+This is the expected failure mode, and it is exactly what the grounding discipline exists to absorb — the fix is not a better prompt, it is a mandatory anchor. Require a `file:line` for every claim and open the cited location. Where the code contradicts the claim, the code wins and the correction goes in the Context Inventory. Treat an unusually high correction rate as information about which areas need closer human attention, not as a reason to abandon the approach.
+
+**The intelligence layer says a module or behavior isn't there, but you know it is.**
+
+Do not accept a negative result at face value. Absence of evidence from any retrieval layer is not evidence of absence. Re-query with different phrasing, then confirm directly against source. A false "not found" that goes unchallenged silently removes real behavior from the spec — which the orphan sweep in Step 6b is your last line of defense against.
+
+**Everything passes but you don't trust it.**
+
+That instinct is usually right, and it usually means the checks are not independent. Confirm the BER was written in a session separate from the build, and that the conformance audit did not read the BER. If the same context produced the code, the tests, and both verifications, all four agree because they share one understanding — not because the code is correct.
+
+**The conformance audit disagrees with the Behavioral Equivalence Report.**
+
+Good — that is the method working. Do not average them or split the difference. Resolve against legacy source directly and determine which is wrong, then correct that artifact and record the resolution. A run where the two never disagree is worth a look: either the work is genuinely clean, or the audit is not independent.
+
+**New code looks bolted on rather than native to the target.**
+
+Step 1's idiom catalogue was too thin. Go back and make it explicit — error handling, logging, configuration, transaction boundaries, naming, test structure — with the files that establish each pattern, then re-run the seam check on the diff. Convergence is a judgment call that needs a human who knows the target; budget for that review rather than expecting the agent to self-assess taste.
+
+**Scope keeps creeping — the modernization is becoming a rewrite.**
+
+Watch the ratio of deliberately-modified and net-new behavior to preserved behavior. When it climbs, you are drifting. The structural fix is at Gate 2: if a gap-analysis plan proposes touching more of the target than the ticket justifies, send it back there, where the cost is one planning cycle rather than a delivery.
+
+**The gates are slowing us down.**
+
+Check whether they are actually gates. If no gate has ever sent work back, they are decorative and the slowdown is scheduling overhead rather than review. If they genuinely bind, that is the method functioning — the trade is few consequential reviews instead of many small ones, and consequential reviews take real time.
+
+**Agent can't access CoreStory tools.**
+
+See the [Supercharging AI Agents](/getting-started/supercharging-ai-agents) troubleshooting section for MCP connection issues. Verify both projects have completed ingestion by calling `list_projects` and checking their status.
+
+---
+
+## What's Next
+
+**Start the arc:** [Codebase Assessment →](/playbooks/modernization/codebase-assessment) — run it against both projects to recover the target and scope the legacy.
+
+**Build the contract:** [Business Rules Extraction →](/playbooks/business-rules-extraction) — the source-anchored behavioral spec everything downstream verifies against.
+
+**Shape the backlog:** [Decomposition & Sequencing →](/playbooks/modernization/decomposition-sequencing) — work packages the agent executes against, and [Using CoreStory with Jira →](/playbooks/using-corestory-with-jira) to push them into tracking.
+
+**Verify the result:** [Behavioral Verification →](/playbooks/modernization/behavioral-verification) — the first of the two independent checks.
+
+**Compose with a target shape:** [Monolith → Microservices →](/playbooks/modernization/monolith-to-microservices) — execution-mode and architecture variants stack; run this arc toward a microservices target.
+
+**Return to the hub:** [Code Modernization →](/playbooks/code-modernization) — the full six-phase framework this variant runs at its most aggressive setting.
