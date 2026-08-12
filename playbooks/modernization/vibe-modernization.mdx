@@ -572,7 +572,7 @@ The provenance ledger. One entry per non-obvious decision, written when the deci
 | # | Decision or claim | Source of the claim | How it was validated | Anchor | Outcome |
 |---|-------------------|--------------------|--------------------|--------|---------|
 | 1 | Quantity validation rejects zero | CoreStory conv. `abc-123` | Opened source; confirmed | `PGM01:L448` | Confirmed as stated |
-| 2 | Rounding is half-up | CoreStory conv. `abc-123` | Opened source; contradicted | `PGM02:L88` | **Corrected** — half-even; intelligence layer was wrong |
+| 2 | Rounding is half-up | CoreStory conv. `abc-123` | Opened source; contradicted | `PGM02:L88` | **Corrected** — source shows half-even |
 | 3 | Re-import path is unused | Assumption during planning | Orphan sweep, Step 6b | `PGM02:L320` | **Corrected** — path is live |
 ```
 
@@ -966,11 +966,11 @@ Step 6: Verify Twice → equivalence report + independent conformance audit → 
 
 **The agent produces confident claims that turn out to be wrong.**
 
-This is the expected failure mode, and it is exactly what the grounding discipline exists to absorb — the fix is not a better prompt, it is a mandatory anchor. Require a `file:line` for every claim and open the cited location. Where the code contradicts the claim, the code wins and the correction goes in the Context Inventory. Treat an unusually high correction rate as information about which areas need closer human attention, not as a reason to abandon the approach.
+This is an expected occurrence rather than a system failure, and it is exactly what the grounding discipline exists to absorb — the fix is not a better prompt, it is a mandatory anchor. Require a `file:line` for every claim and open the cited location. Where the code contradicts the claim, the code wins and the correction goes in the Context Inventory. This is the base playbook's [Contradicted state](/playbooks/code-modernization#working-with-ai-derived-findings) made mechanical: at agent speed you cannot triage contradictions case by case, so you check every anchor and let the record show which ones moved.
 
-**The intelligence layer says a module or behavior isn't there, but you know it is.**
+**The behavioral spec turns out to be incomplete.**
 
-Do not accept a negative result at face value. Absence of evidence from any retrieval layer is not evidence of absence. Re-query with different phrasing, then confirm directly against source. A false "not found" that goes unchallenged silently removes real behavior from the spec — which the orphan sweep in Step 6b is your last line of defense against.
+No extraction pass — human or agent — is guaranteed exhaustive, and a rule that never made it into the spec is invisible to every downstream check that verifies *against* the spec. This is precisely what the orphan sweep in Step 6b exists to catch: it reads the legacy source in the opposite direction and asks what is there that the spec never mentioned. If the sweep is finding a lot, the answer is to widen Step 2's scope rather than to trust the sweep as a safety net — it is a backstop, not a substitute for a complete contract.
 
 **Everything passes but you don't trust it.**
 
