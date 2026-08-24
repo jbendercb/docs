@@ -47,7 +47,7 @@ That is the whole entry test. Note what is deliberately *not* on it: whether the
 ## Prerequisites
 
 - **The legacy system ingested as a CoreStory project.** Non-negotiable — every deliverable in the arc grounds in it.
-- **The target ingested as a second CoreStory project — once the target exists.** The dual-project setup is what lets the agent reason across both sides in a single pass. A standing target should be ingested before you begin. A greenfield target *cannot* be, and the method does not ask you to fake it: see [Step 0](#step-0-design-and-bootstrap-the-target-greenfield-only), which runs single-project and defines the point at which the second project comes online.
+- **The target ingested as a second CoreStory project — once the target exists.** The dual-project setup is what lets the agent reason across both sides in a single pass. A standing target should be ingested before you begin. A greenfield target *cannot* be, and the method does not ask you to fake it: the arc runs single-project through Steps 1 and 2, and [Step 2B](#step-2b-design-and-bootstrap-the-target-greenfield-only) is where the second project comes online.
 - **An AI coding agent with CoreStory MCP configured** — see [Supercharging AI Agents](/getting-started/supercharging-ai-agents).
 - **Direct read access to legacy source** for the agent, not just the intelligence layer. Code intelligence accelerates discovery; source decides truth. The agent must be able to open the file and cite the line.
 - **A named domain expert** who can validate the behavioral spec. This is a gate, not a courtesy review.
@@ -91,12 +91,12 @@ On convergence and the Strangler Fig: the base playbook's [default execution pat
 Whether a target architecture already exists is **not** a reason to choose one playbook over the other. It changes only the shape of the front of the arc:
 
 - **Standing (brownfield) target** — already exists, partially built, with its own architecture and idioms. You skip target design entirely, reverse-engineer *both* sides, and converge into what's there. This is the path the walkthrough below is written for.
-- **Greenfield target** — nothing built yet. You fold the base playbook's [Phase 3](/playbooks/code-modernization#phase-3-target-architecture-strategy) back into the arc as [Step 0](#step-0-design-and-bootstrap-the-target-greenfield-only) — select the strategy with the 7 Rs, design the target, then bootstrap enough of it to be real — and then proceed unchanged. Everything downstream (the grounding, the convergence, the two-check verification) is identical; Step 1 simply keeps the target's emerging structure grounded rather than recovering a structure that already exists.
+- **Greenfield target** — nothing built yet. You fold the base playbook's [Phase 3](/playbooks/code-modernization#phase-3-target-architecture-strategy) back into the arc as [Step 2B](#step-2b-design-and-bootstrap-the-target-greenfield-only) — select the strategy with the 7 Rs, design the target, then bootstrap enough of it to be real — and then proceed unchanged. It sits after Step 2, in base Phase 3's own position, because the design is derived from the legacy assessment and the validated behavioral contract rather than chosen ahead of them. Everything downstream (the grounding, the convergence, the two-check verification) is identical; Step 1 simply keeps the target's emerging structure grounded rather than recovering a structure that already exists.
 
 **The one thing greenfield genuinely changes: you start with one CoreStory project, not two.** A repository holding a README and a directory layout has nothing to index, so the second project cannot exist on day one — and an arc that demands it up front will refuse to run. Two consequences worth stating plainly, because they are easy to get wrong:
 
 - **Only two of the arc's steps actually need the target project.** Step 1's target half (the idiom catalogue) and Step 4's target half (what already exists, what would break). Step 2 and Step 3 are legacy-only. Step 5 writes code against the working tree. Steps 6a and 6b use *legacy* source as the oracle and read target files directly. So single-project mode is a narrow accommodation at the front of the arc, not a degraded version of the method.
-- **On the target side, direct file access substitutes cleanly while the target is small.** Code intelligence earns its keep in proportion to how much code there is to reason over; a target you can read end to end does not need an index yet. That is why Step 0 does not block on ingestion — there is genuinely nothing to gain from it yet.
+- **On the target side, direct file access substitutes cleanly while the target is small.** Code intelligence earns its keep in proportion to how much code there is to reason over; a target you can read end to end does not need an index yet. That is why the front of the arc does not block on target ingestion — there is genuinely nothing to gain from it yet.
 
 Reasoning across both a legacy and a target codebase is a net improvement for **any** modernization variant, base included. It is shared ground, not a vibe-mod distinction — it just happens to be indispensable when the agent is the one doing the reasoning.
 
@@ -104,7 +104,7 @@ Reasoning across both a legacy and a target codebase is a net improvement for **
 
 | Tool | Step(s) | Purpose |
 |------|----------|---------|
-| `list_projects` | 0, 1 | Confirm which projects exist and that ingestion is complete — both legacy and target on a standing target, legacy only until [Step 0](#step-0-design-and-bootstrap-the-target-greenfield-only) hands off |
+| `list_projects` | 1, 2B | Confirm which projects exist and that ingestion is complete — both legacy and target on a standing target, legacy only until [Step 2B](#step-2b-design-and-bootstrap-the-target-greenfield-only) hands off |
 | `create_conversation` | 1, 2, 3, 4, 6 | Open a dedicated thread per phase artifact and per work item |
 | `send_message` | 1, 2, 3, 4, 5, 6 | Query either project for structure, behavior, gap analysis, and verification evidence |
 | `get_project_techspec` | 1, 4 | Retrieve the target's Tech Spec to ground convergence in its actual structure |
@@ -117,9 +117,9 @@ Reasoning across both a legacy and a target codebase is a net improvement for **
 
 > **Note:** The steps below are internal to this playbook. They map onto the [six-phase modernization framework](/playbooks/code-modernization) rather than replacing it — the mapping is in the table under each step heading.
 
-0. **Design and Bootstrap the Target** — *greenfield only; skip entirely when the target already exists.* Select the strategy, design the target, and build enough of it to ingest.
 1. **Recover Both Architectures** — reverse-engineer the target's service design and the legacy's structure, so the agent knows where legacy behavior will land.
 2. **Extract the Legacy Behavioral Contract** — a source-verified behavioral spec. This is the contract everything downstream verifies against.
+2B. **Design and Bootstrap the Target** — *greenfield only; skip entirely when the target already exists.* Select the strategy, design the target against what Steps 1 and 2 established, and build enough of it to ingest.
 3. **Author the Backlog and Test Strategy** — the backlog is a deliverable in its own right, authored with the same grounding discipline as the code.
 4. **Gap-Analyze Before Writing Code** — per work item, across both projects: what exists in the target, what the legacy requires, what must change. **This is the plan-approval gate.**
 5. **Converge Into the Target, Test-First** — Red → Green, in the target's own idiom, emitting provenance as it goes.
@@ -131,13 +131,13 @@ A discipline that spans all six: **one session, one artifact of depth.** Do not 
 
 Most of the arc is existing playbooks run with the grounding discipline turned up. Only two things are genuinely new.
 
-Step 0 is conditional — it runs only on a greenfield target, and a standing target starts at Step 1.
+Step 2B is conditional — it runs only on a greenfield target, and a standing target skips it. It sits after Step 2 rather than at the front because base Phase 3 takes the assessment and the rules inventory as its primary inputs.
 
 | Step | Runs on | Status in this variant |
 |------|---------|------------------------|
-| 0. Design and bootstrap the target | [Target Architecture & Strategy](/playbooks/modernization/target-architecture) | Borrowed — **greenfield only**, folded back in from base Phase 3; skipped outright on a standing target |
 | 1. Recover both architectures | [Codebase Assessment](/playbooks/modernization/codebase-assessment), applied to *both* projects | Inverted — you recover a target rather than design one |
 | 2. Legacy behavioral contract | [Business Rules Extraction](/playbooks/business-rules-extraction) | Borrowed, hardened — every rule carries a source anchor |
+| 2B. Design and bootstrap the target | [Target Architecture & Strategy](/playbooks/modernization/target-architecture) | Borrowed — **greenfield only**, base Phase 3 in its base position; skipped outright on a standing target |
 | 3. Backlog and test strategy | [Decomposition & Sequencing](/playbooks/modernization/decomposition-sequencing) + [Spec-Driven Test Generation](/playbooks/spec-driven-test-generation) | Borrowed, hardened — the backlog is a graded deliverable |
 | 4. Gap analysis per work item | [Feature Gap Analysis](/playbooks/feature-gap-analysis), run across two projects at once | **Net-new twist** — dual-project, per-ticket, pre-implementation |
 | 5. Converge into the target | [Feature Implementation](/playbooks/feature-implementation) | Borrowed, hardened — test-first and target-only |
@@ -149,9 +149,9 @@ Step 0 is conditional — it runs only on a greenfield target, and a standing ta
 
 Agent-led is not agent-unattended. This variant trades *many* small review moments for *few* consequential ones — which means the ones that remain carry real weight and cannot be waved through.
 
-> **Gate 0 — Target design approval (after Step 0, greenfield only).** A human signs off the target ADR before anything is scaffolded. Inherited from base Phase 3 rather than invented here, and skipped entirely on a standing target — but on greenfield it is the cheapest gate in the arc, because changing your mind about the target costs one document instead of a delivery.
-
 > **Gate 1 — Spec validation (after Step 2).** A domain expert confirms the legacy behavioral spec. Business rules define "correct"; get them confirmed before anything is built against them. This is the single highest-leverage hour in the engagement.
+
+> **Gate 2B — Target design approval (after Step 2B, greenfield only).** A human signs off the target ADR before anything is scaffolded. Inherited from base Phase 3 rather than invented here, and skipped entirely on a standing target — but on greenfield it is the cheapest gate in the arc, because changing your mind about the target costs one document instead of a delivery. It follows Gate 1 deliberately: the design is answerable to a behavioral contract an expert has already confirmed.
 
 > **Gate 2 — Plan approval (Step 4, per work item).** The gap-analysis plan is approved by a human *before any code is written*. The agent proposes; a human decides. This is the gate that keeps velocity from becoming drift.
 
@@ -163,47 +163,11 @@ A useful check on whether you are running the method honestly: if no gate has ev
 
 ## Step-by-Step Walkthrough
 
-### Step 0: Design and Bootstrap the Target (Greenfield Only)
-
-*Base framework: Phase 3, folded back in.*
-
-**Skip this step entirely if the target already exists.** It exists for one situation: you have a legacy system worth modernizing and nothing yet to converge into. Running it is what makes the arc executable with a single CoreStory project.
-
-**Select the strategy and design the target.** Run the [Target Architecture & Strategy](/playbooks/modernization/target-architecture) playbook against the legacy project — the 7 Rs, the target shape, the risk and effort call — and produce its Architectural Decision Record. Nothing here differs from the base playbook's Phase 3, so it is not restated.
-
-Two vibe-mod overlays on it:
-
-- **Record the target's intended idioms in the ADR, not just its structure.** Error handling, logging, configuration, transaction boundaries, naming, test layout. On a standing target Step 1 *recovers* this catalogue from code; here you are choosing it, and Step 5's convergence discipline needs it to exist either way. Choosing it deliberately is the one advantage greenfield has over brownfield — take it.
-- **The ADR is a source-grounded deliverable like any other.** Claims about what the legacy requires of the target carry `file:line` anchors against legacy source. Claims about the target are decisions, not findings — label them as such so the audit trail never confuses a choice with an observation.
-
-⛔ **GATE 0 — target design approval.** A human signs off the ADR before scaffolding. This gate is not new; it is base Phase 3's gate, and it is the cheapest place in the entire arc to change your mind about the target.
-
-**Bootstrap the target to the ingestion threshold.** Now build the smallest thing that is genuinely a system rather than a placeholder:
-
-- the build and dependency configuration, working
-- the layering the ADR chose, as real directories with real module boundaries
-- the test harness, able to run and able to report a failure
-- **one working vertical slice** — the thinnest end-to-end path through those layers, with a test that covers it
-
-That last item is the one that matters, and the one people skip. A slice proves the layering compiles, runs, and is testable, and it gives the idiom catalogue something concrete to point at. A tree of empty directories proves none of that.
-
-<Warning>
-A repository containing only a README, or only a directory skeleton, has nothing for CoreStory to index. Ingesting it produces an empty or near-empty project, which is worse than no project at all — the agent will query it, get nothing back, and report "the target has no such capability" for every question you ask. Bootstrap first, then ingest.
-</Warning>
-
-**Hand off to the standing-target path.** Ingest the scaffolded target as your second CoreStory project. From this point the greenfield and standing paths are the same arc: Step 1 catalogues the target's idioms from the scaffold you just built — thin, but real, and it thickens as you go.
-
-**Re-ingest the target on a cadence.** A greenfield target changes shape fast, and this is the one place in the arc where the intelligence layer can go stale enough to mislead. Re-ingest when the target's *structure* changes — a new module, a new layer, a new integration point — rather than on every commit. Between re-ingestions, treat the target index as a map that may be a few tickets behind, and let direct file reads settle anything structural. The always-on discipline covers you here: source decides truth, and on the target side that means the working tree.
-
-*Base framework mapping: this step is base [Phase 3](/playbooks/code-modernization#phase-3-target-architecture-strategy) run unchanged, plus a bootstrap task the base playbook does not need because it never assumes the target is empty.*
-
----
-
 ### Step 1: Recover Both Architectures
 
 *Base framework: Phases 1 and 3, collapsed and inverted.*
 
-In the base playbook, Phase 1 assesses the legacy for readiness and Phase 3 designs the target. When the target already exists, those two collapse: there is nothing to design, so instead of *choosing* a target you **recover the one that already exists** — and you understand the legacy well enough to converge onto it. Arriving here from [Step 0](#step-0-design-and-bootstrap-the-target-greenfield-only), you are recovering the scaffold you just built: the same procedure, against less code.
+In the base playbook, Phase 1 assesses the legacy for readiness and Phase 3 designs the target. When the target already exists, those two collapse: there is nothing to design, so instead of *choosing* a target you **recover the one that already exists** — and you understand the legacy well enough to converge onto it. On a greenfield target there is nothing to recover on the target side yet — run this step against the legacy alone, and the target's structure gets *chosen* rather than recovered in [Step 2B](#step-2b-design-and-bootstrap-the-target-greenfield-only).
 
 **Confirm what is ingested:**
 
@@ -315,6 +279,48 @@ This classification is what Step 6 verifies against.
 > **Gate 1 — Spec validation.** A domain expert confirms the spec before anything is built against it. Bring them the rules that are ambiguous, that look like defects, and that you have classified MODIFY or DISCARD. Do not bring them 400 rules and ask for a blanket approval.
 
 **What good looks like:** each behavior stated with its source anchor and a migration intent, so Step 6 has an unambiguous checklist rather than a judgment call.
+
+---
+
+### Step 2B: Design and Bootstrap the Target (Greenfield Only)
+
+*Base framework: Phase 3, folded back in — in its base position, after the assessment and the rules.*
+
+**Skip this step entirely if the target already exists.** It exists for one situation: you have a legacy system worth modernizing and nothing yet to converge into.
+
+**It runs here, not at the front of the arc, and the position is the point.** Base [Phase 3](/playbooks/code-modernization#phase-3-target-architecture-strategy) names two inputs as primary: the Modernization Readiness Report from Phase 1 and the business rules inventory from Phase 2 — because you cannot sensibly decide what a system *should become* before you know what it currently *does*. In this arc those are Step 1 and Step 2. Running target design before them would produce an architecture chosen from general preference rather than from this legacy system's actual coupling, data dependencies, and business rules. So on a greenfield target the front of the arc is unchanged: assess the legacy, extract and validate its behavioral contract, *then* design the thing that has to honor it.
+
+Concretely, the ADR you produce here is answerable to artifacts that already exist by the time you start it:
+
+- the legacy's coupling hotspots, shared-data dependencies, and modernization blockers, from Step 1
+- the behavioral contract a domain expert signed off at Gate 1, including everything classified PRESERVE
+- the rules classified MODIFY or DISCARD, which are the ones most likely to change the target's shape
+
+**Select the strategy and design the target.** Run the [Target Architecture & Strategy](/playbooks/modernization/target-architecture) playbook against the legacy project — the 7 Rs, the target shape, the risk and effort call — citing those inputs. Nothing here differs from the base playbook's Phase 3, so it is not restated.
+
+Two vibe-mod overlays on it:
+
+- **Record the target's intended idioms in the ADR, not just its structure.** Error handling, logging, configuration, transaction boundaries, naming, test layout. On a standing target Step 1 *recovers* this catalogue from code; here you are choosing it, and Step 5's convergence discipline needs it to exist either way. Choosing it deliberately is the one advantage greenfield has over brownfield — take it.
+- **Keep decisions and findings distinguishable.** Claims about what the legacy requires of the target carry `file:line` anchors against legacy source. Claims about the target are decisions, not findings — label them as such so the audit trail never confuses a choice with an observation.
+
+⛔ **GATE 2B — target design approval.** A human signs off the ADR before scaffolding. This gate is not new; it is base Phase 3's own gate, and it is the cheapest place in the entire arc to change your mind about the target.
+
+**Bootstrap the target to the ingestion threshold.** Now build the smallest thing that is genuinely a system rather than a placeholder:
+
+- the build and dependency configuration, working
+- the layering the ADR chose, as real directories with real module boundaries
+- the test harness, able to run and able to report a failure
+- **one working vertical slice** — the thinnest end-to-end path through those layers, with a test that covers it
+
+That last item is the one that matters, and the one people skip. A slice proves the layering compiles, runs, and is testable, and it gives the idiom catalogue something concrete to point at. A tree of empty directories proves none of that.
+
+<Warning>
+A repository containing only a README, or only a directory skeleton, has nothing for CoreStory to index. Ingesting it produces an empty or near-empty project, which is worse than no project at all — the agent will query it, get nothing back, and report "the target has no such capability" for every question you ask. Bootstrap first, then ingest.
+</Warning>
+
+**Hand off to the standing-target path.** Ingest the scaffolded target as your second CoreStory project. From here the greenfield and standing paths are the same arc: Step 3 sequences work into a target that now exists, and Step 4's gap analysis has two projects to reason across. The target-side idiom catalogue that a standing target gets from Step 1 you already hold — you wrote it into the ADR and then built it.
+
+*Base framework mapping: base [Phase 3](/playbooks/code-modernization#phase-3-target-architecture-strategy) run in its base position, plus a bootstrap task the base playbook does not need because it never assumes the target is empty.*
 
 ---
 
@@ -710,7 +716,7 @@ The accordions below walk through end-to-end setup for the four most common harn
 
 #### Setup
 
-1. **Configure the CoreStory MCP server** in your Claude Code settings (see [CoreStory MCP Server Setup Guide](/getting-started/mcp-server-setup)). The legacy project must be ingested. Ingest the target too if it already exists — if it does not, [Step 0](#step-0-design-and-bootstrap-the-target-greenfield-only) builds it first and the arc starts with one project.
+1. **Configure the CoreStory MCP server** in your Claude Code settings (see [CoreStory MCP Server Setup Guide](/getting-started/mcp-server-setup)). The legacy project must be ingested. Ingest the target too if it already exists — if it does not, the arc starts with one project and [Step 2B](#step-2b-design-and-bootstrap-the-target-greenfield-only) builds it once the legacy contract is validated.
 
 2. **Install the step skills you don't already have.** The router delegates to the skills from [Target Architecture & Strategy](/playbooks/modernization/target-architecture) (greenfield targets only), [Codebase Assessment](/playbooks/modernization/codebase-assessment), [Business Rules Extraction](/playbooks/business-rules-extraction), [Decomposition & Sequencing](/playbooks/modernization/decomposition-sequencing), [Spec-Driven Test Generation](/playbooks/spec-driven-test-generation), [Feature Gap Analysis](/playbooks/feature-gap-analysis), [Feature Implementation](/playbooks/feature-implementation), [Behavioral Verification](/playbooks/modernization/behavioral-verification), and [E2E Test Generation](/playbooks/test-generation/e2e-test-generation). Install each from its own page.
 
@@ -735,7 +741,7 @@ git commit -m "Add CoreStory vibe modernization skills"
 ```
 Start the vibe modernization arc for [SystemName]
 Where are we in the arc?
-Design and bootstrap the target for [SystemName]   (greenfield only)
+Design and bootstrap the target for [SystemName]   (greenfield, after step 2)
 Gap-analyze [TICKET-ID] across both projects
 Run the conformance audit for [scope]
 ```
@@ -744,7 +750,7 @@ Run the conformance audit for [scope]
 
 - The router will stop at the end of every step. That is the design, not a stall — approve and start a new session for the next one.
 - Run Step 6 in a **different session** from Step 5. The router refuses to verify a build performed in its own session; do not talk it out of that.
-- If the target does not exist yet, say so in your first message. The router will start at Step 0 rather than asking for a second project it cannot have.
+- If the target does not exist yet, say so in your first message. The router will run Steps 1 and 2 legacy-only and design the target at Step 2B, rather than asking for a second project it cannot have.
 - Keep each SKILL.md under 500 lines for reliable loading.
 
 #### Router Skill File
@@ -769,7 +775,7 @@ This router differs from the base modernization orchestrator in one way: it does
 2. **Always use the dedicated skill.** The summaries below are for orientation only — they do not contain enough detail to execute a step correctly.
 3. **After completing a step, STOP.** Present the deliverable and wait for explicit approval before offering to advance.
 4. **Never verify a build you performed.** If asked to run Step 6 in the session that ran Step 5, decline and ask for a fresh session. Independence is the mechanism, not a formality.
-5. **A missing target project is never a reason to refuse.** Only Step 1's target half and Step 4's target half need it. If the target does not exist yet, run Step 0. If it exists but is not ingested, run single-project mode (below). Never tell the user the arc requires two projects before it can start.
+5. **A missing target project is never a reason to refuse.** Only Step 1's target half and Step 4's target half need it. If the target does not exist yet, start at Step 1 anyway and run Step 2B when you reach it. If it exists but is not ingested, run single-project mode (below). Never tell the user the arc requires two projects before it can start, and never jump ahead to Step 2B to manufacture one — it depends on Steps 1 and 2.
 
 ## Always-On Disciplines
 
@@ -788,7 +794,7 @@ Apply these to every delegated skill, whatever that skill's own defaults are:
 - A domain expert available for the spec-validation gate
 
 **Required only from Step 1 onward:**
-- The target ingested as a second CoreStory project. If the target does not exist yet, this is what Step 0 produces. Do not treat its absence as a blocker at the start of the arc.
+- The target ingested as a second CoreStory project. Needed from Step 3 onward. If the target does not exist yet, Step 2B produces it. Do not treat its absence as a blocker at the start of the arc — Steps 1 and 2 are legacy-only either way.
 
 **If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that the legacy repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
 
@@ -807,30 +813,21 @@ When the legacy project is ingested but the target is not — because the target
 Before doing anything, determine where the user is:
 
 1. **Establish whether the target exists.** Call `list_projects` and ask the user directly. Three cases:
-   - **Target exists and is ingested** → standing target. Start at Step 1; never run Step 0.
-   - **Target repo exists but has little or no code** (a README, a bare directory skeleton) → greenfield. Start at Step 0. Do not ingest it yet — an empty project answers every question with "not present" and will corrupt the gap analysis.
+   - **Target exists and is ingested** → standing target. Start at Step 1; never run Step 2B.
+   - **Target repo exists but has little or no code** (a README, a bare directory skeleton) → greenfield. Still start at Step 1, legacy-only, and run Step 2B after Step 2. Do not ingest the empty repo — an empty project answers every question with "not present" and will corrupt the gap analysis.
    - **Target exists with real code but is not ingested** → ask the user to ingest it. If they would rather not yet, run single-project mode from Step 1.
 2. **Ask the user** which step they want, OR
 3. **Check CoreStory conversations** (`list_conversations`) for completed markers:
-   - "RESOLVED - [Target]..." → Step 0 complete
    - "RESOLVED - [Recovery]..." → Step 1 complete
    - "RESOLVED - [Contract]..." → Step 2 complete
+   - "RESOLVED - [Target]..." → Step 2B complete (greenfield only)
    - "RESOLVED - [Backlog]..." → Step 3 complete
    - Active "[Gap]..." → Step 4 in progress
    - Active "[Build]..." → Step 5 in progress
    - Active "[Verify]..." → Step 6 in progress
-4. **If no prior work exists**, start at Step 0 for a greenfield target, Step 1 otherwise.
+4. **If no prior work exists**, start at Step 1 — on a greenfield target too. Greenfield changes where Step 2B appears, not where the arc begins.
 
 Once you know the step, read and follow its dedicated skill completely.
-
-## Step 0: Design and Bootstrap the Target (greenfield only)
-**Skip entirely when the target already exists.**
-Dedicated skill: `target-architecture`.
-Terminology warning: that skill uses "target project" to mean *the CoreStory project being analyzed* — which here is the **legacy** project. In this arc "target" means the system being built. Do not conflate them; run `target-architecture` against the legacy project to produce a design for the new system.
-Overlay: record the target's intended idioms in the ADR (error handling, logging, configuration, transaction boundaries, naming, test structure) — Step 1 recovers this catalogue from code on a standing target, so on greenfield you must choose it deliberately. Label target-side statements as decisions, not findings; only legacy-side claims carry `file:line` anchors.
-⛔ GATE 0: a human approves the target ADR before anything is scaffolded.
-Then bootstrap to the ingestion threshold: working build configuration, the chosen layering as real modules, a test harness that can report a failure, and one working end-to-end vertical slice with a test. A directory skeleton is not enough — CoreStory needs real code to index.
-Finally, have the user ingest the scaffolded target as the second project, and stop. Step 1 runs in a new session.
 
 ## Step 1: Recover Both Architectures
 Dedicated skill: `codebase-assessment` — run against **both** projects where both are ingested; in single-project mode, run it against the legacy project and recover the target's structure by reading its working tree.
@@ -841,6 +838,16 @@ Overlay: on the target, produce an explicit catalogue of its idioms (error handl
 Dedicated skill: `business-rules-extraction`.
 Overlay: every rule carries a source anchor, and every anchor is opened and confirmed before the spec is considered done. Classify migration intent PRESERVE / MODIFY / DISCARD.
 ⛔ GATE 1: a domain expert validates the spec. Bring them the ambiguous rules and everything classified MODIFY or DISCARD — not a blanket approval request.
+
+## Step 2B: Design and Bootstrap the Target (greenfield only)
+**Skip entirely when the target already exists.** Runs after Step 2, never before Step 1.
+Dedicated skill: `target-architecture`.
+Required inputs, both of which exist by now: Step 1's legacy assessment (coupling hotspots, shared-data dependencies, blockers) and Step 2's expert-validated behavioral contract. `target-architecture` names those as its primary inputs, so do not run this step earlier in the arc — a target designed before you know what the legacy does is a preference, not a decision.
+Terminology warning: that skill uses "target project" to mean *the CoreStory project being analyzed* — which here is the **legacy** project. In this arc "target" means the system being built. Do not conflate them; run `target-architecture` against the legacy project to produce a design for the new system.
+Overlay: record the target's intended idioms in the ADR (error handling, logging, configuration, transaction boundaries, naming, test structure) — Step 1 recovers this catalogue from code on a standing target, so on greenfield you must choose it deliberately. Cite the legacy inputs above for every shape-driving decision. Label target-side statements as decisions, not findings; only legacy-side claims carry `file:line` anchors.
+⛔ GATE 2B: a human approves the target ADR before anything is scaffolded.
+Then bootstrap to the ingestion threshold: working build configuration, the chosen layering as real modules, a test harness that can report a failure, and one working end-to-end vertical slice with a test. A directory skeleton is not enough — CoreStory needs real code to index.
+Finally, have the user ingest the scaffolded target as the second project, and stop. Step 3 runs in a new session.
 
 ## Step 3: Backlog and Test Strategy
 Dedicated skills: `decomposition-sequencing`, then `spec-driven-test-generation`.
@@ -870,9 +877,10 @@ Dedicated skill: `e2e-test-generation` — one headline flow, archived as eviden
 ⛔ GATE 3: equivalence sign-off, only once the BER and the conformance audit agree.
 
 ## Error Handling
-- **Only one CoreStory project exists:** do not refuse. Establish whether the target is greenfield (→ Step 0) or merely un-ingested (→ single-project mode). The arc has a defined path for both.
-- **Target repo is too small to ingest, or ingests empty:** expected on greenfield. Do not retry the ingestion and do not query the empty project — bootstrap the target first per Step 0, then ingest.
+- **Only one CoreStory project exists:** do not refuse. Establish whether the target is greenfield (→ start at Step 1, run Step 2B after Step 2) or merely un-ingested (→ single-project mode). The arc has a defined path for both.
+- **Target repo is too small to ingest, or ingests empty:** expected on greenfield. Do not retry the ingestion and do not query the empty project — bootstrap the target in Step 2B, then ingest.
 - **Target index looks out of date:** likely, on a greenfield target that is changing shape. Re-ingest when the target's structure changes (a new module, layer, or integration point) rather than per commit, and settle anything structural from the working tree in the meantime.
+- **User asks to design the target before the legacy is assessed:** explain the ordering rather than complying. Step 2B consumes Step 1's assessment and Step 2's validated contract; run ahead of them it yields an architecture chosen from general preference rather than from this legacy system. Offer to start at Step 1.
 - **User wants to run several steps at once:** explain that each step produces one reviewable artifact and stops at its gate. Offer to start the earliest incomplete step.
 - **User unsure which step they're in:** check conversations for the markers above.
 - **Step skill not installed:** direct the user to that step's playbook page on [docs.corestory.ai](https://docs.corestory.ai/playbooks/modernization/vibe-modernization) for setup.
@@ -977,11 +985,7 @@ This skill is a router. It determines which step is active and delegates to that
 
 **If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that the legacy repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
 
-**Single-project mode:** if the target is not ingested — greenfield, or scaffolded but not indexed — run the arc anyway, reading the target working tree in place of target-side queries. Every target claim still carries a `file:line` anchor. Exit the mode once the target is ingestable. Only Step 1's and Step 4's target halves need the second project at all.
-
-## Step 0: Design and Bootstrap the Target (greenfield only)
-Skip entirely if the target exists. Dedicated skill: `target-architecture`, run against the legacy project. Overlay: record the target's intended idioms in the ADR; target statements are decisions, not anchored findings.
-⛔ GATE 0: human approves the ADR. Then scaffold to the ingestion threshold — working build, real layering, a test harness, one end-to-end vertical slice with a test — and have the user ingest it as the second project. A directory skeleton has nothing to index.
+**Single-project mode:** if the target is not ingested — greenfield, or scaffolded but not indexed — run the arc anyway, reading the target working tree in place of target-side queries. Every target claim still carries a `file:line` anchor. Exit the mode once the target is ingestable. Only Step 1's and Step 4's target halves need the second project at all. Start at Step 1 regardless; greenfield changes where Step 2B falls, not where the arc begins.
 
 ## Step 1: Recover Both Architectures
 Dedicated skill: `codebase-assessment`, run against BOTH projects where both are ingested; legacy project plus direct reads of the target tree otherwise. Overlay: catalogue the target's idioms explicitly.
@@ -990,6 +994,10 @@ Dedicated skill: `codebase-assessment`, run against BOTH projects where both are
 ## Step 2: Legacy Behavioral Contract
 Dedicated skill: `business-rules-extraction`. Overlay: mandatory source anchor per rule, each one opened and confirmed; intent tagged PRESERVE / MODIFY / DISCARD.
 ⛔ GATE 1: domain expert validates the spec.
+
+## Step 2B: Design and Bootstrap the Target (greenfield only)
+Skip entirely if the target exists. Runs HERE, after Step 2 — never at the front of the arc. Dedicated skill: `target-architecture`, run against the legacy project, taking Step 1's assessment and Step 2's validated contract as its inputs; those are what make the design a decision rather than a preference. Overlay: record the target's intended idioms in the ADR; target statements are decisions, not anchored findings.
+⛔ GATE 2B: human approves the ADR. Then scaffold to the ingestion threshold — working build, real layering, a test harness, one end-to-end vertical slice with a test — and have the user ingest it as the second project. A directory skeleton has nothing to index.
 
 ## Step 3: Backlog and Test Strategy
 Dedicated skills: `decomposition-sequencing`, then `spec-driven-test-generation`. Overlay: dual provenance per ticket; add the business-facing user-story layer.
@@ -1040,7 +1048,7 @@ on it.
 - One step per session; STOP at each gate and wait for approval
 - Always follow the dedicated rule for the active step
 - Never verify a build performed in this same session
-- Never refuse to start because only one CoreStory project exists — a greenfield target starts at Step 0, an un-ingested one runs in single-project mode
+- Never refuse to start because only one CoreStory project exists — every run starts at Step 1; a greenfield target designs its target at Step 2B, an un-ingested one runs in single-project mode
 
 ## Always-on disciplines (override the delegated rule's defaults)
 - Source decides truth; no claim without a confirmed `file:line` anchor
@@ -1051,16 +1059,16 @@ on it.
 ## Step map
 | Step | Dedicated rule | Overlay | Gate |
 |---|---|---|---|
-| 0. Design + bootstrap the target *(greenfield only)* | `target-architecture` (run against the legacy project) | Idioms chosen in the ADR; scaffold to the ingestion threshold, then ingest as project two | **Gate 0** — ADR approval |
 | 1. Recover both architectures | `codebase-assessment` (both projects; legacy + direct target reads in single-project mode) | Catalogue the target's idioms | Shared understanding |
 | 2. Legacy behavioral contract | `business-rules-extraction` | Anchor + confirm every rule; tag intent | **Gate 1** — domain expert |
+| 2B. Design + bootstrap the target *(greenfield only)* | `target-architecture` (against the legacy project; consumes steps 1–2) | Idioms chosen in the ADR; scaffold to the ingestion threshold, then ingest as project two | **Gate 2B** — ADR approval |
 | 3. Backlog + test strategy | `decomposition-sequencing`, `spec-driven-test-generation` | Dual provenance; user-story layer | Spec review |
 | 4. Dual-project gap analysis | `feature-gap-analysis` | Both projects, one ticket, pre-code; EXISTS/EXTEND/NEW/CONFLICT | **Gate 2** — plan approval |
 | 5. Converge into the target | `feature-implementation` | Tests first and failing; target idioms; ticket boundary | Convergence review |
 | 6. Verify twice | `behavioral-verification`, `vibe-conformance-audit`, `e2e-test-generation` | Separate sessions from step 5 | **Gate 3** — both must agree |
 
 ## Single-project mode
-If the target is not ingested, read the target working tree in place of target-side queries and keep every anchor. Only Step 1's and Step 4's target halves need the second project. Exit the mode once the target has real code to index.
+If the target is not ingested, read the target working tree in place of target-side queries and keep every anchor. Only Step 1's and Step 4's target halves need the second project. Exit the mode once the target has real code to index. On a greenfield target, Step 2B is what produces that code — it is not a precondition for starting.
 
 ## Key principles
 - Velocity is earned by cheap grounding, not by skipping it
@@ -1118,12 +1126,12 @@ its dedicated droid, and impose the disciplines below on whatever you delegate t
 
 **If you do not detect that you have access to CoreStory (e.g., `list_projects` fails or is unavailable), ask the user to verify that their MCP or API connection is properly configured and that the legacy repository has been ingested. If the user has not yet created a CoreStory account, direct them to create one and upload their repo at [app.corestory.ai](https://app.corestory.ai).**
 
-**Single-project mode:** never refuse because only one project exists. A greenfield target starts at Step 0; an un-ingested one runs with direct reads of the target tree in place of target-side queries, anchors intact, until it is ingestable.
+**Single-project mode:** never refuse because only one project exists. Every run starts at Step 1; a greenfield target designs and scaffolds its target at Step 2B, and an un-ingested one runs with direct reads of the target tree in place of target-side queries, anchors intact, until it is ingestable.
 
 ## Step map
-Step 0 → `target-architecture` *(greenfield only; run against the legacy project)* ⛔ GATE 0 ADR approval, then scaffold to the ingestion threshold and ingest as project two
 Step 1 → `codebase-assessment` (both projects; catalogue target idioms) ⛔ shared understanding
 Step 2 → `business-rules-extraction` (anchor + confirm; tag intent) ⛔ GATE 1 domain expert
+Step 2B → `target-architecture` *(greenfield only; against the legacy project, consuming steps 1–2)* ⛔ GATE 2B ADR approval, then scaffold to the ingestion threshold and ingest as project two
 Step 3 → `decomposition-sequencing` + `spec-driven-test-generation` (dual provenance) ⛔ spec review
 Step 4 → `feature-gap-analysis` (both projects, pre-code, 4-way classification) ⛔ GATE 2 plan approval
 Step 5 → `feature-implementation` (tests first and failing; target idioms) ⛔ convergence review
@@ -1175,7 +1183,7 @@ Check whether they are actually gates. If no gate has ever sent work back, they 
 
 **The agent refuses to start because it only finds one CoreStory project.**
 
-The arc does not require two projects to begin — only Step 1's target half and Step 4's target half use the second one. If the target does not exist yet, you want [Step 0](#step-0-design-and-bootstrap-the-target-greenfield-only): design it, get the ADR approved, scaffold it to the point where it has real code, then ingest it. If the target does exist but is not ingested, ingest it, or run single-project mode and read the target working tree directly in the meantime. Tell the agent which situation you are in — a router that has not been told the target is greenfield will reasonably assume it was supposed to find two.
+The arc does not require two projects to begin — only Step 1's target half and Step 4's target half use the second one. If the target does not exist yet, start at Step 1 anyway: assess the legacy, extract and validate its behavioral contract, and then [Step 2B](#step-2b-design-and-bootstrap-the-target-greenfield-only) designs the target against both, gets the ADR approved, scaffolds it to the point where it has real code, and ingests it. If the target does exist but is not ingested, ingest it, or run single-project mode and read the target working tree directly in the meantime. Tell the agent which situation you are in — a router that has not been told the target is greenfield will reasonably assume it was supposed to find two.
 
 **The target repository won't ingest, or ingests to an empty project.**
 
@@ -1189,7 +1197,7 @@ See the [Supercharging AI Agents](/getting-started/supercharging-ai-agents) trou
 
 ## What's Next
 
-**Design the target first, if there isn't one:** [Target Architecture & Strategy →](/playbooks/modernization/target-architecture) — the 7 Rs and the target ADR, run as [Step 0](#step-0-design-and-bootstrap-the-target-greenfield-only) on a greenfield target.
+**Design the target, if there isn't one:** [Target Architecture & Strategy →](/playbooks/modernization/target-architecture) — the 7 Rs and the target ADR, run as [Step 2B](#step-2b-design-and-bootstrap-the-target-greenfield-only) on a greenfield target, after the legacy assessment and the validated contract.
 
 **Start the arc:** [Codebase Assessment →](/playbooks/modernization/codebase-assessment) — run it against both projects to recover the target and scope the legacy.
 
