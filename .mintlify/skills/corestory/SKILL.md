@@ -1,9 +1,7 @@
 ---
-name: Corestory
-description: Use when querying code intelligence, understanding architecture, implementing features with architectural grounding, resolving bugs systematically, writing specifications, generating tests, or modernizing codebases. Agents should reach for CoreStory when they need to make decisions grounded in actual system context rather than guessing.
-metadata:
-    mintlify-proj: corestory
-    version: "1.0"
+name: corestory
+description: "Use CoreStory MCP for project discovery, architecture and requirements context, or help choosing a CoreStory workflow. Prefer a specialized installed CoreStory skill for bug resolution, feature work, modernization, test generation, or diligence."
+license: MIT
 ---
 
 # CoreStory Skill Reference
@@ -79,7 +77,7 @@ Every CoreStory workflow follows this pattern:
 3. **Query Expert** — `send_message` to understand intended behavior, invariants, architecture
 4. **Query Navigator** — `send_message` to find specific files, methods, extension points
 5. **Act on knowledge** — implement, test, or document based on CoreStory's guidance
-6. **Close loop** — `rename_conversation` to mark as resolved, commit with context
+6. **Close loop** — `rename_conversation` to mark as resolved; commit only when the user requested a commit
 
 ### Standard Playbooks
 
@@ -178,7 +176,7 @@ Every CoreStory workflow follows this pattern:
 10. Implement minimal fix, verify test passes
 11. send_message "Does this fix align with architecture? Side effects?"
 12. Add edge case tests, run full suite
-13. Commit with detailed message explaining root cause
+13. If the user requested a commit, commit with a detailed message explaining root cause; otherwise leave the verified change uncommitted
 14. rename_conversation "✅ RESOLVED: Bug Investigation: #6992 — reset_index coord_names cleanup"
 ```
 
@@ -221,7 +219,7 @@ Before submitting work that used CoreStory:
 - [ ] Implementation follows patterns CoreStory identified
 - [ ] Implementation validated with CoreStory (architectural alignment, side effects)
 - [ ] Full test suite passes (no regressions)
-- [ ] Commit message includes CoreStory conversation ID
+- [ ] If committed, the commit message includes the CoreStory conversation ID
 - [ ] CoreStory conversation renamed to mark as resolved
 - [ ] Invariants from Phase 1 are explicitly tested and passing
 

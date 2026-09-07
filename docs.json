@@ -103,6 +103,17 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Skills",
+        "groups": [
+          {
+            "group": "Agent Skills",
+            "pages": [
+              "skills/index"
+            ]
+          }
+        ]
       }
     ]
   },

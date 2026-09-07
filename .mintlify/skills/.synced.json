@@ -1,0 +1,25 @@
+{
+  "source": "CoreStoryAI/agent-skills",
+  "ref": "main",
+  "skills": [
+    "behavioral-verification",
+    "bug-resolver",
+    "business-rules-extraction",
+    "code-modernization",
+    "codebase-assessment",
+    "corestory",
+    "decomposition-sequencing",
+    "feature-gap-analysis",
+    "generate-e2e-tests",
+    "generate-tests",
+    "implement-feature",
+    "ma-technical-due-diligence",
+    "monolith-to-microservices",
+    "spec-driven-development",
+    "spec-driven-test-generation",
+    "target-architecture",
+    "using-corestory-with-jira",
+    "vibe-conformance-audit",
+    "vibe-modernization"
+  ]
+}
