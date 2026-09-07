@@ -186,7 +186,7 @@ The agent will:
 
 For the full six-phase workflow details, see the [Bug Resolution playbook](/playbooks/agentic-bug-resolution) (for bugs) or [Feature Implementation playbook](/playbooks/feature-implementation) (for features and enhancements).
 
-**Customizing the ticket update:** By default, the agent posts a comment to the Jira ticket with its implementation summary. You can be specific about what you want:
+**Requesting the ticket update:** Posting to Jira is a write to a system outside your repository, so ask for it explicitly rather than expecting it by default. The agent drafts the implementation summary either way; say so when you want it posted, and be specific about what it should contain:
 
 ```
 After resolving PROJ-1234, post a comment with the root cause analysis,

@@ -1,0 +1,116 @@
+---
+title: "Skills"
+sidebarTitle: "Overview"
+description: "Installable Agent Skills that teach a coding agent to use CoreStory's code intelligence. Discoverable by agents from this domain, installable from the public repository."
+icon: "wand-magic-sparkles"
+---
+
+## What these are
+
+A **skill** is a set of instructions an agent loads when it recognizes the task. These 19 skills
+package the [playbooks](/playbooks/index) into that format, so an agent runs the method instead of
+you reading it and relaying the steps.
+
+They are the same methods, in a form an agent consumes directly. The playbooks remain the place to
+understand *why* a method works; the skills are how an agent *executes* it.
+
+## Discovery
+
+This site publishes an Agent Skills discovery catalog. An agent that supports the convention finds
+every skill below, with a `sha256` digest per skill for integrity:
+
+```
+https://docs.corestory.ai/.well-known/agent-skills/index.json
+```
+
+Individual skills are served at `/.well-known/agent-skills/{name}/SKILL.md`.
+
+## Installation
+
+The skills are MIT licensed and published at
+[CoreStoryAI/agent-skills](https://github.com/CoreStoryAI/agent-skills), which also carries the
+Claude Code and Codex plugin packages.
+
+<CodeGroup>
+
+```bash Claude Code
+claude plugin marketplace add CoreStoryAI/agent-skills
+claude plugin install corestory@corestory
+```
+
+```bash Codex
+codex plugin marketplace add CoreStoryAI/agent-skills
+codex plugin add corestory@corestory
+```
+
+```bash Any agent (skills only)
+gh skill install CoreStoryAI/agent-skills --all --agent codex --scope user
+```
+
+</CodeGroup>
+
+<Warning>
+**The CoreStory MCP URL is per-organization**, so no repository can ship a working one. Claude Code
+prompts for yours during install. Codex needs it added manually:
+
+```bash
+codex mcp add corestory --url https://app.corestory.ai/mcp/your-org-slug-123456789
+```
+
+Copy your URL from **CoreStory → Settings → IDE Integrations**. See
+[MCP Server Setup](/getting-started/mcp-server-setup).
+</Warning>
+
+## The skills
+
+### Everyday delivery
+
+| Skill | What it does |
+| --- | --- |
+| [`corestory`](https://docs.corestory.ai/.well-known/agent-skills/corestory/SKILL.md) | Use CoreStory MCP for project discovery, architecture and requirements context, or help choosing a CoreStory workflow. Prefer a specialized installed CoreStory skill for bug resolution, feature work, modernization, test generation, or diligence. |
+| [`bug-resolver`](https://docs.corestory.ai/.well-known/agent-skills/bug-resolver/SKILL.md) | Resolve defects with CoreStory code intelligence and test-driven development. Use for bug reports, regressions, failures, root-cause investigations, or bug-ticket IDs; do not use for net-new feature work. |
+| [`implement-feature`](https://docs.corestory.ai/.well-known/agent-skills/implement-feature/SKILL.md) | Implement features and enhancements with CoreStory code intelligence and test-driven development. Use for feature tickets or requested product changes; do not use for defect investigation or bug fixes. |
+| [`feature-gap-analysis`](https://docs.corestory.ai/.well-known/agent-skills/feature-gap-analysis/SKILL.md) | Run a CoreStory-grounded feature gap analysis to identify existing capabilities, missing pieces, affected files, dependencies, risks, and implementation order before building a feature. |
+| [`using-corestory-with-jira`](https://docs.corestory.ai/.well-known/agent-skills/using-corestory-with-jira/SKILL.md) | Coordinate Jira ticket intake or updates with CoreStory code intelligence. Use to resolve, enrich, draft, or triage Jira issues when both Jira and CoreStory MCP servers are available. |
+
+### Specifications and tests
+
+| Skill | What it does |
+| --- | --- |
+| [`spec-driven-development`](https://docs.corestory.ai/.well-known/agent-skills/spec-driven-development/SKILL.md) | Use CoreStory for architecture-grounded spec-driven development. Invoke when writing a feature specification, designing a change, planning from a spec, or implementing through a specification-first workflow, including projects that use GitHub Spec Kit or .specify artifacts. |
+| [`spec-driven-test-generation`](https://docs.corestory.ai/.well-known/agent-skills/spec-driven-test-generation/SKILL.md) | Choose and sequence CoreStory's behavioral or end-to-end test-generation workflow. Use when the user wants tests grounded in acceptance criteria, business rules, invariants, or user journeys rather than implementation details. |
+| [`generate-tests`](https://docs.corestory.ai/.well-known/agent-skills/generate-tests/SKILL.md) | Generate unit or integration behavioral tests from CoreStory specifications. Use for business-rule, validation, authorization, state-transition, invariant, or calculation coverage; not for full user-journey E2E tests. |
+| [`generate-e2e-tests`](https://docs.corestory.ai/.well-known/agent-skills/generate-e2e-tests/SKILL.md) | Generate end-to-end tests for critical user journeys using CoreStory acceptance criteria and code intelligence. Use for journey, browser, API-to-database, or cross-service E2E coverage. |
+
+### Modernization
+
+| Skill | What it does |
+| --- | --- |
+| [`code-modernization`](https://docs.corestory.ai/.well-known/agent-skills/code-modernization/SKILL.md) | Orchestrate legacy-system modernization with CoreStory. Use for modernization, migration, legacy refactoring, monolith decomposition, or readiness requests; route one phase at a time through human approval gates. |
+| [`codebase-assessment`](https://docs.corestory.ai/.well-known/agent-skills/codebase-assessment/SKILL.md) | Assess a legacy codebase's modernization readiness with CoreStory. Use for architecture inventory, dependency and coupling analysis, technical debt, risk, readiness, or modernization assessment requests. |
+| [`business-rules-extraction`](https://docs.corestory.ai/.well-known/agent-skills/business-rules-extraction/SKILL.md) | Extract, document, and source-verify business rules with CoreStory. Use for business-logic inventories, validation and authorization rules, state transitions, invariants, acceptance-criteria mapping, or implicit-rule discovery. |
+| [`target-architecture`](https://docs.corestory.ai/.well-known/agent-skills/target-architecture/SKILL.md) | Define and compare modernization strategies, target architecture, risk, and effort with CoreStory. Use for 7-R strategy selection, target-state design, migration-pattern decisions, or architecture decision records. |
+| [`decomposition-sequencing`](https://docs.corestory.ai/.well-known/agent-skills/decomposition-sequencing/SKILL.md) | Decompose an approved modernization plan into dependency-aware work packages with CoreStory. Use for migration sequencing, waves, work packages, sprint planning, or executable modernization backlogs. |
+| [`monolith-to-microservices`](https://docs.corestory.ai/.well-known/agent-skills/monolith-to-microservices/SKILL.md) | Guide service extraction from a monolith using CoreStory and the Strangler Fig pattern. Use for service-boundary discovery, microservice extraction, database decomposition, coexistence, or cutover planning. |
+| [`behavioral-verification`](https://docs.corestory.ai/.well-known/agent-skills/behavioral-verification/SKILL.md) | Verify that a modernized component preserves approved legacy business behavior using CoreStory. Use for behavioral equivalence, regression comparison, rule-by-rule verification, or equivalence reports. |
+| [`vibe-modernization`](https://docs.corestory.ai/.well-known/agent-skills/vibe-modernization/SKILL.md) | Orchestrate agent-led, human-gated modernization from a legacy system into an existing or greenfield target. Use for dual-project migration, forward engineering, source-grounded gaps, parity, or conformance work. |
+| [`vibe-conformance-audit`](https://docs.corestory.ai/.well-known/agent-skills/vibe-conformance-audit/SKILL.md) | Run an independent, read-only, atom-grain audit of modernized code against legacy source. Use for anti-circular verification, stub detection, completeness audits, orphan behavior, or delivered-versus-required checks. |
+
+### Technical diligence
+
+| Skill | What it does |
+| --- | --- |
+| [`ma-technical-due-diligence`](https://docs.corestory.ai/.well-known/agent-skills/ma-technical-due-diligence/SKILL.md) | Perform technical due diligence on an acquisition target using CoreStory code intelligence. Use for M&A diligence, acquisition review, architecture and code quality assessment, risk, scalability, security, or integration analysis. |
+
+## How these relate to the playbooks
+
+Every skill traces to a public playbook, and the repository's `SOURCES.md` records the provenance of
+each one along with every deliberate difference from its source. The most important of those: an
+installed skill does not commit, post to a ticket, or write to Jira or Linear unless you ask it to,
+where some playbooks describe those as defaults. An agent acting on your repository should not take
+an outward-facing action you did not request.
+
+<Note>
+Skill content lives in the [public repository](https://github.com/CoreStoryAI/agent-skills) and is
+synced into this site, so the served files and the installable files never drift.
+</Note>

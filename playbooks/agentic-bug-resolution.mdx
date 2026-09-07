@@ -61,9 +61,7 @@ The workflow has six phases. The first three gather context; the last three act 
 
 | Tool | Purpose |
 |------|---------|
-| `CoreStory:list_projects` | Find available projects |
-| `CoreStory:get_project` | Verify project status and details |
-| `CoreStory:get_project_stats` | Check ingestion/processing status |
+| `CoreStory:list_projects` | Find available projects and check their ingestion status |
 | `CoreStory:create_conversation` | Start a dedicated investigation thread |
 | `CoreStory:send_message` | Query code intelligence (streaming) |
 | `CoreStory:get_conversation` | Retrieve conversation history |
@@ -1014,8 +1012,6 @@ description: Resolves bugs using CoreStory code intelligence and TDD methodology
 model: inherit
 tools:
   - CoreStory:list_projects
-  - CoreStory:get_project
-  - CoreStory:get_project_stats
   - CoreStory:create_conversation
   - CoreStory:send_message
   - CoreStory:get_conversation
@@ -1038,7 +1034,6 @@ Execute the six-phase bug resolution workflow using CoreStory's code intelligenc
 
 ## CoreStory MCP Tools
 - `CoreStory:list_projects` — list available projects
-- `CoreStory:get_project` — verify project status
 - `CoreStory:create_conversation` — start investigation thread
 - `CoreStory:send_message` — query code intelligence
 - `CoreStory:rename_conversation` — mark as resolved
@@ -1099,7 +1094,7 @@ Update ticket → structured commit → rename conversation "RESOLVED" → repor
 Your queries are too broad. Instead of "Tell me about the auth system," try "What files handle JWT token validation? What invariants must the token payload satisfy?" Include specific variable names, method names, or code snippets.
 
 **Project not found or ingestion incomplete.**
-Run `CoreStory:get_project_stats` to check status. If ingestion is still running, wait for it to complete — queries against partially-ingested projects give incomplete answers. Verify the project name matches exactly.
+Run `CoreStory:list_projects` and check the project's ingestion status. If ingestion is still running, wait for it to complete — queries against partially-ingested projects give incomplete answers. Verify the project name matches exactly.
 
 **The reproduction test passes (bug not reproduced).**
 Three possibilities: the bug was already fixed, the reproduction steps are wrong, or the test isn't testing what you think it is. Ask CoreStory to verify your understanding of expected behavior. Check if the bug is environment-specific or version-specific.

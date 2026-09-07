@@ -374,7 +374,7 @@ description: >
   Implement a feature using CoreStory's code intelligence and TDD methodology.
   Use when the user asks to implement a ticket, build a feature, or resolve
   an issue by ID (e.g., "Implement ticket #6992", "Build feature JIRA-123",
-  "Resolve ENG-456"). Do NOT use for bug fixes — use the fix-bug skill instead.
+  "Resolve ENG-456"). Do NOT use for bug fixes — use the `bug-resolver` skill instead.
 ---
 
 # CoreStory Feature Implementation
@@ -490,7 +490,7 @@ pattern to follow.
 
 - Trivial changes (typos, formatting)
 - Documentation-only changes
-- Bug fixes (use fix-bug skill instead)
+- Bug fixes (use the `bug-resolver` skill instead)
 - No CoreStory project available
 - User explicitly wants to implement manually
 ````
@@ -806,8 +806,6 @@ description: Implements features using CoreStory code intelligence and TDD metho
 model: inherit
 tools:
   - CoreStory:list_projects
-  - CoreStory:get_project
-  - CoreStory:get_project_stats
   - CoreStory:create_conversation
   - CoreStory:send_message
   - CoreStory:get_conversation
@@ -830,7 +828,6 @@ Execute the six-phase feature implementation workflow using CoreStory's code int
 
 ## CoreStory MCP Tools
 - `CoreStory:list_projects` — list available projects
-- `CoreStory:get_project` — verify project status
 - `CoreStory:create_conversation` — start implementation thread
 - `CoreStory:send_message` — query code intelligence
 - `CoreStory:rename_conversation` — mark as completed

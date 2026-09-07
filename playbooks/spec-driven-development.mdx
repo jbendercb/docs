@@ -519,10 +519,10 @@ The sections below walk through end-to-end setup (skill file, usage, tips, agent
 2. **Add the skill file.** Claude Code uses skills stored in `.claude/skills/`:
 
 ```bash
-mkdir -p .claude/skills/spec-driven-dev
+mkdir -p .claude/skills/spec-driven-development
 ```
 
-Create `.claude/skills/spec-driven-dev/SKILL.md` with the content from the skill file below.
+Create `.claude/skills/spec-driven-development/SKILL.md` with the content from the skill file below.
 
 3. **Commit to version control:**
 
@@ -542,7 +542,7 @@ Claude Code auto-loads skills based on description matching. When you mention sp
 Or reference the skill directly:
 
 ```
-"Use the spec-driven-dev skill to spec out the new reporting dashboard"
+"Use the spec-driven-development skill to spec out the new reporting dashboard"
 ```
 
 #### Tips
@@ -553,7 +553,7 @@ Or reference the skill directly:
 
 #### Skill File
 
-Save as `.claude/skills/spec-driven-dev/SKILL.md`:
+Save as `.claude/skills/spec-driven-development/SKILL.md`:
 
 ````markdown
 ---
@@ -569,7 +569,6 @@ Execute the six-phase spec-driven development workflow. Every spec must be groun
 
 ## CoreStory MCP Tools
 - `CoreStory:list_projects` — list available projects
-- `CoreStory:get_project` — verify project status
 - `CoreStory:create_conversation` — start specification thread
 - `CoreStory:send_message` — query code intelligence
 - `CoreStory:get_project_prd` — access product requirements
@@ -649,6 +648,40 @@ Query CoreStory for:
 - Delta specs, not greenfield specs
 - Validate before Plan
 - Conversation IS the living spec record
+
+## Spec Kit Integration (only if `.specify/` exists)
+
+Skip this section entirely when the project does not use GitHub Spec Kit. When `.specify/`
+is present, persist artifacts through Spec Kit while CoreStory supplies the grounding and
+does the validating. CoreStory before Spec Kit at every phase.
+
+| Artifact | Location | Created by |
+| --- | --- | --- |
+| Constitution | `.specify/memory/constitution.md` | `/speckit.constitution` |
+| Feature spec | `.specify/memory/features/{name}/spec.md` | `/speckit.specify` |
+| Technical plan | `.specify/memory/features/{name}/plan.md` | `/speckit.plan` |
+| Task breakdown | `.specify/memory/features/{name}/tasks.md` | `/speckit.tasks` |
+
+Phase mapping: Ground -> `/speckit.constitution`; Specify -> `/speckit.specify`;
+**Validate -> CoreStory only** (Spec Kit has no validation command -- paste the contents of
+`spec.md` into a CoreStory message and ask for an architectural pre-mortem, then edit the
+artifact directly); Plan -> `/speckit.plan` then `/speckit.tasks`; Implement ->
+`/speckit.implement`; **Verify & Capture -> CoreStory only** (no Spec Kit equivalent).
+
+Phases 3 and 6 have no Spec Kit command and must not be skipped -- they are the gap this
+integration exists to close. The constitution is the highest-leverage artifact; invest the
+most query time there and update it after features ship. Version-control the artifacts:
+commit `.specify/memory/` so specs are PR-reviewable alongside the code. If a generated
+artifact conflicts with confirmed source behavior, surface the conflict and stop for a
+decision -- the CoreStory conversation is the source of truth for architectural reasoning.
+
+If Spec Kit is not yet initialized and the user wants it, install and initialize it:
+
+```bash
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+specify check
+specify init . --ai <your agent>
+```
 ````
 
 ---
@@ -661,7 +694,7 @@ Query CoreStory for:
 
 2. **Add project-level custom instructions.** Create or update `.github/copilot-instructions.md` with the content from the instructions file below.
 
-3. **Optionally add a reusable prompt file.** Create `.github/prompts/spec-driven-dev.prompt.md` with `mode: agent` frontmatter for on-demand invocation.
+3. **Optionally add a reusable prompt file.** Create `.github/prompts/spec-driven-development.prompt.md` with `mode: agent` frontmatter for on-demand invocation.
 
 4. **Commit to version control:**
 
@@ -681,7 +714,7 @@ With custom instructions active, Copilot Chat applies the workflow automatically
 If using a prompt file:
 
 ```
-@workspace /spec-driven-dev Spec out the new reporting dashboard
+@workspace /spec-driven-development Spec out the new reporting dashboard
 ```
 
 #### Tips
@@ -703,7 +736,6 @@ When asked to write specifications, design features, or do spec-driven developme
 
 ### CoreStory MCP Tools
 - `CoreStory:list_projects` — list available projects
-- `CoreStory:get_project` — verify project status
 - `CoreStory:create_conversation` — start specification thread
 - `CoreStory:send_message` — query code intelligence
 - `CoreStory:rename_conversation` — mark as completed
@@ -756,7 +788,7 @@ Walk AC list (each AC → test + impl site) → walk invariant list (each invari
 mkdir -p .cursor/rules
 ```
 
-Create `.cursor/rules/spec-driven-dev.mdc` with the content from the rule file below.
+Create `.cursor/rules/spec-driven-development.mdc` with the content from the rule file below.
 
 3. **Commit to version control:**
 
@@ -781,7 +813,7 @@ With `alwaysApply: true`, the rule activates automatically when Cursor detects s
 
 #### Project Rule
 
-Save as `.cursor/rules/spec-driven-dev.mdc`:
+Save as `.cursor/rules/spec-driven-development.mdc`:
 
 ````markdown
 ---
@@ -798,7 +830,6 @@ Execute the six-phase spec-driven development workflow. Every spec must be groun
 
 ## CoreStory MCP Tools
 - `CoreStory:list_projects` — list available projects
-- `CoreStory:get_project` — verify project status
 - `CoreStory:create_conversation` — start specification thread
 - `CoreStory:send_message` — query code intelligence
 - `CoreStory:get_project_prd` — access product requirements
@@ -865,7 +896,7 @@ Walk AC list (each AC → test + impl site) → walk invariant list (each invari
 mkdir -p .factory/droids
 ```
 
-Create `.factory/droids/spec-driven-dev.md` with the content from the droid file below.
+Create `.factory/droids/spec-driven-development.md` with the content from the droid file below.
 
 3. **Commit to version control** (for project-level droids):
 
@@ -879,7 +910,7 @@ git commit -m "Add CoreStory spec-driven development droid"
 Invoke the droid via the Task tool:
 
 ```
-@spec-driven-dev Write an architecture-grounded spec for the webhook notification system (#412)
+@spec-driven-development Write an architecture-grounded spec for the webhook notification system (#412)
 ```
 
 Or describe the work and Factory.ai routes to the droid based on its activation triggers.
@@ -893,7 +924,7 @@ Or describe the work and Factory.ai routes to the droid based on its activation 
 
 #### Custom Droid
 
-Save as `.factory/droids/spec-driven-dev.md`:
+Save as `.factory/droids/spec-driven-development.md`:
 
 ````markdown
 ---
@@ -902,8 +933,6 @@ description: Architecture-grounded spec-driven development using CoreStory code 
 model: inherit
 tools:
   - CoreStory:list_projects
-  - CoreStory:get_project
-  - CoreStory:get_project_stats
   - CoreStory:create_conversation
   - CoreStory:send_message
   - CoreStory:get_conversation
@@ -926,7 +955,6 @@ Execute the six-phase spec-driven development workflow using CoreStory's code in
 
 ## CoreStory MCP Tools
 - `CoreStory:list_projects` — list available projects
-- `CoreStory:get_project` — verify project status
 - `CoreStory:create_conversation` — start specification thread
 - `CoreStory:send_message` — query code intelligence
 - `CoreStory:rename_conversation` — mark as completed
@@ -990,7 +1018,7 @@ Walk AC list (each AC → test + impl site) → walk invariant list (each invari
 Your queries are too broad. Instead of "Tell me about the notification system," try "What classes implement NotifierBase? What events does EventBus currently handle? What retry patterns does HttpClient use?" Include specific interface names, method names, or code snippets.
 
 **Project not found or ingestion incomplete.**
-Run `CoreStory:get_project_stats` to check status. If ingestion is still running, wait for completion — queries against partially-ingested projects miss components and return incomplete invariants. Verify the project name matches exactly.
+Run `CoreStory:list_projects` and check the project's ingestion status. If ingestion is still running, wait for completion — queries against partially-ingested projects miss components and return incomplete invariants. Verify the project name matches exactly.
 
 **The spec feels like it's re-specifying everything.**
 You're writing a greenfield spec, not a delta spec. Go back to Phase 1 and query for existing components more aggressively. If the reuse section is empty, you haven't asked the right questions.
