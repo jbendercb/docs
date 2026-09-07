@@ -860,7 +860,7 @@ Overlay: run it across **both** projects for a single ticket, before any code. Q
 ⛔ GATE 2: a human approves the plan before any code is written. Present CONFLICT entries first — that is where the judgment lives.
 
 ## Step 5: Converge Into the Target
-Dedicated skill: `feature-implementation`.
+Dedicated skill: `implement-feature`.
 Overlay: tests first, confirmed failing for the right reason, before implementation. Match the target's idioms from Step 1's catalogue. No new dependency or pattern unless the gap report approved it. Stop at the ticket boundary. Run the seam check on the diff before presenting it.
 ⛔ GATE: convergence review by someone who knows the target.
 
@@ -873,7 +873,7 @@ Dedicated skill: `vibe-conformance-audit` — this variant's own skill, also in 
 Produces the conformance ledger and the orphan sweep.
 
 ## Step 6c: Critical-Flow Trace
-Dedicated skill: `e2e-test-generation` — one headline flow, archived as evidence.
+Dedicated skill: `generate-e2e-tests` — one headline flow, archived as evidence.
 ⛔ GATE 3: equivalence sign-off, only once the BER and the conformance audit agree.
 
 ## Error Handling
@@ -1008,11 +1008,11 @@ Dedicated skill: `feature-gap-analysis`. Overlay: run across BOTH projects for o
 ⛔ GATE 2: human approves the plan before any code is written.
 
 ## Step 5: Converge Into the Target
-Dedicated skill: `feature-implementation`. Overlay: tests first and confirmed failing; match the target's idioms; stop at the ticket boundary.
+Dedicated skill: `implement-feature`. Overlay: tests first and confirmed failing; match the target's idioms; stop at the ticket boundary.
 ⛔ GATE: convergence review by someone who knows the target.
 
 ## Step 6: Verify Twice
-Dedicated skills: `behavioral-verification`, then `vibe-conformance-audit`, then `e2e-test-generation`. All in sessions separate from Step 5.
+Dedicated skills: `behavioral-verification`, then `vibe-conformance-audit`, then `generate-e2e-tests`. All in sessions separate from Step 5.
 ⛔ GATE 3: sign off only when the BER and the conformance audit agree.
 
 Key principle: the agent drives, humans gate — and the verifier is never the builder.
@@ -1064,8 +1064,8 @@ on it.
 | 2B. Design + bootstrap the target *(greenfield only)* | `target-architecture` (against the legacy project; consumes steps 1–2) | Idioms chosen in the ADR; scaffold to the ingestion threshold, then ingest as project two | **Gate 2B** — ADR approval |
 | 3. Backlog + test strategy | `decomposition-sequencing`, `spec-driven-test-generation` | Dual provenance; user-story layer | Spec review |
 | 4. Dual-project gap analysis | `feature-gap-analysis` | Both projects, one ticket, pre-code; EXISTS/EXTEND/NEW/CONFLICT | **Gate 2** — plan approval |
-| 5. Converge into the target | `feature-implementation` | Tests first and failing; target idioms; ticket boundary | Convergence review |
-| 6. Verify twice | `behavioral-verification`, `vibe-conformance-audit`, `e2e-test-generation` | Separate sessions from step 5 | **Gate 3** — both must agree |
+| 5. Converge into the target | `implement-feature` | Tests first and failing; target idioms; ticket boundary | Convergence review |
+| 6. Verify twice | `behavioral-verification`, `vibe-conformance-audit`, `generate-e2e-tests` | Separate sessions from step 5 | **Gate 3** — both must agree |
 
 ## Single-project mode
 If the target is not ingested, read the target working tree in place of target-side queries and keep every anchor. Only Step 1's and Step 4's target halves need the second project. Exit the mode once the target has real code to index. On a greenfield target, Step 2B is what produces that code — it is not a precondition for starting.
@@ -1134,8 +1134,8 @@ Step 2 → `business-rules-extraction` (anchor + confirm; tag intent) ⛔ GATE 1
 Step 2B → `target-architecture` *(greenfield only; against the legacy project, consuming steps 1–2)* ⛔ GATE 2B ADR approval, then scaffold to the ingestion threshold and ingest as project two
 Step 3 → `decomposition-sequencing` + `spec-driven-test-generation` (dual provenance) ⛔ spec review
 Step 4 → `feature-gap-analysis` (both projects, pre-code, 4-way classification) ⛔ GATE 2 plan approval
-Step 5 → `feature-implementation` (tests first and failing; target idioms) ⛔ convergence review
-Step 6 → `behavioral-verification` + `vibe-conformance-audit` + `e2e-test-generation` ⛔ GATE 3 both agree
+Step 5 → `implement-feature` (tests first and failing; target idioms) ⛔ convergence review
+Step 6 → `behavioral-verification` + `vibe-conformance-audit` + `generate-e2e-tests` ⛔ GATE 3 both agree
 
 ## Key principles
 - The agent drives, humans gate — and the verifier is never the builder
