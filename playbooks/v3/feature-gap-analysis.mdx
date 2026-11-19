@@ -1,0 +1,57 @@
+---
+title: "Feature Gap Analysis"
+sidebarTitle: "Gap Analysis"
+description: "Work out what exists, what is missing, which files change and in what order before building a feature, using CoreStory v3 evidence."
+icon: "magnifying-glass-chart"
+---
+
+## What it is for
+
+A planning skill. It compares a requested feature with the current code and lists gaps by category with the rules that stay in force, then orders the work by dependency. It does not edit code.
+
+**Use it when**
+
+- You need to know the surface area of a change before writing code.
+- You want a developer-ready handoff of what exists and what must be built.
+
+**Skip it when**
+
+- You are ready to build (use [Feature Implementation](/playbooks/v3/implement-feature)).
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- A feature description with inputs, outputs and acceptance behavior. The skill asks for missing details.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `feature-gap-analysis` when the request fits.
+- **By name.** Ask for it directly (`/feature-gap-analysis` in Claude Code; the plugin may show it as `corestory-local:feature-gap-analysis`), or say "use the feature-gap-analysis skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- `GAP-ANALYSIS.md` in the repository root: the feature, what exists, gaps by category with ids (data model, business logic, UI, output, integration, constraints), a dependency-ordered plan, and `Not verified`.
+
+## How it works
+
+1. Preflight with `status` and `corpus_info`; write the feature at the top of the file.
+2. Find what exists: `search` for rules and code, `entity` with evidence, `read_file`, and `connections` for callers and callees. Existing features are reached through `connections` up to the feature manifest, never through `entity` on the manifest.
+3. For each file to be touched, call `rules_for` and follow `next_call`; check each rule with `entity` and `read_file`.
+4. List gaps by category: current state with `path:start-end`, required change, rules that stay in force, dependencies. A rule enforced in more than one layer is a gap in every layer.
+5. Write the plan: steps in dependency order, the pattern to copy, tests to add, what could be deferred, and the highest-risk change.
+
+## Limits
+
+- Rules are not linked to features, so rules are matched to features by file path.
+- Call edges are available only where the language has structure for them (COBOL in this release); the skill says when categories had few or no hits.
+- Every behavior claim is from reading.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook is [Feature Gap Analysis](/playbooks/feature-gap-analysis), which can also compare two systems' capabilities. This v3 page covers one feature against one codebase.
+
+## Skill source
+
+The full recipe is the skill file itself: [`feature-gap-analysis/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/feature-gap-analysis/SKILL.md) on GitHub.

@@ -1,0 +1,53 @@
+---
+title: "Decomposition and Sequencing"
+sidebarTitle: "Decomposition"
+description: "Break an approved target architecture into dependency-ordered work packages and write them to modernization/04-work-packages.md."
+icon: "list-ol"
+---
+
+## What it is for
+
+Phase four of modernization. It finds the smallest units that can move and be released independently, maps their dependencies and rules, proposes a sequence, and, after your approval of the sequence, writes the work packages.
+
+**Use it when**
+
+- You have an approved target architecture and need a backlog and migration order.
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- The earlier phase files in `modernization/`, approved by a person. See [the phase-file convention](/playbooks/v3/code-modernization#the-modernization-phase-files).
+- `03-target-architecture.md` (approved, with its decision filled in) and `02-rules-inventory.md`. Under [Vibe Modernization](/playbooks/v3/vibe-modernization) with an existing target, the approved assessment's target idioms stand in for `03`.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `decomposition-sequencing` when the request fits.
+- **By name.** Ask for it directly (`/decomposition-sequencing` in Claude Code; the plugin may show it as `corestory-local:decomposition-sequencing`), or say "use the decomposition-sequencing skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- `modernization/04-work-packages.md`: units, dependencies, sequence, and then the work packages (scope, rule ids carried, transform, coexist, eliminate, acceptance criteria), with `Not verified`. No tickets are created in any external tool unless you ask.
+
+## How it works
+
+1. Preflight, then read the approved inputs.
+2. Part A: find migration units with `list_files` and `connections`, and mark dependencies as hard, soft or shared data, citing `path:start-end` for edges that were read and marking inferred ones.
+3. Attach rules to each unit with `search` (`kind:"sao:Rule"`) and `rules_for`, following `next_call`.
+4. Propose a sequence by dependency, risk, value and capacity, and name quick wins, parallel lanes and the critical path.
+5. Gate: stop and ask the engineering lead to approve the sequence.
+6. Part B, after approval: write each work package with an id such as `WP-01` that later phases use.
+
+## Limits
+
+- Edges that were inferred rather than read are labeled. The skill does not claim the sequence reduces risk or time.
+- Packages stay in the file for manual import; creating Jira or Linear items is a separate request.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook is [Decomposition and Sequencing](/playbooks/modernization/decomposition-sequencing).
+
+## Skill source
+
+The full recipe is the skill file itself: [`decomposition-sequencing/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/decomposition-sequencing/SKILL.md) on GitHub.

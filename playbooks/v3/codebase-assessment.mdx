@@ -1,0 +1,53 @@
+---
+title: "Codebase Assessment"
+sidebarTitle: "Codebase Assessment"
+description: "Assess how ready a codebase is to modernize and what could go wrong, using CoreStory v3 rules, features, capabilities and call edges."
+icon: "clipboard-check"
+---
+
+## What it is for
+
+Inventories a codebase and rates readiness by area. It reports size, layout, capabilities, rules by theme, where logic is concentrated, and where the same value is repeated across layers or languages.
+
+**Use it when**
+
+- You need to size up a legacy system before choosing a strategy.
+- You are starting phase one of a [code modernization](/playbooks/v3/code-modernization).
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- For COBOL, call-edge analysis (hubs and call chains) is available. Java and Python have no call sites in this release, so coupling there comes from rules and source reading.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `codebase-assessment` when the request fits.
+- **By name.** Ask for it directly (`/codebase-assessment` in Claude Code; the plugin may show it as `corestory-local:codebase-assessment`), or say "use the codebase-assessment skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+- Inside a modernization it is phase one and writes `modernization/01-assessment.md`; see [the phase-file convention](/playbooks/v3/code-modernization#the-modernization-phase-files).
+
+## What it produces
+
+- `ASSESSMENT.md` in the repository root (or the file you name) with: summary, inventory, capabilities, rules by theme with `path:start-end`, hubs and coupling, risks with severity and evidence, readiness by area (low, medium or high, with reasons), suggested order of work, and `Not verified`.
+
+## How it works
+
+1. Preflight with `status` and `corpus_info`; record the counts and languages.
+2. Inventory the layout with `list_files` (always with a prefix, paging with `next_cursor` unchanged). Reach capabilities and features through `connections` from a rule up to the feature manifest, then open each capability with `entity`.
+3. Search rules by theme with `search` (`kind:"sao:Rule"`); open important ones with `entity` and `read_file`.
+4. Check concentration with `rules_for` on the largest files and coupling with `connections` and call edges where they exist.
+5. Scan what CoreStory cannot see (dependency versions, secrets, tests, CI) with Grep, labeled as source-only, and write the report.
+
+## Limits
+
+- Rules carry no category, so the agent assigns the themes. Readiness ratings are judgments with reasons, not exact scores.
+- Runtime behavior, performance and test coverage are unassessed.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook is [Codebase Assessment](/playbooks/modernization/codebase-assessment).
+
+## Skill source
+
+The full recipe is the skill file itself: [`codebase-assessment/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/codebase-assessment/SKILL.md) on GitHub.

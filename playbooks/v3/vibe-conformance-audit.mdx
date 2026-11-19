@@ -1,0 +1,58 @@
+---
+title: "Vibe Conformance Audit"
+sidebarTitle: "Conformance Audit"
+description: "Run an independent, read-only audit of delivered code against legacy source at the grain of single behaviors, with verdicts and an orphan sweep."
+icon: "magnifying-glass"
+---
+
+## What it is for
+
+An audit that looks for stubs, missing behavior and divergence. It splits each rule into atoms, the smallest behaviors that can be present, absent or wrong, and gives each atom a verdict backed by lines it read on both sides.
+
+**Use it when**
+
+- You want an independent check of delivered code against legacy source.
+- You want to catch code that exists but does no work.
+
+**Skip it when**
+
+- The same session wrote or edited the code. The skill refuses and asks for a fresh session, even if you say it is fine.
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- The earlier phase files in `modernization/`, approved by a person. See [the phase-file convention](/playbooks/v3/code-modernization#the-modernization-phase-files).
+- An approved `02-rules-inventory.md` as the spec, and the component and where its code lives. The audit does not open the verification file until the reconcile step.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `vibe-conformance-audit` when the request fits.
+- **By name.** Ask for it directly (`/vibe-conformance-audit` in Claude Code; the plugin may show it as `corestory-local:vibe-conformance-audit`), or say "use the vibe-conformance-audit skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- `modernization/07-conformance-<component>.md`: atoms with verdicts (DELIVERED, STUBBED, MISSING, DIVERGES, UNVERIFIABLE), an orphan list of legacy behaviors absent from the inventory, a reconciliation with the verification file, and `Not verified`. Read-only: it never edits the code under audit.
+
+## How it works
+
+1. Refuse if this session wrote the code; preflight with `status` and `corpus_info`.
+2. Treat legacy source as the only oracle, and read the legacy lines yourself with `read_file`. Passing tests are not evidence.
+3. Split each rule into atoms and give one verdict per atom, citing the delivered `path:line` and the legacy `path:start-end`.
+4. Orphan sweep the other way: `rules_for` on the legacy files and `read_file`, listing behavior absent from the inventory.
+5. Reconcile with the verification file only now, and state which artifact is wrong where they disagree. Leave the file `draft` for human review.
+
+## Limits
+
+- If the scope is too large for atom grain, the skill narrows it and says what was left out. It does not sample silently.
+- If legacy code cannot be found, the atom is UNVERIFIABLE; legacy behavior is not inferred from the new code.
+- No verdict is a runtime result.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: there is no hosted playbook page for this skill.
+
+## Skill source
+
+The full recipe is the skill file itself: [`vibe-conformance-audit/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/vibe-conformance-audit/SKILL.md) on GitHub.

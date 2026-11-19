@@ -1,0 +1,52 @@
+---
+title: "Spec-Driven Test Generation"
+sidebarTitle: "Test Router"
+description: "Choose between behavioral tests and end-to-end journey tests, then run the matching CoreStory v3 skill."
+icon: "vial-circle-check"
+---
+
+## What it is for
+
+A short router. It decides whether a testing request needs rule-level behavioral tests, end-to-end journey tests, or both in order, and hands off. It writes no tests itself.
+
+**Use it when**
+
+- You want tests written from the business rules or acceptance criteria rather than from how the code is built.
+- You are unsure whether to write unit, integration or end-to-end tests.
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- An existing test framework in the repository.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `spec-driven-test-generation` when the request fits.
+- **By name.** Ask for it directly (`/spec-driven-test-generation` in Claude Code; the plugin may show it as `corestory-local:spec-driven-test-generation`), or say "use the spec-driven-test-generation skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- No file of its own. The chosen skill's notes file (`TEST-NOTES.md` or `E2E-NOTES.md`) is the output.
+
+## How it works
+
+1. Rule-level work on validation, calculation, authorization or one module goes to [Behavioral Test Generation](/playbooks/v3/generate-tests).
+2. A journey across UI, API, persistence or services goes to [End-to-End Test Generation](/playbooks/v3/generate-e2e-tests).
+3. If both, behavioral first, then the journeys that tie the tested rules together.
+4. Other requests are redirected: new features to [Feature Implementation](/playbooks/v3/implement-feature), rule extraction alone to [Business Rules Extraction](/playbooks/v3/business-rules-extraction), defects to [Bug Resolution](/playbooks/v3/bug-resolver).
+5. Fix the scope to one module or one journey, and use specific nouns when searching for rules.
+
+## Limits
+
+- Equivalence of a rewrite against the original is not this skill; compare the outputs of both implementations on shared cases.
+- A failing generated test means either the rule read from the graph or the code is wrong; both locations are shown.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook is [Spec-Driven Test Generation](/playbooks/spec-driven-test-generation).
+
+## Skill source
+
+The full recipe is the skill file itself: [`spec-driven-test-generation/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/spec-driven-test-generation/SKILL.md) on GitHub.

@@ -1,0 +1,59 @@
+---
+title: "Feature Implementation"
+sidebarTitle: "Feature Implementation"
+description: "Implement a feature or change to existing behavior with CoreStory v3 rule evidence and test-first development, and record the design in FEATURE-NOTES.md."
+icon: "code-branch"
+---
+
+## What it is for
+
+Builds a feature, endpoint, field or behavior change in an existing codebase. A ticket names what to build, not every rule the result must respect, so the skill looks for rules in other layers before it edits anything.
+
+**Use it when**
+
+- You are adding or changing behavior and want the rules a ticket never mentions to be found first.
+- You are working from a feature ticket or change request.
+
+**Skip it when**
+
+- You only need a plan (use [Feature Gap Analysis](/playbooks/v3/feature-gap-analysis)).
+- You want a written specification first (use [Spec-Driven Development](/playbooks/v3/spec-driven-development)).
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- Tests that can run in this repository. The skill writes a failing test first; if tests cannot run, it says so in the notes file instead of claiming a pass.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `implement-feature` when the request fits.
+- **By name.** Ask for it directly (`/implement-feature` in Claude Code; the plugin may show it as `corestory-local:implement-feature`), or say "use the implement-feature skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- `FEATURE-NOTES.md` in the repository root: outcome and acceptance criteria, rules honored and constraints from other layers (id, `path:start-end`, value), assumptions, changed files, commands run with results, and `Not verified`.
+- New tests and the implementation. No commit, push or ticket unless you ask.
+
+## How it works
+
+1. Preflight with `status` and `corpus_info`.
+2. Write the outcome and acceptance criteria; ask about missing ones, or record the narrowest reading as an assumption.
+3. Run the cross-layer sweep: `search` with `kind:"sao:Rule"` in two phrasings per noun or quantity, `entity` with evidence on each relevant hit, then `read_file`. If the feature reports a decision other code makes, find that code with `search` and `connections` and reuse it.
+4. Find the closest existing feature and write the implementation boundary: files, pattern to copy, rules to keep, tests to write.
+5. Write tests first, and run them to see them fail for the missing behavior.
+6. Before each edit, `rules_for` on the exact lines, then `entity` and `read_file`; implement, run tests, close out the notes.
+
+## Limits
+
+- A rule the feature would violate stays in force. The skill honors the stricter enforced value or stops and names the conflict; it does not choose silently.
+- The skill does not call the feature finished. It reports what was tested and what was not.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook runs a longer phased workflow against a hosted project. This one is a single notes-file recipe over the local graph.
+
+## Skill source
+
+The full recipe is the skill file itself: [`implement-feature/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/implement-feature/SKILL.md) on GitHub.

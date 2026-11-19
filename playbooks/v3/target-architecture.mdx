@@ -1,0 +1,53 @@
+---
+title: "Target Architecture"
+sidebarTitle: "Target Architecture"
+description: "Lay out modernization strategy options and target architectures with trade-offs, and record the human decision as an ADR."
+icon: "sitemap"
+---
+
+## What it is for
+
+Phase three of modernization. It lays out the options for each component and the trade-offs, using the approved assessment and rules inventory. The architect decides; the skill does not recommend a single option or write the decision.
+
+**Use it when**
+
+- The assessment and rules inventory are approved and you need a strategy and target-state design.
+- You need an architecture decision record.
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- The earlier phase files in `modernization/`, approved by a person. See [the phase-file convention](/playbooks/v3/code-modernization#the-modernization-phase-files).
+- `01-assessment.md` and `02-rules-inventory.md` must both be approved. If either is missing or draft, the skill stops and names it.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `target-architecture` when the request fits.
+- **By name.** Ask for it directly (`/target-architecture` in Claude Code; the plugin may show it as `corestory-local:target-architecture`), or say "use the target-architecture skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- `modernization/03-target-architecture.md` with the standard header, the options table, a `Decision` section marked pending, and, only after you state your decision in the conversation, the filled ADR sections. It stays `draft` until approved through [Code Modernization](/playbooks/v3/code-modernization).
+
+## How it works
+
+1. Preflight, then read the two approved files and summarize blockers, coupling and shared data.
+2. Explore the seams: `list_files`, `connections` on main programs, modules and tables, and `search` with `kind:"sao:Rule"` plus `entity` for rules that limit moving a component. Read cited lines with `read_file`.
+3. For each component, assess each strategy (retire, retain, rehost, relocate, replatform, refactor, repurchase) as feasible or not, with evidence.
+4. For each target pattern under consideration, record integration points, data architecture, cross-cutting concerns, constraining rules, risks and rollback, and relative effort.
+5. Add a pending `Decision` section and stop for the architect.
+
+## Limits
+
+- Effort is relative only. The skill does not claim the chosen strategy is faster or lower risk.
+- It lists components not examined and languages without structure under `Not verified`.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook is [Target Architecture](/playbooks/modernization/target-architecture).
+
+## Skill source
+
+The full recipe is the skill file itself: [`target-architecture/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/target-architecture/SKILL.md) on GitHub.

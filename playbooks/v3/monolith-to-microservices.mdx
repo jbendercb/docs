@@ -1,0 +1,52 @@
+---
+title: "Monolith to Microservices"
+sidebarTitle: "Monolith to Microservices"
+description: "Design the extraction of one service from a monolith using the strangler fig pattern, covering service boundary, database decomposition and facade."
+icon: "puzzle-piece"
+---
+
+## What it is for
+
+Phase five of modernization, one work package at a time. It is a design only: which programs, modules and tables move, share or stay; how the data is split; and how traffic is routed through a facade during coexistence.
+
+**Use it when**
+
+- An approved work package is ready for service-extraction design.
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- The earlier phase files in `modernization/`, approved by a person. See [the phase-file convention](/playbooks/v3/code-modernization#the-modernization-phase-files).
+- `04-work-packages.md`, `03-target-architecture.md` and `02-rules-inventory.md`, all approved. The skill asks which work package to extract.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `monolith-to-microservices` when the request fits.
+- **By name.** Ask for it directly (`/monolith-to-microservices` in Claude Code; the plugin may show it as `corestory-local:monolith-to-microservices`), or say "use the monolith-to-microservices skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- `modernization/05-extraction-<wp>.md` (for example `05-extraction-WP-01.md`): a MOVE, SHARE or LEAVE classification, a per-table ownership and strategy, the facade and communication plan, and `Not verified`. It stays `draft`.
+
+## How it works
+
+1. Preflight, then read the approved inputs and take the package's rule ids.
+2. Classify each program, module and table with `connections`, `list_files` and `read_file`, looking for hidden coupling such as shared state and batch jobs touching the same tables. For each rule, `entity` with evidence, `read_file`, and where it lives after the move.
+3. Decompose the database: owned, read-only or shared writes per table; choose and justify a strategy; give sync and rollback.
+4. List entry points with `search` and `connections`, and choose the facade and sync or async interactions.
+5. Stop for the engineering lead's review. The build uses [Feature Implementation](/playbooks/v3/implement-feature) in a separate session.
+
+## Limits
+
+- Circular dependencies and unread edges are listed rather than resolved silently.
+- Performance after extraction is untested; CoreStory does not run code. No claim of speed or reduced risk is made.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook is [Monolith to Microservices](/playbooks/modernization/monolith-to-microservices).
+
+## Skill source
+
+The full recipe is the skill file itself: [`monolith-to-microservices/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/monolith-to-microservices/SKILL.md) on GitHub.

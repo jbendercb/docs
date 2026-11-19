@@ -1,0 +1,57 @@
+---
+title: "Behavioral Test Generation"
+sidebarTitle: "Behavioral Tests"
+description: "Write behavioral unit or integration tests for a module or business rule from CoreStory v3 rule evidence, with a rule-to-test coverage map."
+icon: "vial"
+---
+
+## What it is for
+
+Writes tests for validation, calculation, state-transition and authorization behavior, each tied to a rule the agent confirmed in source. It records which rules are already covered by existing tests.
+
+**Use it when**
+
+- You want tests for a module, endpoint or business rule.
+- You want to find coverage gaps against the rules in the code.
+
+**Skip it when**
+
+- You need browser or full user-journey tests (use [End-to-End Test Generation](/playbooks/v3/generate-e2e-tests)).
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- An existing test framework. The skill matches the repo's conventions and does not set up new infrastructure without asking.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `generate-tests` when the request fits.
+- **By name.** Ask for it directly (`/generate-tests` in Claude Code; the plugin may show it as `corestory-local:generate-tests`), or say "use the generate-tests skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- New test files in the repo's test location.
+- `TEST-NOTES.md` in the repository root: scope, a rule inventory with each row marked covered, partly covered or uncovered (with test `path:start-end`), tests added, commands and results, and `Not verified`.
+
+## How it works
+
+1. Preflight with `status` and `corpus_info`; state the scope in one line.
+2. Build an inventory: `search` with `kind:"sao:Rule"` per category, `entity` with evidence, and `read_file` on the evidence lines. Keep only rules whose quote or condition was seen, including rules enforced in other layers.
+3. Read existing tests with `list_files` and `read_file` for framework, layout and run command, and mark each inventory row's coverage.
+4. Write tests that assert observable outcomes, cite the rule id, and use the evidence values with a boundary on each side.
+5. Run each new test and the relevant suite, and record the results.
+
+## Limits
+
+- A failing test is a finding. The skill reports whether the rule or the code looks wrong, with both locations, and does not bend the assertion to match.
+- Coverage labels come from reading tests, not from a coverage tool.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook is [Behavioral Test Coverage](/playbooks/test-generation/behavioral-test-coverage).
+
+## Skill source
+
+The full recipe is the skill file itself: [`generate-tests/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/generate-tests/SKILL.md) on GitHub.

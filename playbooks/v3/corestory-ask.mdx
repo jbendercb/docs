@@ -1,0 +1,55 @@
+---
+title: "Compare CoreStory with Source"
+sidebarTitle: "Compare with Source"
+description: "Check a CoreStory v3 answer against the source and record where they differ, as evidence-backed gap candidates."
+icon: "scale-balanced"
+---
+
+## What it is for
+
+A deliberate differential, not routine development. The agent records what CoreStory says about a focused question, investigates the same question independently in source, and tabulates the differences.
+
+**Use it when**
+
+- You want to audit what CoreStory says about part of a codebase.
+- You suspect a missed or misstated rule and want evidence for a gap report.
+
+**Skip it when**
+
+- You want an answer to use, not an audit of the tool (use [Using CoreStory v3](/playbooks/v3/using-corestory)).
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- One focused question to test. The skill asks if you give none.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `corestory-ask` when the request fits.
+- **By name.** Ask for it directly (`/corestory-ask` in Claude Code; the plugin may show it as `corestory-local:corestory-ask`), or say "use the corestory-ask skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- `ASK-DELTA.md` in the repository root: a table with claim, CoreStory evidence, source evidence and a classification (CoreStory gap, CoreStory adds value, staleness, uncertain), and `Not verified`.
+
+## How it works
+
+1. Preflight with `status` and `corpus_info`; stop if the snapshot is not ready.
+2. Record the CoreStory side with `search`, `rules_for`, `entity` and `connections`, noting each claim, its id and its cited lines.
+3. Investigate independently with Grep and `read_file`. A graph claim is not treated as true.
+4. Write the delta table and classify each row.
+5. Offer a narrow gap report only for well-evidenced gaps.
+
+## Limits
+
+- Deltas are leads, not verdicts. `search` never returns an empty result, so a rule missing from the results does not prove it is absent.
+- A difference may be staleness if the working tree changed after the snapshot.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+
+## Skill source
+
+The full recipe is the skill file itself: [`corestory-ask/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/corestory-ask/SKILL.md) on GitHub.

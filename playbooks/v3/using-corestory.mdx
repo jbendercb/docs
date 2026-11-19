@@ -1,0 +1,71 @@
+---
+title: "Using CoreStory v3"
+sidebarTitle: "Using CoreStory v3"
+description: "Answer questions about a codebase with CoreStory v3, citing source lines you checked, and learn what the tools do and where they fall short."
+icon: "compass"
+---
+
+## What it is for
+
+Two skills sit behind this page. `using-corestory` is the short recipe for answering a question about a codebase with evidence. `corestory-reference` is the setup and tool reference: how to install, what each tool does, and why a call can fail or look empty.
+
+**Use it when**
+
+- You ask how something works, where a rule or value comes from, or what a file enforces.
+- You want to trace or explain code in a repository CoreStory v3 has indexed.
+- A CoreStory call failed or returned something that looks empty, and you want to know why.
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. See [Install CoreStory v3](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or an MCP connection, so the agent can reach the tools.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it answers.
+- **By name.** Ask for it (`/using-corestory` or `/corestory-reference` in Claude Code; the plugin may show them as `corestory-local:using-corestory`).
+- **From a rules file.** Without the plugin hook, add the [one-line fallback](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+An answer in the conversation, with `path:start-end` citations for lines the agent read. There is no notes file; this skill is for questions, not deliverables.
+
+## How it works
+
+1. Preflight: `status`, then `corpus_info`. If the snapshot is not ready, the agent relays `status.next_step` and asks whether to continue from source alone. It never runs `init` or `ingest` without your explicit OK, because `ingest` spends your model-provider money.
+2. For rules about a concept, `search` with `kind:"sao:Rule"`. For code, `kind:"plot:Chunk"`.
+3. For rules about a file or lines, `rules_for`, following `next_call` to the end.
+4. For detail, `entity` with `include:["description","evidence"]`. A plain `entity` call returns almost nothing for a rule.
+5. Verify: `read_file` on the cited lines before stating the rule.
+6. For structure, `connections` for edges and `list_files` for layout.
+
+## The tools
+
+| Tool | What it does |
+|---|---|
+| `status` | Setup state, selected snapshot, latest ingest and any failure reason. Called first. |
+| `init` | Creates the local store. Needs your own telemetry answer. |
+| `ingest` | Builds the graph from the current files. Calls your model provider, can cost money, and blocks until finished. |
+| `corpus_info` | Entity counts by kind. Counts do not prove that ingestion finished. |
+| `search` | Semantic search over rules and code chunks. Needs the embedding key. |
+| `entity` | One entity by exact id; add `include` for a rule's description and evidence. |
+| `connections` | Edges of an entity, paged by `cursor`. The only route to features and capabilities. |
+| `read_file` | Captured source by path and line range, with line numbers. |
+| `list_files` | Captured paths by prefix, paged by `cursor`. |
+| `rules_for` | Rules with evidence in a file or line range, paged by `next_call`. |
+
+## Limits
+
+- `search` has no relevance floor and never returns an empty result. A nonsense query still gets hits, so treat hits as leads. An empty or exhausted result does not prove no rule exists.
+- Keep calls small. Use default limits, follow `next_call` instead of raising `limit`, and read line ranges, not whole files. Large `limit` values and a whole-file `read_file` return very large responses.
+- `rules_for` also returns rules that only support the lines asked about. Rules carry no category and are not linked to features.
+- If `search` says it "could not answer", the embedding key is missing. `rules_for`, `entity`, `connections` and `read_file` still work.
+- A copied or renamed repository folder reads as uninitialized; run `status` after moving one. A failed or partial ingest can leave a store that looks usable, so check `status.latest_ingest`.
+- CoreStory reads and indexes code. It does not run or test it, and it does not call an answer finished.
+- Results describe the ingested snapshot, which may differ from your working tree.
+- Compared with the hosted playbooks: there is no project, PRD, tech spec, or conversation thread here. Everything comes from the local graph through the tools above.
+
+## Skill source
+
+- [`using-corestory/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/using-corestory/SKILL.md)
+- [`corestory-reference/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/corestory-reference/SKILL.md)

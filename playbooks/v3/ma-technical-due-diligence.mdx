@@ -1,0 +1,52 @@
+---
+title: "M&A Technical Due Diligence"
+sidebarTitle: "Technical Due Diligence"
+description: "Review an acquisition target's codebase for technical risk with CoreStory v3 evidence, and write findings to DILIGENCE.md."
+icon: "briefcase"
+---
+
+## What it is for
+
+Walks the main technical risk domains in a target codebase and records each finding with severity and evidence. It separates findings from CoreStory rules from those that come from source alone.
+
+**Use it when**
+
+- You are asked for technical due diligence, or what to worry about in a codebase before buying it.
+- You need a code-grounded view of money handling, access, personal data, integrations and maintainability.
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- Dependency and license checks use manifests and lock files read directly. CoreStory does not index vulnerability or license data.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `ma-technical-due-diligence` when the request fits.
+- **By name.** Ask for it directly (`/ma-technical-due-diligence` in Claude Code; the plugin may show it as `corestory-local:ma-technical-due-diligence`), or say "use the ma-technical-due-diligence skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- `DILIGENCE.md` in the repository root: summary of top findings, architecture and capabilities, critical risks, technical debt, integration effort, recommendations, and `Not verified`. It gives no valuation, dollar or effort figures.
+
+## How it works
+
+1. Preflight with `status` and `corpus_info`; orient with the counts, languages, layout from `list_files`, and capabilities from `connections` and `entity`.
+2. Search each risk domain with `search`, not Grep alone: money and rates, access and secrets, personal data, integrations, maintainability, dependencies.
+3. Open candidates with `entity` and `include:["description","evidence"]`, and check concentration with `rules_for`.
+4. Validate before reporting: `read_file` the cited lines, separate real values from fixtures, and mark the rest unverified.
+5. Write the report.
+
+## Limits
+
+- Security and performance are read, not tested. The skill does not call the target safe.
+- Findings with no cited lines are marked unverified.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook is [M&A Technical Due Diligence](/playbooks/ma-technical-due-diligence).
+
+## Skill source
+
+The full recipe is the skill file itself: [`ma-technical-due-diligence/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/ma-technical-due-diligence/SKILL.md) on GitHub.

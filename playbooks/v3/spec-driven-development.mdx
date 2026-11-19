@@ -1,0 +1,58 @@
+---
+title: "Spec-Driven Development"
+sidebarTitle: "Spec-Driven Dev"
+description: "Write a delta specification for a change to an existing codebase from CoreStory v3 evidence before coding, then plan and implement from it."
+icon: "file-lines"
+---
+
+## What it is for
+
+Produces a specification for a change before any code is written. It is a delta spec: only what changes, grounded in the invariants, reusable components and acceptance criteria that already exist in the code.
+
+**Use it when**
+
+- You want a spec, design or plan before building.
+- The project uses GitHub Spec Kit or has a `.specify` folder.
+
+**Skip it when**
+
+- You are ready to build with no spec step (use [Feature Implementation](/playbooks/v3/implement-feature)).
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- Optional: GitHub Spec Kit, if you want its artifacts. Without it, the spec is a single file.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `spec-driven-development` when the request fits.
+- **By name.** Ask for it directly (`/spec-driven-development` in Claude Code; the plugin may show it as `corestory-local:spec-driven-development`), or say "use the spec-driven-development skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+- With a `.specify/` folder, the skill feeds Spec Kit's commands and does the grounding and validation itself.
+
+## What it produces
+
+- `SPEC.md` in the repository root (or the file you name; with Spec Kit, `.specify/memory/features/<name>/spec.md`): grounding, invariants, reuse, delta, acceptance criteria, a pre-mortem, a file-level plan, and `Not verified`.
+
+## How it works
+
+1. Preflight with `status` and `corpus_info`.
+2. Ground first: `search`, `connections` and `read_file` for patterns and reusable parts; `search` with `kind:"sao:Rule"` and `entity` with evidence for invariants, including those enforced in other layers.
+3. Specify in order: invariants, reuse, delta, and testable acceptance criteria. Mark anything inferred.
+4. Pre-mortem: `rules_for` on each file the delta touches, then `entity` and `read_file`, and record conflicts and failure modes.
+5. Write the file-level plan, ordered by dependency using `connections`.
+6. If you ask for it, write failing tests from the criteria, implement, and record what was tested.
+
+## Limits
+
+- CoreStory does not validate specs. The pre-mortem is the agent's reading of the rules and source, and it is recorded as such.
+- Spec Kit has no command for the validate and verify steps, so the skill does those itself and edits the artifacts directly.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook starts from generated product and technical documents in a hosted project. This one grounds the spec in rules and code read from the local graph.
+
+## Skill source
+
+The full recipe is the skill file itself: [`spec-driven-development/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/spec-driven-development/SKILL.md) on GitHub.

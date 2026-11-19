@@ -1,0 +1,53 @@
+---
+title: "Business Rules Extraction"
+sidebarTitle: "Business Rules"
+description: "Extract and source-verify the business rules in a module or domain that CoreStory v3 has ingested, and write them to a rules inventory."
+icon: "scroll"
+---
+
+## What it is for
+
+Produces a rules inventory where every entry was read back against source. It records where each rule is enforced and what happens on violation, and it separates declared-but-unenforced values from real rules.
+
+**Use it when**
+
+- You need a list of the calculations, validations, authorization checks or state transitions in a module or domain.
+- You are starting a modernization and need the behavioral contract.
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- A narrow scope. If the scope is broad, the skill asks for one module or domain.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `business-rules-extraction` when the request fits.
+- **By name.** Ask for it directly (`/business-rules-extraction` in Claude Code; the plugin may show it as `corestory-local:business-rules-extraction`), or say "use the business-rules-extraction skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+- Inside a modernization it writes to `modernization/02-rules-inventory.md` with the phase header; see [the phase-file convention](/playbooks/v3/code-modernization#the-modernization-phase-files).
+
+## What it produces
+
+- `RULES.md` in the repository root (or the file you name): one block per rule with claim, category, evidence quote with `path:start-end`, enforcement point, values, status (confirmed, corrected, declared-not-enforced, uncertain), the CoreStory id, and notes. It ends with a table of unenforced and uncertain rules and `Not verified`.
+
+## How it works
+
+1. Preflight with `status` and `corpus_info`; restate the scope.
+2. Concept sweep with `search` (`kind:"sao:Rule"`), then a file sweep with `rules_for` following `next_call`, which finds rules the concept sweep missed.
+3. Open every candidate with `entity` and `include:["description","evidence"]`.
+4. Verify with `read_file` on each evidence span; find the enforcement point and read values from source, including lookup tables.
+5. Trace the main entry points with `connections` and `read_file`, and add behavior the graph did not give as `flow-trace` rules.
+
+## Limits
+
+- The inventory is a set of verified rules, not a claim that every rule was found. An empty or exhausted `rules_for` result does not mean a file has no rules.
+- Constructs the graph has no structure for, such as some non-code artifacts, are listed under `Not verified`.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook is [Business Rules Extraction](/playbooks/business-rules-extraction).
+
+## Skill source
+
+The full recipe is the skill file itself: [`business-rules-extraction/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/business-rules-extraction/SKILL.md) on GitHub.
