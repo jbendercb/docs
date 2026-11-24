@@ -1,0 +1,59 @@
+---
+title: "Behavioral Verification"
+sidebarTitle: "Behavioral Verification"
+description: "Compare a modernized component against the approved rules inventory by reading legacy and new code, classify each rule, and recommend tests."
+icon: "square-check"
+---
+
+## What it is for
+
+Phase six of modernization. It is a source-to-source comparison, rule by rule, that classifies each rule and recommends the tests that would settle what reading cannot. It does not run either system.
+
+**Use it when**
+
+- A component has been rewritten and you want a rule-by-rule comparison with the legacy behavior.
+
+**Skip it when**
+
+- The code under review was written in the same session. The skill asks for a fresh session.
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- The earlier phase files in `modernization/`, approved by a person. See [the phase-file convention](/playbooks/v3/code-modernization#the-modernization-phase-files).
+- An approved `02-rules-inventory.md`. The ingested snapshot is the legacy system; the modernized code is read from the working tree unless it was ingested too.
+- The component name and where the new code lives.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `behavioral-verification` when the request fits.
+- **By name.** Ask for it directly (`/behavioral-verification` in Claude Code; the plugin may show it as `corestory-local:behavioral-verification`), or say "use the behavioral-verification skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- `modernization/06-verification-<component>.md`: a table of rule id, legacy cite, new cite, classification and notes; differences; missing rules; a recommendation (ready for the eliminate step, needs remediation, or needs review); a `Recommended tests` section; and `Not verified`. It stays `draft` for a domain expert.
+
+## How it works
+
+1. Preflight, then read the approved inventory and scope narrowly.
+2. Legacy side: `entity` with evidence, then `read_file` to confirm the condition, values and violation behavior. If the inventory and source disagree, source wins.
+3. New side: find the implementation and read it, comparing conditions, literals, rounding, ordering, side effects and errors.
+4. Classify each rule as Equivalent, Improved, Different, Missing or Unverified, citing both sides; never on a name match alone.
+5. Run `rules_for` on the legacy files to find rules the inventory lacks that the new code also omits.
+6. Write the report and the recommended tests, tied to rule ids.
+
+## Limits
+
+- No behavior was verified at runtime. The recommended tests are suggestions, and the report says none was run.
+- A domain expert or engineering lead validates before legacy code is retired.
+- For an independent check at the level of single behaviors, use [Vibe Conformance Audit](/playbooks/v3/vibe-conformance-audit).
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook is [Behavioral Verification](/playbooks/modernization/behavioral-verification).
+
+## Skill source
+
+The full recipe is the skill file itself: [`behavioral-verification/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/behavioral-verification/SKILL.md) on GitHub.

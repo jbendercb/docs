@@ -1,0 +1,53 @@
+---
+title: "CoreStory v3 with Jira"
+sidebarTitle: "With Jira"
+description: "Work a Jira ticket against the code: read the ticket, find the affected code and rules with CoreStory v3, then fix it, enrich it, or draft a new one."
+icon: "diagram-project"
+---
+
+## What it is for
+
+Combines a Jira ticket with what CoreStory v3 knows about the code. CoreStory v3 has no Jira integration of its own; Jira comes from a Jira or Atlassian MCP server if you have one connected.
+
+**Use it when**
+
+- You have a Jira key or link and want the affected code, rules, risks and acceptance criteria found.
+- You want a ticket triaged, enriched with a comment, or written up from scratch.
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- A Jira or Atlassian MCP server connected to the agent. Without one, the skill asks you to paste the ticket and does not guess its content.
+- Jira credentials stay in your MCP configuration. The skill does not put tokens in repository files.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `using-corestory-with-jira` when the request fits.
+- **By name.** Ask for it directly (`/using-corestory-with-jira` in Claude Code; the plugin may show it as `corestory-local:using-corestory-with-jira`), or say "use the using-corestory-with-jira skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- `JIRA-NOTES.md` in the repository root: the ticket as read, affected files with `path:start-end`, rules in force, risks, test surface, proposed acceptance criteria (labeled as proposed), any draft comment or ticket, and `Not verified`.
+
+## How it works
+
+1. Preflight with `status` and `corpus_info`, then look for a Jira MCP tool.
+2. Read the ticket into the notes file. A wrong key or denied access stops the work; the skill does not invent the ticket.
+3. Route: a defect goes to [Bug Resolution](/playbooks/v3/bug-resolver), a feature to [Feature Implementation](/playbooks/v3/implement-feature), and triage or enrichment stays here.
+4. Find the code and rules with `search`, `entity`, `read_file` and `connections`.
+5. Draft any comment, new ticket, field change or transition in the notes file. It posts only when you ask, and reports success only if Jira confirms.
+
+## Limits
+
+- Estimates are labeled as estimates. Where the ticket and the code disagree, the notes say which source each claim came from.
+- Jira writes can be denied or rate limited; the draft stays in the notes file when that happens.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook pushes migration work packages into Jira as epics and stories. This v3 page covers ticket-by-ticket work only; it does not bulk-create work items.
+
+## Skill source
+
+The full recipe is the skill file itself: [`using-corestory-with-jira/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/using-corestory-with-jira/SKILL.md) on GitHub.

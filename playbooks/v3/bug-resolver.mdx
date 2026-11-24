@@ -1,0 +1,59 @@
+---
+title: "Bug Resolution"
+sidebarTitle: "Bug Resolution"
+description: "Find a bug's root cause from CoreStory v3 rule evidence, fix it test-first, and record the investigation in BUG-NOTES.md."
+icon: "bug"
+---
+
+## What it is for
+
+Takes a defect, regression or wrong result and works it from symptom to fix. Before any edit it looks for the same value or rule enforced in other layers, because the file that shows the symptom is often not the one that decides the outcome.
+
+**Use it when**
+
+- You have a bug report, a failing behavior, or a bug ticket in an indexed repository.
+- The fix may touch a value that is also checked in a service, schema, config file or UI validator.
+
+**Skip it when**
+
+- The work is a new feature (use [Feature Implementation](/playbooks/v3/implement-feature)).
+- You only want to understand how something works (use [Using CoreStory v3](/playbooks/v3/using-corestory)).
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- Tests that can run in this repository. The skill writes a failing test first; if tests cannot run, it says so in the notes file instead of claiming a pass.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `bug-resolver` when the request fits.
+- **By name.** Ask for it directly (`/bug-resolver` in Claude Code; the plugin may show it as `corestory-local:bug-resolver`), or say "use the bug-resolver skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- `BUG-NOTES.md` in the repository root (or the file you name): symptom, root cause with `path:start-end`, rules checked before each edit, constraints found in other layers, sibling sites changed or left alone, commands run, and a `Not verified` section.
+- A regression test and the code fix. The skill does not commit, push or open tickets unless you ask.
+
+## How it works
+
+1. Preflight with `status` and `corpus_info`; stop and relay `status.next_step` if the snapshot is not ready.
+2. Write the symptom, expected behavior and reproduction at the top of the notes file.
+3. Investigate with `search` (rules and code), `entity` for the statement and evidence, `connections` for callers and callees, and `read_file` for the lines.
+4. Sweep other layers: search for each business noun or quantity in two phrasings, open every hit outside the files to be edited, and record each as a constraint from another layer. On a conflict, keep the stricter enforced value or stop and name the conflict.
+5. Write a regression test that fails first, then call `rules_for` on the exact lines before every edit.
+6. Make the smallest fix, run the tests, and finish the notes.
+
+## Limits
+
+- A rule found in the graph is a lead until the evidence lines have been read back against source.
+- An empty `rules_for` page does not mean no rule applies.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook works from a hosted project and its generated documents. This one works from the local rule graph, and its cross-layer sweep is part of the required steps.
+
+## Skill source
+
+The full recipe is the skill file itself: [`bug-resolver/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/bug-resolver/SKILL.md) on GitHub.

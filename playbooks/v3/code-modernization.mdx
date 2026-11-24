@@ -1,0 +1,85 @@
+---
+title: "Code Modernization"
+sidebarTitle: "Code Modernization"
+description: "Route a legacy modernization through its phases one at a time, using phase files in the repo as state and human approval between phases."
+icon: "arrows-rotate"
+---
+
+## What it is for
+
+A router and gatekeeper. It reads the `modernization/` folder, names the current phase, hands off to the phase skill, and enforces the rule that a person approves each phase before the next begins. It does not do a phase's work.
+
+**Use it when**
+
+- You are modernizing, migrating or refactoring a legacy system and want a governed sequence.
+- You want to know which phase is next.
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- Someone who can approve each phase: the architect, the engineering lead, or a domain expert, depending on the phase.
+- For COBOL or SQL-heavy systems, the agent asks about artifacts that carry rules but may have no structure in the graph (JCL, copybooks, lookup tables, stored procedures).
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `code-modernization` when the request fits.
+- **By name.** Ask for it directly (`/code-modernization` in Claude Code; the plugin may show it as `corestory-local:code-modernization`), or say "use the code-modernization skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- No document of its own. It reads and updates the headers of the phase files in `modernization/`, and sets `status: approved` only on your explicit statement.
+
+## How it works
+
+1. Preflight with `status` and `corpus_info`; stop and relay `status.next_step` if the snapshot is not ready.
+2. List `modernization/*.md` and read each header to find the current phase.
+3. Name the phase and the files read, then invoke the phase skill.
+4. When the phase skill finishes, present its draft and stop.
+5. On your explicit approval, set the header to `approved` with your name and the date, and say the next phase starts in a new session.
+
+## The modernization phase files
+
+Modernization in CoreStory v3 keeps its state as files in a `modernization/` folder in your repository. Each file is one phase, and each starts with this header:
+
+```yaml
+---
+phase: <name>
+status: draft | approved
+date: YYYY-MM-DD
+snapshot: <corpus_info snapshot id>
+approver: pending | <name>
+---
+```
+
+| File | Phase | Skill |
+|---|---|---|
+| `01-assessment.md` | Assessment | [Codebase Assessment](/playbooks/v3/codebase-assessment) |
+| `02-rules-inventory.md` | Business rules | [Business Rules Extraction](/playbooks/v3/business-rules-extraction) |
+| `03-target-architecture.md` | Strategy and decision record | [Target Architecture](/playbooks/v3/target-architecture) |
+| `04-work-packages.md` | Sequencing | [Decomposition and Sequencing](/playbooks/v3/decomposition-sequencing) |
+| `05-extraction-<wp>.md` | Service extraction design | [Monolith to Microservices](/playbooks/v3/monolith-to-microservices), then [Feature Implementation](/playbooks/v3/implement-feature) |
+| `06-verification-<component>.md` | Behavioral comparison | [Behavioral Verification](/playbooks/v3/behavioral-verification) |
+
+How the files are used:
+
+- **State.** The current phase is the first row with no file, or with a file still marked `draft`. A draft is waiting for a person; the router does not advance past it.
+- **Approval.** A phase is approved only when its header says `approved` with a named approver, set after you say so in the conversation. The agent never approves a phase on its own.
+- **One phase per session.** Each phase skill writes a `draft` file and stops. The next phase starts in a new session.
+- **Staleness.** If a file's `snapshot` differs from the current `corpus_info` snapshot, the file may be out of date, and the agent tells you so.
+- **Agent-led variant.** [Vibe Modernization](/playbooks/v3/vibe-modernization) uses the same files plus per-ticket gap, build and conformance files.
+
+
+## Limits
+
+- It makes no claim that modernization is faster, safer or lower risk. The verification phases compare source and rules and recommend tests.
+- For agent-led, human-gated work with an independent audit, it hands off to [Vibe Modernization](/playbooks/v3/vibe-modernization).
+- Hosted playbook note: the hosted [Code Modernization](/playbooks/code-modernization) playbook keeps state in a hosted project; v3 keeps it in files in your repository.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+
+## Skill source
+
+The full recipe is the skill file itself: [`code-modernization/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/code-modernization/SKILL.md) on GitHub.

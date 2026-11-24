@@ -1,0 +1,57 @@
+---
+title: "Constraint Tickets"
+sidebarTitle: "Constraint Tickets"
+description: "Turn a change request into one-constraint tickets built from the code's existing business rules, and optionally generate a completion hook for an agent."
+icon: "list-check"
+---
+
+## What it is for
+
+A constraint is a fact the request never states but the change must respect. This skill builds a list of them from verified rules, routes each to a ticket, an assertion or a flag, and can draft a completion hook that tells an agent not to finish until the checkable ones hold.
+
+**Use it when**
+
+- A request depends on rules it never mentions, and you want those turned into separate tickets.
+- You want a stop or completion hook for an agent, as a file for you to review.
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- For the hook, the agent harness you intend to use. The template differs by harness, and the assertions, build command and fixture are yours to write; the skill can draft them from verified rules.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `constraint-tickets` when the request fits.
+- **By name.** Ask for it directly (`/constraint-tickets` in Claude Code; the plugin may show it as `corestory-local:constraint-tickets`), or say "use the constraint-tickets skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+- Ask for "constraint tickets", "a completion hook" or "a stop hook".
+
+## What it produces
+
+- `CONSTRAINTS.md` in the repository root: the constraint list with evidence, a routing table, quantifier checks, and `Not verified`.
+- `tickets/NN-slug.txt`, one constraint per ticket, in plain business language with no file paths.
+- When asked, a gate script and a per-harness hook binding, written as files for you to install by hand. Nothing is installed, committed or pushed unless you ask.
+
+## How it works
+
+1. Preflight with `status` and `corpus_info`.
+2. Write the request and the business nouns and quantities it touches.
+3. Find rules with `search` (`kind:"sao:Rule"`, two phrasings per noun) and `rules_for` on each file to be touched; confirm each with `entity` and `read_file`.
+4. Route each constraint to a ticket, a checkable assertion, or an advisory flag. Before calling one violated, check the quantifier: test it at the strength written, no stronger.
+5. Write one ticket per constraint, naming the area and never the code site.
+6. On request, generate the hook files from the template and validate them with the template's checks.
+
+## Limits
+
+- Whether the code satisfies a constraint is the agent's reading of source, marked as such. It is not a CoreStory finding.
+- A passing gate checks only its own assertions. The sequencing idea (constraint tickets before the feature) is unmeasured. A completion hook written by engineers is a practice you adopt; it is not a built-in CoreStory v3 feature, and the skill does not install it.
+- The hook template was exercised on one agent harness; the Claude Code binding is documented but not measured.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted skill generates constraints from hosted spec documents. CoreStory v3 has no document generation, so this version builds the list from rules.
+
+## Skill source
+
+The full recipe is the skill file itself: [`constraint-tickets/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/constraint-tickets/SKILL.md) on GitHub.

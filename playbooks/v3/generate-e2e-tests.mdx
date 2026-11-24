@@ -1,0 +1,57 @@
+---
+title: "End-to-End Test Generation"
+sidebarTitle: "E2E Tests"
+description: "Write end-to-end tests for a critical user journey or cross-service path, grounded in CoreStory v3 rule and code-path evidence."
+icon: "route"
+---
+
+## What it is for
+
+Builds an end-to-end test for one journey. CoreStory has no journey or acceptance-criteria store, so the agent traces the journey from code and rules, and each verified rule becomes an assertion.
+
+**Use it when**
+
+- You want a test that covers a user journey, API flow, or API-to-database path.
+- You want the failure branches the rules define covered, not only the happy path.
+
+**Skip it when**
+
+- You need tests for a single rule or module (use [Behavioral Test Generation](/playbooks/v3/generate-tests)).
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- A test environment the tests can run against (app startup, database, test client). If none exists, the skill proposes the smallest fit and asks before adding dependencies.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `generate-e2e-tests` when the request fits.
+- **By name.** Ask for it directly (`/generate-e2e-tests` in Claude Code; the plugin may show it as `corestory-local:generate-e2e-tests`), or say "use the generate-e2e-tests skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- New E2E test files in the repo's E2E location.
+- `E2E-NOTES.md` in the repository root: journey steps with `path:start-end`, rules asserted (id and values), tests added, commands and results, branches not covered, and `Not verified`.
+
+## How it works
+
+1. Preflight with `status` and `corpus_info`; name one journey.
+2. Trace it: `search` and `read_file` for the entry point, `connections` for callers and callees across layers, and the steps recorded as `step: path:start-end`.
+3. Find rules on the path with `search` (`kind:"sao:Rule"`), `entity` with evidence and `read_file`; preconditions and failure branches come from the same reads.
+4. Read existing E2E tests and config for framework, data isolation and the run command.
+5. Write the happy path, then the failure branches. If tests can run, run each repeatedly and record the results.
+
+## Limits
+
+- If tests cannot run in the session, the notes say so; nothing is reported as passing.
+- A failing test is a finding about the rule or the code, with both locations.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook is [End-to-End Test Generation](/playbooks/test-generation/e2e-test-generation).
+
+## Skill source
+
+The full recipe is the skill file itself: [`generate-e2e-tests/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/generate-e2e-tests/SKILL.md) on GitHub.

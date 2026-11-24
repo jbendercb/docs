@@ -101,6 +101,53 @@
               "playbooks/using-corestory-with-jira",
               "playbooks/feature-gap-analysis"
             ]
+          },
+          {
+            "group": "CoreStory v3 Playbooks",
+            "pages": [
+              "playbooks/v3/index",
+              "playbooks/v3/using-corestory",
+              {
+                "group": "Development",
+                "pages": [
+                  "playbooks/v3/bug-resolver",
+                  "playbooks/v3/implement-feature",
+                  "playbooks/v3/spec-driven-development",
+                  "playbooks/v3/constraint-tickets",
+                  "playbooks/v3/using-corestory-with-jira",
+                  "playbooks/v3/corestory-ask"
+                ]
+              },
+              {
+                "group": "Testing",
+                "pages": [
+                  "playbooks/v3/spec-driven-test-generation",
+                  "playbooks/v3/generate-tests",
+                  "playbooks/v3/generate-e2e-tests"
+                ]
+              },
+              {
+                "group": "Analysis",
+                "pages": [
+                  "playbooks/v3/business-rules-extraction",
+                  "playbooks/v3/feature-gap-analysis",
+                  "playbooks/v3/codebase-assessment",
+                  "playbooks/v3/ma-technical-due-diligence"
+                ]
+              },
+              {
+                "group": "Modernization",
+                "pages": [
+                  "playbooks/v3/code-modernization",
+                  "playbooks/v3/target-architecture",
+                  "playbooks/v3/decomposition-sequencing",
+                  "playbooks/v3/monolith-to-microservices",
+                  "playbooks/v3/behavioral-verification",
+                  "playbooks/v3/vibe-modernization",
+                  "playbooks/v3/vibe-conformance-audit"
+                ]
+              }
+            ]
           }
         ]
       }

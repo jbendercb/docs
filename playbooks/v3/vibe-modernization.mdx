@@ -1,0 +1,54 @@
+---
+title: "Vibe Modernization"
+sidebarTitle: "Vibe Modernization"
+description: "Route agent-led, human-gated modernization from a legacy system into an existing or new target, one step per session, with an independent conformance audit."
+icon: "gauge-high"
+---
+
+## What it is for
+
+A router with constraints for agent-led modernization. It uses the same `modernization/` files as Code Modernization plus per-ticket gap, build and conformance files, and it constrains each step so claims stay anchored in source.
+
+**Use it when**
+
+- You want agent-led legacy-to-target migration with human gates and a separate audit.
+- The target may be an existing codebase or a new one.
+
+## Prerequisites
+
+- A repository that CoreStory v3 has indexed. The skill checks this first with `status` and `corpus_info`, and stops if the snapshot is missing or the last ingest failed. Setup is on the [CoreStory v3 playbooks overview](/playbooks/v3/index#install-corestory-v3).
+- The `corestory-local` plugin or the MCP connection, so the agent can reach the CoreStory v3 tools.
+- The earlier phase files in `modernization/`, approved by a person. See [the phase-file convention](/playbooks/v3/code-modernization#the-modernization-phase-files).
+- The legacy system is the ingested snapshot. The target is read from the working tree; the skill does not ingest an empty or tiny target, and it does not refuse a missing one.
+
+## How to invoke it
+
+- **Automatic.** With the Claude Code plugin, a session hook points the agent to the matching skill before it edits or answers. The agent picks `vibe-modernization` when the request fits.
+- **By name.** Ask for it directly (`/vibe-modernization` in Claude Code; the plugin may show it as `corestory-local:vibe-modernization`), or say "use the vibe-modernization skill" in other agents.
+- **From a rules file.** Without the plugin hook, add the one-line fallback from the [overview](/playbooks/v3/index#how-the-agent-finds-the-skills) to `CLAUDE.md` or `AGENTS.md`.
+
+## What it produces
+
+- The files in `modernization/`, one per step, as the steps run: `01` to `04`, then `05-gap-<ticket>.md`, `05-build-<ticket>.md`, `06-verification-<component>.md` and `07-conformance-<component>.md`.
+
+## How it works
+
+1. Recover both architectures with [Codebase Assessment](/playbooks/v3/codebase-assessment), adding the target's idioms.
+2. Write the behavioral contract with [Business Rules Extraction](/playbooks/v3/business-rules-extraction), classifying each rule PRESERVE, MODIFY or DISCARD for a domain expert.
+3. For a new target, run [Target Architecture](/playbooks/v3/target-architecture) first; then build the backlog with [Decomposition and Sequencing](/playbooks/v3/decomposition-sequencing).
+4. Per ticket, write a gap file (EXISTS, EXTEND, NEW or CONFLICT) before any code, then build with [Feature Implementation](/playbooks/v3/implement-feature).
+5. In separate sessions, run [Behavioral Verification](/playbooks/v3/behavioral-verification), then [Vibe Conformance Audit](/playbooks/v3/vibe-conformance-audit). Sign off equivalence only when the two agree.
+
+## Limits
+
+- Rules for every step: one step per session, stop at each gate, never approve a step yourself, never verify a build that session made, and never modify the legacy system.
+- Single-project mode: the server serves one ingested snapshot, the legacy. Target claims come from files the agent read.
+- It does not claim agent-led work is faster or safer.
+- CoreStory reads and indexes code. It does not run or test it. Any test results in the output are the agent's own, from commands it ran.
+- Results describe the ingested snapshot, which may differ from your working tree if files changed since.
+- Hits from `search` are leads, not proof. The skill reads the cited lines before it relies on a rule, and lists what it could not check under `Not verified`.
+- Compared with the hosted playbook: the hosted playbook is [Vibe Modernization](/playbooks/modernization/vibe-modernization), which can query a second hosted project for the target. In v3 the target is read from the working tree.
+
+## Skill source
+
+The full recipe is the skill file itself: [`vibe-modernization/SKILL.md`](https://github.com/CoreStoryAI/agent-skills/blob/main/plugins/corestory-local/skills/vibe-modernization/SKILL.md) on GitHub.

@@ -1,0 +1,173 @@
+---
+title: "CoreStory v3 Playbooks"
+sidebarTitle: "Overview"
+description: "Skills that teach coding agents to use CoreStory v3 for rule-grounded development, testing, analysis and modernization, and how to install them."
+icon: "book-open"
+---
+
+CoreStory v3 builds a local map of a codebase, from applications down to business rules, each traced to the code behind it, and serves that map to coding agents over MCP. The v3 skills are short recipes that tell an agent which CoreStory v3 tools to call, in what order, and which file to write the result to.
+
+<Note>
+These playbooks are for CoreStory v3: the desktop app, or a project ingested with v3. For other CoreStory projects, use the [Playbooks](/playbooks/index) section.
+</Note>
+
+## What a v3 skill is
+
+A skill is a folder with a `SKILL.md` file that an agent loads when the task matches. Every v3 skill follows the same pattern:
+
+- **Preflight first.** It calls `status` and `corpus_info`. If the repository is not indexed, or the last ingest failed, it stops and relays the next step. It never runs `init` or `ingest` without your explicit OK.
+- **Rules are leads until checked.** It reads the cited source lines before relying on a rule, and cites only lines it read.
+- **Output goes to a file in your repository**, such as `BUG-NOTES.md` or `RULES.md`, not to the chat. Each file ends with a `Not verified` section.
+- **CoreStory does not run code.** It reads and indexes it. Any test results come from commands the agent ran.
+
+For the tools themselves and their limits, see [Using CoreStory v3](/playbooks/v3/using-corestory).
+
+## Install CoreStory v3
+
+<Steps>
+  <Step title="Download the command-line tool">
+    Get the `corestory` command-line tool from [get.corestory.ai](https://get.corestory.ai/). Builds are published for macOS (Apple silicon), Linux (x64) and Windows (x64). Put `corestory` on your PATH and check it with `corestory --version`.
+  </Step>
+  <Step title="Run setup yourself">
+    Run `corestory setup` in your own terminal. It is interactive: you accept the Terms of Use and Privacy Policy, choose your telemetry setting, and add a model key (OpenAI, Azure OpenAI or Anthropic). An agent should never do this for you, and other commands refuse to run until setup is done.
+  </Step>
+  <Step title="Index the repository">
+    From the repository folder, run `corestory init` and then `corestory ingest`. Ingest calls your model provider and can cost money, so run it yourself. Add `.corestory/` to your `.gitignore`.
+  </Step>
+  <Step title="Connect your agent">
+    `corestory mcp` is a stdio MCP server for the repository it is started in. It takes no path argument, so it must start from the repository folder. See the options below.
+  </Step>
+</Steps>
+
+### Connect your agent
+
+<Tabs>
+  <Tab title="Claude Code plugin">
+    ```bash
+    claude plugin marketplace add corestoryai/agent-skills
+    claude plugin install corestory-local@corestory
+    ```
+    The plugin starts `corestory mcp` in the folder Claude Code is working in, and installs the skills and the session hook described below.
+  </Tab>
+  <Tab title="GitHub Copilot">
+    Create `.mcp.json` at the repository root. This also works for Claude Code without the plugin.
+    ```json
+    {"mcpServers":{"corestory":{"type":"stdio","command":"corestory","args":["mcp"]}}}
+    ```
+  </Tab>
+  <Tab title="Cursor">
+    Create `.cursor/mcp.json`. The `cd` makes the server start in your workspace folder.
+    ```json
+    {"mcpServers":{"corestory":{"type":"stdio","command":"sh","args":["-c","cd \"$0\" && exec corestory mcp","${workspaceFolder}"]}}}
+    ```
+  </Tab>
+  <Tab title="Codex">
+    Add this to `~/.codex/config.toml`, with the absolute path of the repository.
+    ```toml
+    [mcp_servers.corestory]
+    command = "corestory"
+    args = ["mcp"]
+    cwd = "/absolute/path/to/your/repository"
+    ```
+  </Tab>
+</Tabs>
+
+Outside the Claude Code plugin, the skills themselves are installed from the [agent-skills repository](https://github.com/CoreStoryAI/agent-skills). A machine-readable catalog is at [get.corestory.ai](https://get.corestory.ai/.well-known/agent-skills/index.json).
+
+### How the agent finds the skills
+
+Agents use the skills far more reliably when pointed to them than when left to discover them.
+
+- **Claude Code plugin.** The plugin ships a `SessionStart` hook that adds one line to the agent's context, pointing it to the CoreStory skills for code changes and codebase questions.
+- **Everywhere else.** Put the same line in `CLAUDE.md` or `AGENTS.md`:
+
+```text
+For any change to this code or any question about it, first use the matching CoreStory skill (implement-feature, bug-resolver, generate-tests, corestory-ask) before editing or answering.
+```
+
+## Playbooks
+
+### AI-assisted development
+
+<CardGroup cols={3}>
+  <Card title="Using CoreStory v3" icon="compass" href="/playbooks/v3/using-corestory">
+    Answer questions about code with cited evidence, and learn the tools and their limits.
+  </Card>
+  <Card title="Bug Resolution" icon="bug" href="/playbooks/v3/bug-resolver">
+    Find a root cause, fix it test-first, and check rules enforced in other layers.
+  </Card>
+  <Card title="Feature Implementation" icon="code-branch" href="/playbooks/v3/implement-feature">
+    Build a change test-first with the rules a ticket never mentions found up front.
+  </Card>
+  <Card title="Spec-Driven Development" icon="file-lines" href="/playbooks/v3/spec-driven-development">
+    Write a delta spec grounded in existing rules before coding.
+  </Card>
+  <Card title="Constraint Tickets" icon="list-check" href="/playbooks/v3/constraint-tickets">
+    Turn a request into one-constraint tickets and an optional completion hook.
+  </Card>
+  <Card title="CoreStory v3 with Jira" icon="diagram-project" href="/playbooks/v3/using-corestory-with-jira">
+    Work a Jira ticket against the code through a Jira MCP server.
+  </Card>
+  <Card title="Compare with Source" icon="scale-balanced" href="/playbooks/v3/corestory-ask">
+    Audit a CoreStory answer against source and record the differences.
+  </Card>
+</CardGroup>
+
+### Testing and verification
+
+<CardGroup cols={3}>
+  <Card title="Test Router" icon="vial-circle-check" href="/playbooks/v3/spec-driven-test-generation">
+    Choose between behavioral and end-to-end tests.
+  </Card>
+  <Card title="Behavioral Tests" icon="vial" href="/playbooks/v3/generate-tests">
+    Rule-grounded unit and integration tests with a coverage map.
+  </Card>
+  <Card title="End-to-End Tests" icon="route" href="/playbooks/v3/generate-e2e-tests">
+    Journey tests traced from code and verified rules.
+  </Card>
+</CardGroup>
+
+### Analysis
+
+<CardGroup cols={3}>
+  <Card title="Business Rules Extraction" icon="scroll" href="/playbooks/v3/business-rules-extraction">
+    A rules inventory where each entry was read back against source.
+  </Card>
+  <Card title="Feature Gap Analysis" icon="magnifying-glass-chart" href="/playbooks/v3/feature-gap-analysis">
+    What exists, what is missing, and the order of work before building.
+  </Card>
+  <Card title="Codebase Assessment" icon="clipboard-check" href="/playbooks/v3/codebase-assessment">
+    Readiness and risk by area for a legacy system.
+  </Card>
+  <Card title="M&A Technical Due Diligence" icon="briefcase" href="/playbooks/v3/ma-technical-due-diligence">
+    A code-grounded risk review of an acquisition target.
+  </Card>
+</CardGroup>
+
+### Modernization
+
+Modernization runs as phases, one per session, with human approval between them. State lives in `modernization/` files in your repository, described on the [Code Modernization](/playbooks/v3/code-modernization) page.
+
+<CardGroup cols={3}>
+  <Card title="Code Modernization" icon="arrows-rotate" href="/playbooks/v3/code-modernization">
+    The router, and the phase-file convention the others use.
+  </Card>
+  <Card title="Target Architecture" icon="sitemap" href="/playbooks/v3/target-architecture">
+    Strategy options and trade-offs, with the decision left to a person.
+  </Card>
+  <Card title="Decomposition and Sequencing" icon="list-ol" href="/playbooks/v3/decomposition-sequencing">
+    Dependency-ordered work packages.
+  </Card>
+  <Card title="Monolith to Microservices" icon="puzzle-piece" href="/playbooks/v3/monolith-to-microservices">
+    Design one strangler-fig service extraction.
+  </Card>
+  <Card title="Behavioral Verification" icon="square-check" href="/playbooks/v3/behavioral-verification">
+    Rule-by-rule comparison of legacy and modernized code.
+  </Card>
+  <Card title="Vibe Modernization" icon="gauge-high" href="/playbooks/v3/vibe-modernization">
+    Agent-led, human-gated migration with an independent audit.
+  </Card>
+  <Card title="Vibe Conformance Audit" icon="magnifying-glass" href="/playbooks/v3/vibe-conformance-audit">
+    A read-only audit of delivered code at the grain of single behaviors.
+  </Card>
+</CardGroup>
