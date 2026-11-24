@@ -64,7 +64,7 @@
         "tab": "Playbooks",
         "groups": [
           {
-            "group": "Playbooks (hosted)",
+            "group": "Playbooks",
             "pages": [
               "playbooks/index",
               {
